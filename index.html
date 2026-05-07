@@ -356,7 +356,8 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:22px;heigh
           <label>Tipo de Placa</label>
           <select id="sPlaca" onchange="onPlacaChg()">
             <option value="0">Astronergy Bifacial 580W N-Type — 580W</option>
-            <option value="1">Huasun 700W</option>
+            <option value="1">OSDA 620W Bifacial — 620W</option>
+            <option value="2">Huasun 700W — 700W</option>
           </select>
         </div>
         <div class="fg" style="margin-bottom:0">
@@ -580,35 +581,36 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:22px;heigh
 // ====== DB ======
 let DB={
   placas:[
-    {nome:'Astronergy Bifacial 580W N-Type',pot:580,preco:526},
-    {nome:'Huasun 700W',pot:700,preco:637}
+    {nome:'Astronergy Bifacial 580W N-Type', pot:580, preco:526},
+    {nome:'OSDA 620W Bifacial',              pot:620, preco:590},
+    {nome:'Huasun 700W',                     pot:700, preco:637}
   ],
   mono:[
-    {nome:'Chint 3kW Mono',        preco:1190,ov:8,  mc4:1},
-    {nome:'Chint 5kW Mono',        preco:1558,ov:14, mc4:2},
-    {nome:'Chint 6kW Mono',        preco:1684,ov:17, mc4:3},
-    {nome:'Chint 7,5kW Mono',      preco:2211,ov:21, mc4:4},
-    {nome:'Chint 10kW Mono',       preco:2800,ov:30, mc4:6}
+    {nome:'Chint 3kW Mono',   preco:1190, ov:8,  mc4:1},
+    {nome:'Chint 5kW Mono',   preco:1558, ov:14, mc4:2},
+    {nome:'Chint 6kW Mono',   preco:1684, ov:17, mc4:3},
+    {nome:'Chint 7,5kW Mono', preco:2211, ov:21, mc4:4},
+    {nome:'Chint 10kW Mono',  preco:2800, ov:30, mc4:6}
   ],
   micro:[
-    {nome:'Microinversor Growatt NEO 2250 x2',preco:790,ov:4,mc4:4}
+    {nome:'Microinversor Growatt NEO 2250 x2', preco:790, ov:4, mc4:4}
   ],
   tri:[
-    {nome:'Sofar 25kW Tri',   preco:6053, ov:72,  mc4:8},
-    {nome:'Chint 25kW Tri',   preco:7684, ov:72,  mc4:8},
-    {nome:'Sofar 30kW Tri',   preco:6306, ov:85,  mc4:8},
-    {nome:'Sofar 37,5kW Tri', preco:6527, ov:108, mc4:10},
-    {nome:'Sofar 50kW Tri',   preco:13369,ov:170, mc4:15},
-    {nome:'Sofar 75kW Tri',   preco:14632,ov:256, mc4:20}
+    {nome:'Sofar 25kW Tri',   preco:6053,  ov:72,  mc4:8},
+    {nome:'Chint 25kW Tri',   preco:7684,  ov:72,  mc4:8},
+    {nome:'Sofar 30kW Tri',   preco:6306,  ov:85,  mc4:8},
+    {nome:'Sofar 37,5kW Tri', preco:6527,  ov:108, mc4:10},
+    {nome:'Sofar 50kW Tri',   preco:13369, ov:170, mc4:15},
+    {nome:'Sofar 75kW Tri',   preco:14632, ov:256, mc4:20}
   ],
   cabo:11,
   mc4:20,
   est:{
-    '2p_colonial':  {nome:'Colonial Madeira 2P', preco:150,passo:2},
-    '2p_fibro':     {nome:'Fibromadeira 2P',      preco:148,passo:2},
-    '4p_minitrilho':{nome:'Minitrilho 4P',        preco:122,passo:4},
-    '4p_solo':      {nome:'Solo 4P',              preco:1000,passo:4},
-    'sem':          {nome:'Sem Estrutura',         preco:0,  passo:0}
+    '2p_colonial':  {nome:'Colonial Madeira 2P', preco:150,  passo:2},
+    '2p_fibro':     {nome:'Fibromadeira 2P',      preco:148,  passo:2},
+    '4p_minitrilho':{nome:'Minitrilho 4P',        preco:122,  passo:4},
+    '4p_solo':      {nome:'Solo 4P',              preco:1000, passo:4},
+    'sem':          {nome:'Sem Estrutura',         preco:0,    passo:0}
   }
 };
 
@@ -954,35 +956,59 @@ function renderAdmTbl(){
 }
 
 function handleUp(input){
-  const file=input.files[0];if(!file)return;
+  const file=input.files[0]; if(!file) return;
   const msg=document.getElementById('uMsg');
-  msg.style.display='block';msg.className='umsg';msg.textContent='Processando...';
+  msg.style.display='block'; msg.className='umsg'; msg.textContent='Processando...';
   const reader=new FileReader();
   reader.onload=e=>{
     try{
       const wb=XLSX.read(e.target.result,{type:'array'});
       const ws=wb.Sheets[wb.SheetNames[0]];
       const rows=XLSX.utils.sheet_to_json(ws,{header:1,defval:null});
-      const nPl=[],nMono=[],nTri=[];
-      let mode='',cabo=DB.cabo,mc4=DB.mc4;
-      rows.forEach(row=>{
-        const c0=row[0]?String(row[0]).trim():'';const c1=row[1];
-        if(c0.toLowerCase().includes('placa solar')){mode='pl';return}
-        if(c0.toLowerCase().includes('monof')){mode='mo';return}
-        if(c0.toLowerCase().includes('trif')){mode='tr';return}
-        if(c0.toLowerCase().includes('estrutur')||c0.toLowerCase().includes('2 em 2')||c0.toLowerCase().includes('4 em 4')){mode='';return}
-        if(c0.toLowerCase().includes('cabo solar')&&typeof c1==='number'){cabo=c1;return}
-        if(!c0&&typeof c1==='number'&&c1<=50&&mode===''){mc4=c1;return}
-        if(mode==='pl'&&c0&&typeof c1==='number'){const m=c0.match(/(\d{3,4})\s*W/i);if(m)nPl.push({nome:c0,pot:parseInt(m[1]),preco:c1})}
-        if(mode==='mo'&&c0&&typeof c1==='number')nMono.push({nome:c0,preco:c1,ov:parseFloat(row[2])||0,mc4:parseInt(row[3])||1});
-        if(mode==='tr'&&c0&&typeof c1==='number')nTri.push({nome:c0,preco:c1,ov:parseFloat(row[2])||0,mc4:parseInt(row[3])||8});
-      });
-      if(nPl.length)DB.placas=nPl;if(nMono.length)DB.mono=nMono;if(nTri.length)DB.tri=nTri;
-      DB.cabo=cabo;DB.mc4=mc4;
+      const nPl=[],nMono=[],nMicro=[],nTri=[];
+      let cabo=DB.cabo, mc4=DB.mc4, mode='';
+      for(let i=0;i<rows.length;i++){
+        const row=rows[i];
+        const c0=row[0]!=null?String(row[0]).trim():'';
+        const c1=row[1], c2=row[2], c3=row[3];
+        const c0l=c0.toLowerCase();
+        if(c0l.includes('placa solar'))          { mode='placa'; continue; }
+        if(c0l.includes('monof'))                { mode='mono';  continue; }
+        if(c0l.includes('trif'))                 { mode='tri';   continue; }
+        if(c0l.includes('estrutur'))             { mode='';      continue; }
+        if(c0l.includes('cabo solar') && typeof c1==='number'){ cabo=c1; continue; }
+        if((c0l.includes('mc4')||c0l.includes('conector'))&&!c0l.includes('inversor')){ mode='mc4'; continue; }
+        if(mode==='mc4' && !c0 && typeof c1==='number' && c1<=200){ mc4=c1; mode=''; continue; }
+        // cabeçalho — pular
+        if(c0l==='preço'||(c0===''&&c1==='Preço')) continue;
+        // microinversor dentro de mono
+        if(mode==='mono' && c0l.includes('micro') && typeof c1==='number'){
+          nMicro.push({nome:c0,preco:c1,ov:typeof c2==='number'?c2:4,mc4:typeof c3==='number'?c3:4}); continue;
+        }
+        if(mode==='placa' && c0 && typeof c1==='number'){
+          const m=c0.match(/(\d{3,4})\s*W/i);
+          if(m) nPl.push({nome:c0,pot:parseInt(m[1]),preco:c1}); continue;
+        }
+        if(mode==='mono' && c0 && typeof c1==='number'){
+          nMono.push({nome:c0,preco:c1,ov:typeof c2==='number'?c2:0,mc4:typeof c3==='number'?c3:1}); continue;
+        }
+        if(mode==='tri' && c0 && typeof c1==='number'){
+          nTri.push({nome:c0,preco:c1,ov:typeof c2==='number'?c2:0,mc4:typeof c3==='number'?c3:8}); continue;
+        }
+      }
+      if(nPl.length)    DB.placas=nPl;
+      if(nMono.length)  DB.mono=nMono;
+      if(nMicro.length) DB.micro=nMicro;
+      if(nTri.length)   DB.tri=nTri;
+      DB.cabo=cabo; DB.mc4=mc4;
       msg.className='umsg ok';
-      msg.textContent=`✅ Atualizado! ${nPl.length} placas · ${nMono.length} inv. mono · ${nTri.length} inv. tri`;
-      renderAdmTbl();rebuildSels();
-    }catch(err){msg.className='umsg err';msg.textContent='❌ Erro: '+err.message}
+      msg.textContent='Atualizado! '+DB.placas.length+' placas - '+DB.mono.length+' mono - '+DB.micro.length+' micro - '+DB.tri.length+' tri - cabo R$'+DB.cabo+' - MC4 R$'+DB.mc4;
+      renderAdmTbl(); rebuildSels();
+    }catch(err){
+      msg.className='umsg err';
+      msg.textContent='Erro: '+err.message;
+      console.error(err);
+    }
   };
   reader.readAsArrayBuffer(file);
 }
