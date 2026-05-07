@@ -336,6 +336,8 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:22px;heigh
   </div>
   <div class="tabs">
     <button class="tab on" onclick="showTab('calc',this)">🧮 Precificador</button>
+    <button class="tab" id="tabMyBtn" onclick="showTab('my',this)" style="display:none">📊 Minhas Propostas</button>
+    <button class="tab" id="tabDashBtn" onclick="showTab('dash',this)" style="display:none">📈 Dashboard</button>
     <button class="tab" id="atab" onclick="showTab('adm',this)" style="display:none">⚙️ Admin</button>
   </div>
 
@@ -534,12 +536,20 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:22px;heigh
       </div>
 
       <div class="card">
-        <div class="ctitle"><span class="ic">👤</span>Dados do Cliente <span style="font-size:10px;color:var(--t3);font-weight:400;margin-left:6px;text-transform:none;letter-spacing:0">(opcional)</span></div>
+        <div class="ctitle"><span class="ic">👤</span>Dados do Cliente <span style="font-size:10px;color:var(--t3);font-weight:400;margin-left:6px;text-transform:none;letter-spacing:0">(nome + telefone = proposta registrada)</span></div>
         <div class="fgrid">
           <div class="fg" style="margin-bottom:0"><label>Nome do cliente</label><input type="text" id="cliNome" placeholder="Ex: João da Silva"></div>
           <div class="fg" style="margin-bottom:0"><label>Telefone</label><input type="text" id="cliTel" placeholder="(44) 99999-9999"></div>
         </div>
-        <div class="fg" style="margin-top:10px;margin-bottom:0"><label>Endereço / Cidade</label><input type="text" id="cliEnd" placeholder="Ex: Rua das Flores, 123 — Maringá-PR"></div>
+        <div class="fgrid" style="margin-top:10px">
+          <div class="fg" style="margin-bottom:0"><label>Endereço / Cidade</label><input type="text" id="cliEnd" placeholder="Ex: Rua das Flores, 123 — Maringá-PR"></div>
+          <div class="fg" style="margin-bottom:0"><label>CPF <span style="font-weight:400;opacity:.6">(opcional)</span></label><input type="text" id="cliCpf" placeholder="000.000.000-00" maxlength="14" oninput="fmtCpf(this)"></div>
+        </div>
+        <div class="fg" style="margin-top:10px;margin-bottom:0">
+          <label>Origem do Lead</label>
+          <select id="cliOrigem"><option value="">Selecione a origem...</option></select>
+        </div>
+        <div id="savePropostaStatus" style="display:none;margin-top:10px;font-size:12px;padding:8px 12px;border-radius:8px"></div>
       </div>
 
       <div class="card">
@@ -572,6 +582,76 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:22px;heigh
       <div class="brow">
         <button class="ba bor" onclick="dlXls()">📥 Baixar Tabela de Preços (Excel)</button>
         <button class="ba bot" onclick="window.print()">📄 Imprimir / PDF</button>
+      </div>
+
+      <div class="sep"><span>Gestão de Vendedores</span></div>
+      <div id="vendTbl" style="overflow-x:auto;margin-bottom:1rem"></div>
+      <div class="brow" style="margin-bottom:0">
+        <button class="ba bor" onclick="abrirModalVend()">➕ Novo Vendedor</button>
+      </div>
+
+      <div class="sep"><span>Origens de Lead</span></div>
+      <div id="origemLista" style="margin-bottom:1rem"></div>
+      <div style="display:flex;gap:8px;align-items:center">
+        <input type="text" id="novaOrigem" placeholder="Nova origem..." style="flex:1">
+        <button class="ba bor" onclick="addOrigem()" style="white-space:nowrap">➕ Adicionar</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- MINHAS PROPOSTAS (vendedor) -->
+  <div id="tMy" class="wrap" style="display:none">
+    <div class="card">
+      <div class="ctitle"><span class="ic">📊</span>Meu Progresso</div>
+      <div id="myProgress"></div>
+    </div>
+    <div class="card">
+      <div class="ctitle"><span class="ic">📋</span>Minhas Propostas</div>
+      <div style="display:flex;gap:8px;margin-bottom:1rem;flex-wrap:wrap">
+        <input type="month" id="myFiltroMes" onchange="loadMyPropostas()" style="flex:1;min-width:140px">
+        <button class="ba bot" onclick="loadMyPropostas()">🔄 Atualizar</button>
+        <button class="ba bor" onclick="exportMyXls()">📥 Excel</button>
+      </div>
+      <div id="myTabela" style="overflow-x:auto"></div>
+    </div>
+  </div>
+
+  <!-- DASHBOARD (admin) -->
+  <div id="tDash" class="wrap" style="display:none">
+    <div class="card">
+      <div class="ctitle"><span class="ic">📈</span>Dashboard de Propostas</div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:1rem;align-items:flex-end">
+        <div class="fg" style="margin-bottom:0;flex:1;min-width:130px"><label>De</label><input type="date" id="dFiltroIni"></div>
+        <div class="fg" style="margin-bottom:0;flex:1;min-width:130px"><label>Até</label><input type="date" id="dFiltroFim"></div>
+        <div class="fg" style="margin-bottom:0;flex:1;min-width:150px"><label>Vendedor</label>
+          <select id="dFiltroVend"><option value="todos">Todos</option></select>
+        </div>
+        <div class="fg" style="margin-bottom:0;flex:1;min-width:140px"><label>Origem</label>
+          <select id="dFiltroOrig"><option value="todas">Todas</option></select>
+        </div>
+        <button class="ba bor" onclick="loadDashboard()" style="align-self:flex-end">🔍 Filtrar</button>
+        <button class="ba bot" onclick="exportDashXls()" style="align-self:flex-end">📥 Excel</button>
+      </div>
+      <div id="dashCards" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:10px;margin-bottom:1.5rem"></div>
+      <div class="sep"><span>Ranking de Vendedores — Mês Atual</span></div>
+      <div id="dashRanking"></div>
+      <div class="sep"><span>Todas as Propostas</span></div>
+      <div id="dashTabela" style="overflow-x:auto"></div>
+    </div>
+  </div>
+
+  <!-- Modal Vendedor -->
+  <div id="modalVend" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.8);z-index:999;display:none;align-items:center;justify-content:center">
+    <div style="background:var(--bg2);border:1px solid var(--b2);border-radius:16px;padding:1.5rem;width:100%;max-width:420px;margin:1rem">
+      <div style="font-family:Syne,sans-serif;font-size:15px;font-weight:700;margin-bottom:1.25rem" id="modalVendTitulo">Novo Vendedor</div>
+      <div class="fg"><label>Login</label><input type="text" id="vLogin" placeholder="ex: joao.silva"></div>
+      <div class="fg"><label>Senha</label><input type="text" id="vSenha" placeholder="ex: wm2026" value="wm2026"></div>
+      <div class="fg"><label>Nome Completo</label><input type="text" id="vNome" placeholder="ex: João Silva"></div>
+      <div class="fg"><label>Meta Mensal</label><input type="number" id="vMeta" value="60" min="1"></div>
+      <div id="modalVendMsg" style="font-size:12px;margin-bottom:10px;display:none"></div>
+      <div style="display:flex;gap:8px;justify-content:flex-end">
+        <button class="ba bot" onclick="fecharModalVend()">Cancelar</button>
+        <button class="ba bor" onclick="salvarVendedor()">Salvar</button>
       </div>
     </div>
   </div>
@@ -614,47 +694,72 @@ let DB={
   }
 };
 
-// ====== STATE ======
-let S={role:null,mode:'qtd',tipoInv:'mono',oLoss:0,estKey:'2p_colonial',qtd:10,qi:1,isRural:false,R:null};
+// ====== CONFIG API ======
+const API_URL = 'https://script.google.com/macros/s/AKfycbwErfRbFEdKfZpWNrXFMWrEQWnIx0U0fiErXJhW2MOiwtYeoREvfBwhrfouafQ3nZNyxg/exec'; // ← substituir após publicar
+
+async function api(payload){
+  try{
+    const r = await fetch(API_URL, {method:'POST', body:JSON.stringify(payload)});
+    return await r.json();
+  } catch(e) {
+    return {ok:false, erro:'Sem conexão com o servidor: '+e.message};
+  }
+}
 
 // ====== AUTH ======
-const USERS={vendedor:{pass:'wm2026',role:'vendedor'},admin:{pass:'wm@adm2026',role:'admin'}};
-function doLogin(){
+let S={role:null,login:null,nomeVend:null,metaVend:60,mode:'qtd',tipoInv:'mono',oLoss:0,estKey:'2p_colonial',qtd:10,qi:1,isRural:false,R:null};
+
+async function doLogin(){
   const u=document.getElementById('lu').value.trim().toLowerCase();
   const p=document.getElementById('lp').value;
-  if(USERS[u]&&USERS[u].pass===p){
-    S.role=USERS[u].role;
+  const btn=document.querySelector('.btn-login');
+  btn.textContent='Entrando...'; btn.disabled=true;
+  const res = await api({action:'login', login:u, senha:p});
+  btn.textContent='Entrar'; btn.disabled=false;
+  if(res.ok){
+    S.role=res.role; S.login=res.login; S.nomeVend=res.nome; S.metaVend=res.meta||60;
     document.getElementById('ls').style.display='none';
     document.getElementById('app').style.display='block';
     const b=document.getElementById('rbadge');
-    b.textContent=S.role==='admin'?'🔑 Admin':'👤 Vendedor';
+    b.textContent=(S.role==='admin'?'🔑 Admin':'👤 '+S.nomeVend);
     b.className='brole '+(S.role==='admin'?'badm':'bvnd');
+    // Tabs visíveis
+    document.getElementById('tabMyBtn').style.display='flex';
     if(S.role==='admin'){
       document.getElementById('atab').style.display='flex';
+      document.getElementById('tabDashBtn').style.display='flex';
       document.getElementById('btnXls').style.display='inline-flex';
-      renderAdmTbl();
+      renderAdmTbl(); loadVendedoresTbl(); loadOrigensTbl();
     }
-    refreshGen();buildPlacaSel();
-  }else{
-    const e=document.getElementById('lerr');e.style.display='block';
+    refreshGen(); buildPlacaSel(); loadOrigens();
+  } else {
+    const e=document.getElementById('lerr'); e.style.display='block';
+    e.textContent=res.erro||'Usuário ou senha incorretos';
     setTimeout(()=>e.style.display='none',3000);
   }
 }
 document.getElementById('lp').addEventListener('keydown',e=>{if(e.key==='Enter')doLogin()});
 document.getElementById('lu').addEventListener('keydown',e=>{if(e.key==='Enter')document.getElementById('lp').focus()});
 function doLogout(){
-  S.role=null;
+  S.role=null; S.login=null;
   document.getElementById('app').style.display='none';
   document.getElementById('ls').style.display='flex';
-  document.getElementById('lu').value='';document.getElementById('lp').value='';
+  document.getElementById('lu').value=''; document.getElementById('lp').value='';
+  document.getElementById('tabMyBtn').style.display='none';
+  document.getElementById('tabDashBtn').style.display='none';
+  document.getElementById('atab').style.display='none';
   novoCalc();
 }
 
 // ====== TABS ======
 function showTab(t,btn){
-  document.querySelectorAll('.tab').forEach(b=>b.classList.remove('on'));btn.classList.add('on');
+  document.querySelectorAll('.tab').forEach(b=>b.classList.remove('on')); btn.classList.add('on');
   document.getElementById('tCalc').style.display=t==='calc'?'block':'none';
   document.getElementById('tAdm').style.display=t==='adm'?'block':'none';
+  document.getElementById('tMy').style.display=t==='my'?'block':'none';
+  document.getElementById('tDash').style.display=t==='dash'?'block':'none';
+  if(t==='my')   loadMyPropostas();
+  if(t==='dash') loadDashboard();
 }
 
 // ====== STEPS ======
@@ -1258,6 +1363,10 @@ function abrirProposta(){
   document.getElementById('propostaModal').style.display = 'block';
   document.body.style.overflow = 'hidden';
   document.getElementById('propostaModal').scrollTop = 0;
+  // Registrar proposta automaticamente se tiver nome e telefone
+  const nome=document.getElementById('cliNome').value.trim();
+  const tel=document.getElementById('cliTel').value.trim();
+  if(nome && tel) salvarProposta();
 }
 
 function expXls(){
@@ -1289,6 +1398,294 @@ function expXls(){
 function fmtBRL(n){return isFinite(n)?Math.round(n).toLocaleString('pt-BR'):'—'}
 function fmtN(n,d){return n.toLocaleString('pt-BR',{minimumFractionDigits:d,maximumFractionDigits:d})}
 function fmtK(n){if(!isFinite(n))return'—';if(n>=1000)return(n/1000).toFixed(1)+'k';return Math.round(n).toString()}
+
+// ====== CPF FORMAT ======
+function fmtCpf(el){
+  let v=el.value.replace(/\D/g,'').slice(0,11);
+  if(v.length>9) v=v.replace(/(\d{3})(\d{3})(\d{3})(\d{0,2})/,'$1.$2.$3-$4');
+  else if(v.length>6) v=v.replace(/(\d{3})(\d{3})(\d{0,3})/,'$1.$2.$3');
+  else if(v.length>3) v=v.replace(/(\d{3})(\d{0,3})/,'$1.$2');
+  el.value=v;
+}
+
+// ====== ORIGENS ======
+let ORIGENS = ['Indicação','PAP','LEAD WM','LEAD Próprio','Direto da Agenda','Publicidade TV'];
+async function loadOrigens(){
+  const res = await api({action:'getOrigens', login:S.login});
+  if(res.ok && res.origens.length) ORIGENS = res.origens;
+  const sel = document.getElementById('cliOrigem');
+  if(!sel) return;
+  sel.innerHTML = '<option value="">Selecione a origem...</option>';
+  ORIGENS.forEach(o => { const opt=document.createElement('option'); opt.value=o; opt.textContent=o; sel.appendChild(opt); });
+}
+async function loadOrigensTbl(){
+  const res = await api({action:'getOrigens', login:S.login});
+  if(res.ok && res.origens.length) ORIGENS = res.origens;
+  const el = document.getElementById('origemLista');
+  if(!el) return;
+  el.innerHTML = ORIGENS.map(o =>
+    '<div style="display:flex;align-items:center;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--border)">' +
+    '<span style="font-size:13px;color:var(--text)">'+o+'</span>' +
+    '<button class="ba bot" style="padding:4px 10px;font-size:11px" onclick="excluirOrigem(\''+o+'\')">✕</button></div>'
+  ).join('');
+}
+async function addOrigem(){
+  const val = document.getElementById('novaOrigem').value.trim();
+  if(!val) return;
+  const res = await api({action:'salvarOrigem', login:S.login, role:S.role, origem:val});
+  if(res.ok){ document.getElementById('novaOrigem').value=''; await loadOrigensTbl(); await loadOrigens(); }
+}
+async function excluirOrigem(o){
+  if(!confirm('Excluir origem "'+o+'"?')) return;
+  await api({action:'excluirOrigem', login:S.login, role:S.role, origem:o});
+  await loadOrigensTbl(); await loadOrigens();
+}
+
+// ====== SALVAR PROPOSTA ======
+async function salvarProposta(){
+  const r=S.R; if(!r) return;
+  const nome=document.getElementById('cliNome').value.trim();
+  const tel=document.getElementById('cliTel').value.trim();
+  if(!nome || !tel) return; // precisa nome e telefone para registrar
+  const pct=r.cPct;
+  const preco=pv(r.precoBase,pct);
+  const payload={
+    action:'salvarProposta', vendedor:S.login,
+    cliente:nome, telefone:tel,
+    endereco:document.getElementById('cliEnd').value.trim(),
+    cpf:document.getElementById('cliCpf').value.trim(),
+    origem:document.getElementById('cliOrigem').value,
+    placas:r.qtd, kwp:r.kwp.toFixed(2),
+    geracao:Math.round(r.gen),
+    valor:Math.round(preco),
+    inversor:r.inv.nome+(r.qi>1?' x'+r.qi:''),
+    estrutura:r.est.nome
+  };
+  const statusEl = document.getElementById('savePropostaStatus');
+  statusEl.style.display='block';
+  statusEl.style.background='rgba(26,111,168,0.1)';
+  statusEl.style.color='#4fa3d8';
+  statusEl.style.border='1px solid rgba(26,111,168,0.2)';
+  statusEl.textContent='Salvando proposta...';
+  const res = await api(payload);
+  if(res.ok){
+    statusEl.style.background='rgba(16,130,80,0.12)';
+    statusEl.style.color='#3ecf8e';
+    statusEl.style.border='1px solid rgba(62,207,142,0.2)';
+    statusEl.textContent = res.atualizado ? '✅ Proposta atualizada (cliente já existia)' : '✅ Proposta registrada com sucesso!';
+  } else {
+    statusEl.style.background='rgba(224,80,80,0.12)';
+    statusEl.style.color='#e05050';
+    statusEl.style.border='1px solid rgba(224,80,80,0.2)';
+    statusEl.textContent='❌ '+( res.erro||'Erro ao salvar');
+  }
+}
+
+// ====== MINHAS PROPOSTAS ======
+let myPropostas=[];
+async function loadMyPropostas(){
+  const mesEl=document.getElementById('myFiltroMes');
+  let dataInicio='', dataFim='';
+  if(mesEl&&mesEl.value){
+    const [y,m]=mesEl.value.split('-');
+    dataInicio=`${String(m).padStart(2,'0')}/${y}`;
+    const lastDay=new Date(y,m,0).getDate();
+    dataFim=`${String(lastDay).padStart(2,'0')}/${String(m).padStart(2,'0')}/${y}`;
+    dataInicio=`01/${String(m).padStart(2,'0')}/${y}`;
+  }
+  const el=document.getElementById('myProgress');
+  if(el) el.innerHTML='<div style="color:var(--t2);font-size:13px">Carregando...</div>';
+  const res = await api({action:'getPropostas', login:S.login, role:S.role, dataInicio, dataFim});
+  if(!res.ok){ if(el) el.innerHTML='<div style="color:#e05050">Erro: '+res.erro+'</div>'; return; }
+  myPropostas=res.propostas||[];
+
+  // Progress
+  const agora=new Date();
+  const mesAtual=agora.getMonth()+1;
+  const anoAtual=agora.getFullYear();
+  const mesFmt=String(mesAtual).padStart(2,'0')+'/'+anoAtual;
+  const countMes=myPropostas.filter(p=>{
+    const parts=String(p['Data']||'').split(' ')[0].split('/');
+    return parts[1]+'/'+parts[2]===mesFmt;
+  }).length;
+  const countTotal=myPropostas.length;
+  const valorTotal=myPropostas.reduce((a,p)=>a+(parseFloat(p['Valor Venda (R$)'])||0),0);
+  const pct=Math.min(100,Math.round(countMes/S.metaVend*100));
+
+  if(el) el.innerHTML=
+    '<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:10px;margin-bottom:1rem">' +
+    '<div class="met"><div class="mlabel">Propostas este mês</div><div class="mval" style="color:var(--orange)">'+countMes+' / '+S.metaVend+'</div><div class="mhint">Meta mensal</div></div>' +
+    '<div class="met"><div class="mlabel">Total histórico</div><div class="mval">'+countTotal+'</div><div class="mhint">Todas as propostas</div></div>' +
+    '<div class="met"><div class="mlabel">Valor total gerado</div><div class="mval">R$ '+fmtK(valorTotal)+'</div><div class="mhint">Soma dos valores</div></div>' +
+    '</div>' +
+    '<div style="background:var(--bg3);border-radius:8px;height:10px;overflow:hidden;margin-bottom:6px"><div style="background:var(--orange);height:100%;width:'+pct+'%;transition:width .5s;border-radius:8px"></div></div>' +
+    '<div style="font-size:12px;color:var(--t2)">'+pct+'% da meta mensal ('+countMes+' de '+S.metaVend+' propostas)</div>';
+
+  // Tabela
+  const tEl=document.getElementById('myTabela');
+  if(!tEl) return;
+  if(!myPropostas.length){ tEl.innerHTML='<div style="color:var(--t2);font-size:13px;padding:1rem 0">Nenhuma proposta encontrada.</div>'; return; }
+  let h='<table class="bk" style="font-size:12px;min-width:600px"><thead><tr>';
+  ['Data','Cliente','Telefone','Origem','Placas','kWp','Geração','Valor (R$)','Inversor'].forEach(col=>{
+    h+='<th>'+col+'</th>';
+  });
+  h+='</tr></thead><tbody>';
+  myPropostas.forEach(p=>{
+    h+='<tr><td>'+p['Data']+'</td><td>'+p['Cliente']+'</td><td>'+p['Telefone']+'</td><td>'+(p['Origem']||'—')+'</td>';
+    h+='<td>'+p['Placas']+'</td><td>'+p['Potência (kWp)']+'</td><td>'+p['Geração (kWh/mês)']+' kWh</td>';
+    h+='<td style="color:var(--orange)">R$ '+fmtBRL(parseFloat(p['Valor Venda (R$)'])||0)+'</td><td>'+p['Inversor']+'</td></tr>';
+  });
+  h+='</tbody></table>';
+  tEl.innerHTML=h;
+}
+function exportMyXls(){
+  if(!myPropostas.length) return;
+  const wb=XLSX.utils.book_new();
+  const ws=XLSX.utils.json_to_sheet(myPropostas);
+  XLSX.utils.book_append_sheet(wb,ws,'Minhas Propostas');
+  XLSX.writeFile(wb,'minhas_propostas_'+S.login+'_'+new Date().toISOString().slice(0,10)+'.xlsx');
+}
+
+// ====== DASHBOARD ======
+let dashPropostas=[];
+async function loadDashboard(){
+  const ini=document.getElementById('dFiltroIni').value;
+  const fim=document.getElementById('dFiltroFim').value;
+  const vend=document.getElementById('dFiltroVend').value;
+  const orig=document.getElementById('dFiltroOrig').value;
+  // Formatar datas para dd/MM/yyyy
+  function fmtDate(d){ if(!d)return''; const [y,m,dd]=d.split('-'); return dd+'/'+m+'/'+y; }
+  const res=await api({action:'getDashboard', login:S.login, role:S.role});
+  const rp=await api({action:'getPropostas', login:S.login, role:S.role,
+    dataInicio:fmtDate(ini), dataFim:fmtDate(fim),
+    filtroVendedor:vend||'todos', filtroOrigem:orig||'todas'});
+  if(!res.ok||!rp.ok) return;
+  dashPropostas=rp.propostas||[];
+  const d=res;
+
+  // Preencher filtros
+  const sv=document.getElementById('dFiltroVend');
+  const so=document.getElementById('dFiltroOrig');
+  const prevV=sv.value, prevO=so.value;
+  sv.innerHTML='<option value="todos">Todos</option>';
+  d.vendedores.forEach(v=>{ const o=document.createElement('option'); o.value=v.login; o.textContent=v.nome; sv.appendChild(o); });
+  sv.value=prevV;
+  so.innerHTML='<option value="todas">Todas</option>';
+  ORIGENS.forEach(o=>{ const op=document.createElement('option'); op.value=o; op.textContent=o; so.appendChild(op); });
+  so.value=prevO;
+
+  // Cards gerais
+  const totalProps=dashPropostas.length;
+  const valorTotal=dashPropostas.reduce((a,p)=>a+(parseFloat(p['Valor Venda (R$)'])||0),0);
+  const placasTotal=dashPropostas.reduce((a,p)=>a+(parseInt(p['Placas'])||0),0);
+  const ticketMedio=totalProps?valorTotal/totalProps:0;
+
+  document.getElementById('dashCards').innerHTML=
+    '<div class="met"><div class="mlabel">Propostas (período)</div><div class="mval" style="color:var(--orange)">'+totalProps+'</div></div>'+
+    '<div class="met"><div class="mlabel">Valor total</div><div class="mval">R$ '+fmtK(valorTotal)+'</div></div>'+
+    '<div class="met"><div class="mlabel">Ticket médio</div><div class="mval">R$ '+fmtK(ticketMedio)+'</div></div>'+
+    '<div class="met"><div class="mlabel">Placas instaladas</div><div class="mval">'+placasTotal+'</div></div>'+
+    '<div class="met"><div class="mlabel">Meta do mês</div><div class="mval">'+d.totais.mesGeral+' / '+(d.vendedores.length*60)+'</div><div class="mhint">'+d.totais.mesAtual+'</div></div>';
+
+  // Ranking
+  let rkH='<div style="overflow-x:auto"><table class="bk" style="font-size:13px;min-width:580px"><thead><tr>';
+  ['#','Vendedor','Mês','Meta','Progresso','Total','Valor Mês'].forEach(c=>rkH+='<th>'+c+'</th>');
+  rkH+='</tr></thead><tbody>';
+  d.vendedores.forEach((v,i)=>{
+    const pct=Math.min(100,Math.round(v.mes/v.meta*100));
+    const cor=pct>=100?'#3ecf8e':pct>=70?'var(--orange)':'#e05050';
+    rkH+='<tr>';
+    rkH+='<td style="color:var(--t3)">'+(i+1)+'</td>';
+    rkH+='<td style="font-weight:500">'+v.nome+'</td>';
+    rkH+='<td style="color:var(--orange);font-weight:700">'+v.mes+'</td>';
+    rkH+='<td style="color:var(--t2)">'+v.meta+'</td>';
+    rkH+='<td><div style="background:var(--bg4);border-radius:4px;height:6px;width:100px;overflow:hidden"><div style="background:'+cor+';height:100%;width:'+pct+'%"></div></div><span style="font-size:10px;color:'+cor+'">'+pct+'%</span></td>';
+    rkH+='<td style="color:var(--t2)">'+v.total+'</td>';
+    rkH+='<td style="color:var(--text)">R$ '+fmtK(v.valorMes)+'</td>';
+    rkH+='</tr>';
+  });
+  rkH+='</tbody></table></div>';
+  document.getElementById('dashRanking').innerHTML=rkH;
+
+  // Tabela geral
+  let tH='<table class="bk" style="font-size:11px;min-width:700px"><thead><tr>';
+  ['Data','Vendedor','Cliente','Telefone','CPF','Origem','Placas','Valor (R$)','Estrutura'].forEach(c=>tH+='<th>'+c+'</th>');
+  tH+='</tr></thead><tbody>';
+  dashPropostas.forEach(p=>{
+    tH+='<tr>';
+    tH+='<td>'+p['Data']+'</td><td>'+p['Vendedor']+'</td><td>'+p['Cliente']+'</td>';
+    tH+='<td>'+p['Telefone']+'</td><td>'+(p['CPF']||'—')+'</td><td>'+(p['Origem']||'—')+'</td>';
+    tH+='<td>'+p['Placas']+'</td>';
+    tH+='<td style="color:var(--orange)">R$ '+fmtBRL(parseFloat(p['Valor Venda (R$)'])||0)+'</td>';
+    tH+='<td>'+p['Estrutura']+'</td>';
+    tH+='</tr>';
+  });
+  tH+='</tbody></table>';
+  document.getElementById('dashTabela').innerHTML=tH;
+}
+function exportDashXls(){
+  if(!dashPropostas.length) return;
+  const wb=XLSX.utils.book_new();
+  const ws=XLSX.utils.json_to_sheet(dashPropostas);
+  XLSX.utils.book_append_sheet(wb,ws,'Dashboard');
+  XLSX.writeFile(wb,'dashboard_wm_'+new Date().toISOString().slice(0,10)+'.xlsx');
+}
+
+// ====== GESTÃO VENDEDORES ======
+let editandoLogin=null;
+async function loadVendedoresTbl(){
+  const res=await api({action:'getVendedores', login:S.login, role:S.role});
+  if(!res.ok) return;
+  const el=document.getElementById('vendTbl');
+  if(!el) return;
+  let h='<table class="bk" style="font-size:12px"><thead><tr><th>Login</th><th>Nome</th><th>Meta</th><th>Ações</th></tr></thead><tbody>';
+  res.vendedores.forEach(v=>{
+    if(v.login==='admin') return;
+    h+='<tr><td style="color:var(--t2)">'+v.login+'</td><td>'+v.nome+'</td><td>'+v.meta+'</td>';
+    h+='<td><button class="ba bot" style="padding:4px 10px;font-size:11px;margin-right:4px" onclick="editarVend(\''+v.login+'\',\''+v.senha+'\',\''+v.nome+'\','+v.meta+')">✏️</button>';
+    h+='<button class="ba bot" style="padding:4px 10px;font-size:11px;color:#e05050" onclick="excluirVend(\''+v.login+'\')">🗑️</button></td></tr>';
+  });
+  h+='</tbody></table>';
+  el.innerHTML=h;
+}
+function abrirModalVend(){
+  editandoLogin=null;
+  document.getElementById('modalVendTitulo').textContent='Novo Vendedor';
+  document.getElementById('vLogin').value='';
+  document.getElementById('vSenha').value='wm2026';
+  document.getElementById('vNome').value='';
+  document.getElementById('vMeta').value='60';
+  document.getElementById('vLogin').disabled=false;
+  document.getElementById('modalVendMsg').style.display='none';
+  document.getElementById('modalVend').style.display='flex';
+}
+function editarVend(login,senha,nome,meta){
+  editandoLogin=login;
+  document.getElementById('modalVendTitulo').textContent='Editar Vendedor';
+  document.getElementById('vLogin').value=login; document.getElementById('vLogin').disabled=true;
+  document.getElementById('vSenha').value=senha;
+  document.getElementById('vNome').value=nome;
+  document.getElementById('vMeta').value=meta;
+  document.getElementById('modalVendMsg').style.display='none';
+  document.getElementById('modalVend').style.display='flex';
+}
+function fecharModalVend(){ document.getElementById('modalVend').style.display='none'; }
+async function salvarVendedor(){
+  const login=document.getElementById('vLogin').value.trim().toLowerCase();
+  const senha=document.getElementById('vSenha').value.trim();
+  const nome=document.getElementById('vNome').value.trim();
+  const meta=parseInt(document.getElementById('vMeta').value)||60;
+  const msgEl=document.getElementById('modalVendMsg');
+  if(!login||!senha||!nome){ msgEl.style.display='block'; msgEl.style.color='#e05050'; msgEl.textContent='Preencha todos os campos.'; return; }
+  const res=await api({action:'salvarVendedor', login:S.login, role:S.role, login:editandoLogin||login, senha, nome, meta});
+  if(res.ok){ fecharModalVend(); loadVendedoresTbl(); }
+  else { msgEl.style.display='block'; msgEl.style.color='#e05050'; msgEl.textContent=res.erro||'Erro ao salvar'; }
+}
+async function excluirVend(login){
+  if(!confirm('Excluir vendedor "'+login+'"? As propostas serão mantidas.')) return;
+  const res=await api({action:'excluirVendedor', login:S.login, role:S.role, login});
+  if(res.ok) loadVendedoresTbl();
+}
 
 document.getElementById('lu').focus();
 </script>
