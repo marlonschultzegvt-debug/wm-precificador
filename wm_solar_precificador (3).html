@@ -312,6 +312,10 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:22px;heigh
 .prop-footer-brand{font-family:'Syne',sans-serif;font-size:14px;font-weight:700;color:#E87B1E}
 .prop-footer-info{font-size:11px;color:#bbb;text-align:right}
 @media(max-width:600px){.prop-hero{flex-direction:column}.prop-stats{grid-template-columns:1fr 1fr}.prop-price{font-size:36px}.prop-info-grid{grid-template-columns:1fr}.prop-page{padding:1.25rem}}
+
+/* Negociador */
+.bneg{background:rgba(79,163,216,.12);color:#4fa3d8;border:1px solid rgba(79,163,216,.3)}
+.desc-badge{display:inline-flex;align-items:center;gap:6px;background:rgba(79,163,216,.12);border:1px solid rgba(79,163,216,.3);border-radius:20px;padding:4px 12px;font-size:12px;font-weight:600;color:#4fa3d8;margin-left:10px}
 </style>
 </head>
 <body>
@@ -336,6 +340,7 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:22px;heigh
   </div>
   <div class="tabs">
     <button class="tab on" onclick="showTab('calc',this)">🧮 Precificador</button>
+    <button class="tab" id="ptab" onclick="showTab('prop',this)" style="display:none">📋 Minhas Propostas</button>
     <button class="tab" id="atab" onclick="showTab('adm',this)" style="display:none">⚙️ Admin</button>
   </div>
 
@@ -481,11 +486,11 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:22px;heigh
       <div class="fg">
         <label>Tipo de Estrutura</label>
         <div class="tg" id="estBtns">
-          <button class="tb on" data-est="2p_colonial" onclick="setEst(this)">Colonial Madeira<br><small class="est-sub" style="font-size:10px;opacity:.6">2 em 2 placas</small></button>
-          <button class="tb" data-est="2p_fibro" onclick="setEst(this)">Fibromadeira<br><small class="est-sub" style="font-size:10px;opacity:.6">2 em 2 placas</small></button>
-          <button class="tb" data-est="4p_minitrilho" onclick="setEst(this)">Minitrilho<br><small class="est-sub" style="font-size:10px;opacity:.6">4 em 4 placas</small></button>
-          <button class="tb" data-est="4p_solo" onclick="setEst(this)">Solo<br><small class="est-sub" style="font-size:10px;opacity:.6">4 em 4 placas</small></button>
-          <button class="tb" data-est="sem" onclick="setEst(this)">Sem Estrutura<br><small class="est-sub" style="font-size:10px;opacity:.6">não inclusa</small></button>
+          <button class="tb on" data-est="2p_colonial" onclick="setEst(this)">Colonial Madeira</button>
+          <button class="tb" data-est="2p_fibro" onclick="setEst(this)">Fibromadeira</button>
+          <button class="tb" data-est="4p_minitrilho" onclick="setEst(this)">Minitrilho</button>
+          <button class="tb" data-est="4p_solo" onclick="setEst(this)">Solo</button>
+          <button class="tb" data-est="sem" onclick="setEst(this)">Sem Estrutura</button>
         </div>
       </div>
       <div class="gdisp" id="estD" style="display:none">
@@ -533,19 +538,32 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:22px;heigh
       </div>
 
       <div class="card">
-        <div class="ctitle"><span class="ic">👤</span>Dados do Cliente <span style="font-size:10px;color:var(--t3);font-weight:400;margin-left:6px;text-transform:none;letter-spacing:0">(opcional)</span></div>
-        <div class="fgrid">
-          <div class="fg" style="margin-bottom:0"><label>Nome do cliente</label><input type="text" id="cliNome" placeholder="Ex: João da Silva"></div>
-          <div class="fg" style="margin-bottom:0"><label>Telefone</label><input type="text" id="cliTel" placeholder="(44) 99999-9999"></div>
+        <div class="ctitle"><span class="ic">👤</span>Dados do Cliente</div>
+        <div style="background:rgba(232,123,30,.08);border:1px solid rgba(232,123,30,.25);border-radius:var(--rs);padding:10px 14px;font-size:12px;color:var(--orange);margin-bottom:1rem;display:flex;align-items:flex-start;gap:8px">
+          <span style="font-size:16px;flex-shrink:0">⚠️</span>
+          <span><strong>Nome e Telefone são obrigatórios</strong> para gerar a proposta e registrar na sua meta mensal. Sem esses dados a proposta não é contabilizada.</span>
         </div>
-        <div class="fg" style="margin-top:10px;margin-bottom:0"><label>Endereço / Cidade</label><input type="text" id="cliEnd" placeholder="Ex: Rua das Flores, 123 — Maringá-PR"></div>
+        <div class="fgrid">
+          <div class="fg" style="margin-bottom:0">
+            <label>Nome do cliente <span style="color:#e05050">*</span></label>
+            <input type="text" id="cliNome" placeholder="Ex: João da Silva" oninput="checkCamposObrig()" style="border-color:var(--b2)" id="cliNome">
+          </div>
+          <div class="fg" style="margin-bottom:0">
+            <label>Telefone <span style="color:#e05050">*</span></label>
+            <input type="text" id="cliTel" placeholder="(44) 99999-9999" oninput="checkCamposObrig()">
+          </div>
+        </div>
+        <div class="fg" style="margin-top:10px;margin-bottom:0"><label>Endereço / Cidade <span style="font-size:10px;color:var(--t3)">(opcional)</span></label><input type="text" id="cliEnd" placeholder="Ex: Rua das Flores, 123 — Maringá-PR"></div>
+        <div id="camposAviso" style="display:none;font-size:12px;color:#e05050;margin-top:8px;padding:8px 12px;background:rgba(224,80,80,.08);border:1px solid rgba(224,80,80,.2);border-radius:var(--rs)">
+          ❌ Preencha Nome e Telefone para gerar a proposta.
+        </div>
       </div>
 
       <div class="card">
         <div class="ctitle"><span class="ic">🔍</span>Composição do Kit</div>
         <table class="bk" id="bkTbl"></table>
         <div class="brow">
-          <button class="ba bor" onclick="abrirProposta()">📄 Gerar Proposta para Cliente</button>
+          <button class="ba bor" id="btnGerarProposta" onclick="tentarGerarProposta()" style="opacity:.5;cursor:not-allowed">📄 Gerar Proposta para Cliente</button>
           <button class="ba bot" onclick="novoCalc()">🔄 Novo Cálculo</button>
           <button class="ba bor" id="btnXls" style="display:none" onclick="expXls()">📥 Exportar Excel</button>
         </div>
@@ -553,10 +571,20 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:22px;heigh
     </div>
   </div>
 
+  <!-- PROPOSTAS -->
+  <div id="tProp" class="wrap" style="display:none">
+    <div class="card">
+      <div class="ctitle"><span class="ic">📋</span>Minhas Propostas</div>
+      <div id="listaPropostas" style="min-height:80px"></div>
+    </div>
+  </div>
+
   <!-- ADMIN -->
   <div id="tAdm" class="wrap" style="display:none">
     <div class="card">
       <div class="ctitle"><span class="ic" style="color:var(--blue)">🔑</span>Painel Administrativo</div>
+      <div class="sep"><span>Gestão de Vendedores</span></div>
+      <div id="vendedoresTbl" style="margin-bottom:1rem"></div>
       <div class="sep"><span>Tabela de Preços Atual</span></div>
       <div id="admTbl" style="overflow-x:auto;margin-bottom:1rem"></div>
       <div class="sep"><span>Upload de Nova Tabela</span></div>
@@ -617,20 +645,36 @@ let S={role:null,mode:'qtd',tipoInv:'mono',oLoss:0,estKey:'2p_colonial',qtd:10,q
 
 // ====== AUTH ======
 const USERS={vendedor:{pass:'wm2026',role:'vendedor'},admin:{pass:'wm@adm2026',role:'admin'}};
+// Negociadores: login -> {pass, role:'negociador', nome, descMax}
+// Admin pode adicionar via painel — salvo em localStorage
+function getUsers(){
+  const extra=JSON.parse(localStorage.getItem('wmUsers')||'{}');
+  return Object.assign({},USERS,extra);
+}
+function saveUsers(users){
+  const extra={};
+  Object.keys(users).forEach(k=>{if(!USERS[k])extra[k]=users[k];});
+  localStorage.setItem('wmUsers',JSON.stringify(extra));
+}
 function doLogin(){
   const u=document.getElementById('lu').value.trim().toLowerCase();
   const p=document.getElementById('lp').value;
-  if(USERS[u]&&USERS[u].pass===p){
-    S.role=USERS[u].role;
+  const allUsers=getUsers();
+  if(allUsers[u]&&allUsers[u].pass===p){
+    S.role=allUsers[u].role;
+    S.nomeNeg=allUsers[u].nome||'Negociador';
+    S.descMax=allUsers[u].descMax||10;
     document.getElementById('ls').style.display='none';
     document.getElementById('app').style.display='block';
+    document.getElementById('ptab').style.display='flex';
     const b=document.getElementById('rbadge');
-    b.textContent=S.role==='admin'?'🔑 Admin':'👤 Vendedor';
-    b.className='brole '+(S.role==='admin'?'badm':'bvnd');
+    b.textContent=S.role==='admin'?'🔑 Admin':S.role==='negociador'?'🏷️ '+S.nomeNeg:'👤 Vendedor';
+    b.className='brole '+(S.role==='admin'?'badm':S.role==='negociador'?'bneg':'bvnd');
     if(S.role==='admin'){
       document.getElementById('atab').style.display='flex';
       document.getElementById('btnXls').style.display='inline-flex';
       renderAdmTbl();
+      renderVendedoresTbl();
     }
     refreshGen();buildPlacaSel();
   }else{
@@ -653,6 +697,8 @@ function showTab(t,btn){
   document.querySelectorAll('.tab').forEach(b=>b.classList.remove('on'));btn.classList.add('on');
   document.getElementById('tCalc').style.display=t==='calc'?'block':'none';
   document.getElementById('tAdm').style.display=t==='adm'?'block':'none';
+  document.getElementById('tProp').style.display=t==='prop'?'block':'none';
+  if(t==='prop') renderListaPropostas();
 }
 
 // ====== STEPS ======
@@ -846,7 +892,7 @@ function calcRes(){
   document.getElementById('c3').style.display='none';
   document.getElementById('rSec').style.display='block';
   setStep(4);
-  document.getElementById('slC').value=0;updC();renderPC();
+  if(isNegociador()){renderResultNegociador();}else{document.getElementById('slC').value=0;updC();renderPC();}
 }
 
 function updC(){
@@ -931,6 +977,8 @@ function jmpC(p){document.getElementById('slC').value=p;updC()}
 
 function novoCalc(){
   document.getElementById('rSec').style.display='none';
+  // Resetar botão proposta
+  const _btn=document.getElementById('btnGerarProposta');if(_btn){_btn.style.opacity='0.5';_btn.style.cursor='not-allowed';}
   document.getElementById('c1').style.display='block';
   document.getElementById('c2').style.display='none';
   document.getElementById('c3').style.display='none';
@@ -1079,8 +1127,8 @@ function fecharProposta(){
 
 function abrirProposta(){
   const r=S.R; if(!r) return;
-  const pct=r.cPct;
-  const preco=pv(r.precoBase, pct);
+  const pct=isNegociador()?parseInt(document.getElementById('slD')?.value||0):r.cPct;
+  const preco=isNegociador()?precoComDesc(precoCheioNeg(r.precoBase),pct):pv(r.precoBase,pct);
   const hoje=new Date().toLocaleDateString('pt-BR',{day:'2-digit',month:'long',year:'numeric'});
   const localLabel=parseFloat(document.getElementById('sLocal').value)===4?'Maringá / MS e região':'Curitiba e região';
   const orientMap={'0':'Norte (sem perda)','0.12':'Leste / Oeste (−12%)','0.25':'Sul (−25%)'};
@@ -1089,7 +1137,7 @@ function abrirProposta(){
   const cliTel =document.getElementById('cliTel').value.trim();
   const cliEnd =document.getElementById('cliEnd').value.trim();
 
-  const TARIFA=1.00; const REAJUSTE=0.15;
+  const TARIFA=0.86; const REAJUSTE=0.15;
   const paybackMeses=calcPayback(preco, r.gen, TARIFA, REAJUSTE);
   const paybackTxt=paybackMeses
     ?(paybackMeses+' meses (~'+(paybackMeses/12).toFixed(1)+' anos)')
@@ -1232,6 +1280,21 @@ function abrirProposta(){
   document.getElementById('propostaModal').style.display = 'block';
   document.body.style.overflow = 'hidden';
   document.getElementById('propostaModal').scrollTop = 0;
+  // Salvar proposta
+  const _r=S.R;
+  if(_r){
+    salvarProposta({
+      data:new Date().toLocaleDateString('pt-BR',{day:'2-digit',month:'2-digit',year:'numeric',hour:'2-digit',minute:'2-digit'}),
+      cliNome:document.getElementById('cliNome').value.trim(),
+      cliTel:document.getElementById('cliTel').value.trim(),
+      cliEnd:document.getElementById('cliEnd').value.trim(),
+      qtd:_r.qtd,
+      potPlaca:_r.pl.pot,
+      kwp:_r.kwp.toFixed(2),
+      precoFmt:fmtBRL(preco),
+      htmlProposta:document.getElementById('propConteudo').innerHTML
+    });
+  }
 }
 
 function expXls(){
@@ -1264,9 +1327,305 @@ function fmtBRL(n){return isFinite(n)?Math.round(n).toLocaleString('pt-BR'):'—
 function fmtN(n,d){return n.toLocaleString('pt-BR',{minimumFractionDigits:d,maximumFractionDigits:d})}
 function fmtK(n){if(!isFinite(n))return'—';if(n>=1000)return(n/1000).toFixed(1)+'k';return Math.round(n).toString()}
 
+
+// ====== NEGOCIADOR ======
+function isNegociador(){ return S.role==='negociador'; }
+function getDescMax(){ return parseInt(S.descMax||10); }
+function precoCheioNeg(base){ return base/(1-0.15); }
+function precoComDesc(cheio,pct){ return cheio*(1-pct/100); }
+
+function updNeg(){
+  const pct=parseInt(document.getElementById('slD')?.value||0);
+  const r=S.R; if(!r) return;
+  const cheio=precoCheioNeg(r.precoBase);
+  const preco=precoComDesc(cheio,pct);
+  const econ=cheio-preco;
+  document.getElementById('rPrice').textContent='R$ '+fmtBRL(preco);
+  const badge=document.getElementById('descBadge');
+  if(badge){
+    if(pct>0){badge.style.display='inline-flex';badge.textContent='\u2212'+pct+'% desconto';}
+    else badge.style.display='none';
+  }
+  const ol=document.getElementById('rOrigLineNeg');
+  if(ol){
+    if(pct>0){ol.style.display='block';const pc=document.getElementById('rPriceCheioNeg');if(pc)pc.textContent='R$ '+fmtBRL(cheio);}
+    else ol.style.display='none';
+  }
+  document.getElementById('rSub').textContent=
+    (pct>0?pct+'% de desconto \u00b7 ':'')+r.qtd+' placas '+r.pl.pot+'W \u00b7 '+r.kwp.toFixed(2)+' kWp';
+  const dPct=document.getElementById('dPctLbl');
+  const dPre=document.getElementById('dPrecoLbl');
+  const dLab=document.getElementById('dRightLabel');
+  const dSav=document.getElementById('dSavingLbl');
+  if(dPct) dPct.textContent=pct+'%';
+  if(dPre) dPre.textContent='R$ '+fmtBRL(preco);
+  if(dLab) dLab.textContent=pct>0?'Pre\u00e7o com desconto':'Pre\u00e7o final';
+  if(dSav){
+    if(pct>0){dSav.style.display='block';dSav.textContent='Cliente economiza R$ '+fmtBRL(econ);}
+    else dSav.style.display='none';
+  }
+  renderMetsNeg(preco);
+  renderPCNeg(cheio,pct);
+}
+
+function renderMetsNeg(preco){
+  const r=S.R; if(!r) return;
+  document.getElementById('mRow').innerHTML=
+    '<div class="met"><div class="mlabel">Pot\u00eancia</div><div class="mval">'+r.kwp.toFixed(2)+' kWp</div><div class="mhint">'+r.qtd+' \u00d7 '+r.pl.pot+'W</div></div>'+
+    '<div class="met"><div class="mlabel">Gera\u00e7\u00e3o/m\u00eas</div><div class="mval">'+fmtN(r.gen,0)+' kWh</div><div class="mhint">'+(S.oLoss>0?'\u2212'+(S.oLoss*100)+'% orient.':'Norte, sem perda')+'</div></div>'+
+    '<div class="met"><div class="mlabel">Economia/m\u00eas</div><div class="mval">R$ '+fmtBRL(r.gen*0.86)+'</div><div class="mhint">Economia de at\u00e9 90%*</div></div>';
+}
+
+function renderPCNeg(cheio,cur){
+  const max=getDescMax();
+  let h='';
+  for(let p=0;p<=max;p++){
+    const preco=precoComDesc(cheio,p);
+    const isOn=p===cur;
+    h+='<div class="pci'+(isOn?' on':'')+'" onclick="jmpD('+p+')">';
+    h+='<div class="pp">'+(p===0?'CHEIO':'\u2212'+p+'%')+'</div>';
+    h+='<div class="pv">R$'+fmtK(preco)+'</div>';
+    if(p>0) h+='<div class="pcv" style="color:#e05050">\u2212R$'+fmtK(cheio-preco)+'</div>';
+    h+='</div>';
+  }
+  document.getElementById('pcGrid').innerHTML=h;
+}
+
+function jmpD(p){
+  const sl=document.getElementById('slD');
+  if(sl){sl.value=p;updNeg();}
+}
+
+function renderResultNegociador(){
+  const r=S.R; if(!r) return;
+  const cheio=precoCheioNeg(r.precoBase);
+  const max=getDescMax();
+  const slC=document.getElementById('slC');
+  const cardComissao=slC?slC.closest('.card'):null;
+  if(cardComissao){
+    cardComissao.innerHTML=
+      '<div class="ctitle"><span class="ic" style="color:#4fa3d8">\ud83c\udff7\ufe0f</span>Negociar Desconto</div>'+
+      '<div class="ctrack">'+
+        '<div class="chdr">'+
+          '<div>'+
+            '<div style="font-size:11px;color:var(--t2);margin-bottom:4px">Desconto oferecido</div>'+
+            '<span class="cpct" id="dPctLbl" style="color:#4fa3d8">0%</span>'+
+          '</div>'+
+          '<div class="cright">'+
+            '<div class="clsm" id="dRightLabel">Pre\u00e7o final</div>'+
+            '<div class="cpreco" id="dPrecoLbl">R$ '+fmtBRL(cheio)+'</div>'+
+            '<div style="font-size:12px;color:#e05050;margin-top:3px;display:none" id="dSavingLbl"></div>'+
+          '</div>'+
+        '</div>'+
+        '<input type="range" min="0" max="'+max+'" step="1" value="0" id="slD" oninput="updNeg()">'+
+        '<div class="cticks">'+(()=>{let t='';for(let i=0;i<=max;i+=2)t+='<span>'+i+'%</span>';return t;})()+'</div>'+
+      '</div>'+
+      '<div style="margin-top:1rem;font-size:12px;color:var(--t3)">Desconto m\u00e1ximo dispon\u00edvel: <strong style="color:#4fa3d8">'+max+'%</strong></div>';
+  }
+  if(!document.getElementById('descBadge')){
+    const pEl=document.getElementById('rPrice');
+    if(pEl&&pEl.parentNode){
+      const wrap=document.createElement('div');
+      wrap.style.cssText='display:flex;align-items:baseline;gap:12px;flex-wrap:wrap';
+      pEl.parentNode.insertBefore(wrap,pEl);
+      wrap.appendChild(pEl);
+      const badge=document.createElement('div');
+      badge.id='descBadge';badge.className='desc-badge';badge.style.display='none';
+      wrap.appendChild(badge);
+      const origLine=document.createElement('div');
+      origLine.id='rOrigLineNeg';origLine.style.cssText='display:none;margin-top:5px';
+      origLine.innerHTML='<span style="font-size:12px;color:var(--t3)">De </span>'+
+        '<span style="font-family:Syne,sans-serif;font-size:15px;color:var(--t3);text-decoration:line-through" id="rPriceCheioNeg"></span>'+
+        '<span style="font-size:12px;color:var(--t3)"> por</span>';
+      wrap.insertAdjacentElement('afterend',origLine);
+    }
+  }
+  document.getElementById('rPrice').textContent='R$ '+fmtBRL(cheio);
+  document.getElementById('rSub').textContent=r.qtd+' placas '+r.pl.pot+'W \u00b7 '+r.kwp.toFixed(2)+' kWp';
+  renderMetsNeg(cheio);
+  renderPCNeg(cheio,0);
+}
+
+// ====== GESTAO VENDEDORES (Admin) ======
+let editandoLogin=null;
+
+function abrirModalVend(login){
+  editandoLogin=login||null;
+  const users=getUsers();
+  document.getElementById('modalVendTitulo').textContent=login?'Editar Vendedor':'Novo Vendedor';
+  document.getElementById('vLogin').value=login||'';
+  document.getElementById('vLogin').disabled=!!login;
+  document.getElementById('vSenha').value=login?users[login].pass:'wm2026';
+  document.getElementById('vNome').value=login?(users[login].nome||''):'';
+  document.getElementById('vTipo').value=login?(users[login].role==='negociador'?'negociador':'vendedor'):'vendedor';
+  document.getElementById('vDescMax').value=login?(users[login].descMax||10):10;
+  toggleNegOpts();
+  document.getElementById('modalVendMsg').style.display='none';
+  document.getElementById('modalVend').style.display='flex';
+}
+
+function fecharModalVend(){
+  document.getElementById('modalVend').style.display='none';
+  document.getElementById('vLogin').disabled=false;
+  editandoLogin=null;
+}
+
+function toggleNegOpts(){
+  const t=document.getElementById('vTipo')?.value;
+  const el=document.getElementById('negOpts');
+  if(el) el.style.display=t==='negociador'?'block':'none';
+}
+
+function salvarVendedorLocal(){
+  const login=document.getElementById('vLogin').value.trim().toLowerCase();
+  const senha=document.getElementById('vSenha').value.trim();
+  const nome=document.getElementById('vNome').value.trim();
+  const tipo=document.getElementById('vTipo').value;
+  const descMax=tipo==='negociador'?(parseInt(document.getElementById('vDescMax').value)||10):10;
+  const msgEl=document.getElementById('modalVendMsg');
+  if(!login||!senha){msgEl.style.display='block';msgEl.style.color='#e05050';msgEl.textContent='Preencha login e senha.';return}
+  if(USERS[login]&&!editandoLogin){msgEl.style.display='block';msgEl.style.color='#e05050';msgEl.textContent='Login reservado (vendedor/admin).';return}
+  const users=getUsers();
+  users[login]={pass:senha,role:tipo,nome,descMax};
+  saveUsers(users);
+  fecharModalVend();
+  renderVendedoresTbl();
+}
+
+function excluirVendLocal(login){
+  if(!confirm('Remover '+login+'?')) return;
+  const users=getUsers();
+  delete users[login];
+  saveUsers(users);
+  renderVendedoresTbl();
+}
+
+function renderVendedoresTbl(){
+  const users=getUsers();
+  let h='<div style="display:flex;justify-content:flex-end;margin-bottom:10px"><button class="ba bor" style="font-size:12px;padding:7px 14px" onclick="abrirModalVend()">+ Novo Vendedor</button></div>';
+  h+='<table class="bk" style="font-size:12px"><thead><tr><th>Login</th><th>Nome</th><th>Tipo</th><th>Desc. Máx</th><th>Ações</th></tr></thead><tbody>';
+  Object.keys(users).forEach(k=>{
+    if(k==='admin') return;
+    const u=users[k];
+    const isNeg=u.role==='negociador';
+    const badge=isNeg
+      ?'<span style="font-size:10px;background:rgba(79,163,216,.12);color:#4fa3d8;border:1px solid rgba(79,163,216,.25);border-radius:10px;padding:2px 8px">🏷️ Negociador</span>'
+      :'<span style="font-size:10px;background:var(--ol);color:var(--orange);border:1px solid rgba(232,123,30,.25);border-radius:10px;padding:2px 8px">👤 Normal</span>';
+    const descMaxShow=isNeg?(u.descMax||10)+'%':'—';
+    h+='<tr><td style="color:var(--t2)">'+k+'</td><td>'+(u.nome||'—')+'</td><td>'+badge+'</td><td>'+descMaxShow+'</td>';
+    h+='<td><button class="ba bot" style="padding:4px 10px;font-size:11px;margin-right:4px" onclick="abrirModalVend(\''+k+'\')">✏️</button>';
+    if(!USERS[k]) h+='<button class="ba bot" style="padding:4px 10px;font-size:11px;color:#e05050" onclick="excluirVendLocal(\''+k+'\')">🗑️</button>';
+    h+='</td></tr>';
+  });
+  h+='</tbody></table>';
+  const el=document.getElementById('vendedoresTbl');
+  if(el) el.innerHTML=h;
+}
+
+
+// ====== CAMPOS OBRIGATÓRIOS ======
+function checkCamposObrig(){
+  const nome=document.getElementById('cliNome')?.value.trim();
+  const tel=document.getElementById('cliTel')?.value.trim();
+  const ok=!!(nome&&tel);
+  const btn=document.getElementById('btnGerarProposta');
+  const aviso=document.getElementById('camposAviso');
+  if(btn){btn.style.opacity=ok?'1':'0.5';btn.style.cursor=ok?'pointer':'not-allowed';}
+  if(aviso) aviso.style.display='none'; // só mostra ao tentar gerar
+  return ok;
+}
+function tentarGerarProposta(){
+  if(!checkCamposObrig()){
+    const aviso=document.getElementById('camposAviso');
+    if(aviso) aviso.style.display='block';
+    document.getElementById('cliNome').focus();
+    return;
+  }
+  abrirProposta();
+}
+
+// ====== MINHAS PROPOSTAS ======
+function getPropostasKey(){ return 'wmPropostas_'+(S.login||S.role||'v'); }
+function salvarProposta(dados){
+  const key=getPropostasKey();
+  const lista=JSON.parse(localStorage.getItem(key)||'[]');
+  lista.unshift(dados);
+  if(lista.length>50) lista.splice(50);
+  localStorage.setItem(key,JSON.stringify(lista));
+}
+function getPropostas(){
+  return JSON.parse(localStorage.getItem(getPropostasKey())||'[]');
+}
+
+function renderListaPropostas(){
+  const lista=getPropostas();
+  const el=document.getElementById('listaPropostas');
+  if(!el) return;
+  if(!lista.length){
+    el.innerHTML='<div style="text-align:center;color:var(--t3);padding:2rem;font-size:13px">Nenhuma proposta gerada ainda.</div>';
+    return;
+  }
+  let h='<div style="display:flex;flex-direction:column;gap:8px">';
+  lista.forEach((p,i)=>{
+    h+=`<div style="background:var(--bg3);border:1px solid var(--border);border-radius:var(--rs);padding:14px 16px;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;cursor:pointer;transition:border-color .15s" onmouseenter="this.style.borderColor='var(--orange)'" onmouseleave="this.style.borderColor='var(--border)'" onclick="reabrirProposta(${i})">
+      <div>
+        <div style="font-weight:500;font-size:14px;color:var(--text);margin-bottom:3px">👤 ${p.cliNome||'Cliente sem nome'}</div>
+        <div style="font-size:12px;color:var(--t2)">📞 ${p.cliTel||'—'} ${p.cliEnd?'&middot; 📍 '+p.cliEnd:''}</div>
+        <div style="font-size:11px;color:var(--t3);margin-top:3px">🗓️ ${p.data} &middot; ${p.qtd} placas ${p.potPlaca}W &middot; ${p.kwp} kWp</div>
+      </div>
+      <div style="text-align:right;flex-shrink:0">
+        <div style="font-family:Syne,sans-serif;font-size:18px;font-weight:700;color:var(--orange)">R$ ${p.precoFmt}</div>
+        <div style="font-size:11px;color:var(--t3);margin-top:2px">Ver proposta →</div>
+      </div>
+    </div>`;
+  });
+  h+='</div>';
+  el.innerHTML=h;
+}
+
+function reabrirProposta(idx){
+  const lista=getPropostas();
+  const p=lista[idx];
+  if(!p) return;
+  document.getElementById('propConteudo').innerHTML=p.htmlProposta;
+  document.getElementById('propostaModal').style.display='block';
+  document.body.style.overflow='hidden';
+  document.getElementById('propostaModal').scrollTop=0;
+}
+
 document.getElementById('lu').focus();
 </script>
 
+
+  <!-- Modal Vendedor -->
+  <div id="modalVend" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.8);z-index:999;align-items:center;justify-content:center">
+    <div style="background:var(--bg2);border:1px solid var(--b2);border-radius:16px;padding:1.5rem;width:100%;max-width:440px;margin:1rem;max-height:90vh;overflow-y:auto">
+      <div style="font-family:Syne,sans-serif;font-size:15px;font-weight:700;margin-bottom:1.25rem" id="modalVendTitulo">Novo Vendedor</div>
+      <div class="fg"><label>Login</label><input type="text" id="vLogin" placeholder="ex: joao.silva"></div>
+      <div class="fg"><label>Senha</label><input type="text" id="vSenha" placeholder="ex: wm2026" value="wm2026"></div>
+      <div class="fg"><label>Nome (exibido no sistema)</label><input type="text" id="vNome" placeholder="ex: João Silva"></div>
+      <div class="fg">
+        <label>Tipo de Perfil</label>
+        <select id="vTipo" onchange="toggleNegOpts()">
+          <option value="vendedor">Vendedor Normal</option>
+          <option value="negociador">Vendedor Negociador</option>
+        </select>
+      </div>
+      <div id="negOpts" style="display:none;background:rgba(79,163,216,.06);border:1px solid rgba(79,163,216,.25);border-radius:var(--rs);padding:12px;margin-bottom:1rem">
+        <div style="font-size:11px;color:#4fa3d8;font-weight:600;text-transform:uppercase;letter-spacing:.05em;margin-bottom:10px">⚙️ Configurações do Negociador</div>
+        <div class="fg" style="margin-bottom:0">
+          <label>Desconto máximo permitido (%)</label>
+          <input type="number" id="vDescMax" value="10" min="1" max="15">
+          <div style="font-size:11px;color:var(--t3);margin-top:4px">Desconto máximo que este vendedor pode oferecer.</div>
+        </div>
+      </div>
+      <div id="modalVendMsg" style="font-size:12px;margin-bottom:10px;display:none"></div>
+      <div style="display:flex;gap:8px;justify-content:flex-end">
+        <button class="ba bot" onclick="fecharModalVend()">Cancelar</button>
+        <button class="ba bor" onclick="salvarVendedorLocal()">Salvar</button>
+      </div>
+    </div>
+  </div>
 <!-- MODAL PROPOSTA -->
 <div id="propostaModal" onclick="if(event.target===this)fecharProposta()">
   <div class="modal-box">
