@@ -312,6 +312,9 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:22px;heigh
 .prop-footer-brand{font-family:'Syne',sans-serif;font-size:14px;font-weight:700;color:#E87B1E}
 .prop-footer-info{font-size:11px;color:#bbb;text-align:right}
 @media(max-width:600px){.prop-hero{flex-direction:column}.prop-stats{grid-template-columns:1fr 1fr}.prop-price{font-size:36px}.prop-info-grid{grid-template-columns:1fr}.prop-page{padding:1.25rem}}
+
+.bneg{background:rgba(79,163,216,.12);color:#4fa3d8;border:1px solid rgba(79,163,216,.3)}
+.desc-badge{display:inline-flex;align-items:center;gap:6px;background:rgba(79,163,216,.12);border:1px solid rgba(79,163,216,.3);border-radius:20px;padding:4px 12px;font-size:12px;font-weight:600;color:#4fa3d8;margin-left:10px}
 </style>
 </head>
 <body>
@@ -484,11 +487,11 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:22px;heigh
       <div class="fg">
         <label>Tipo de Estrutura</label>
         <div class="tg" id="estBtns">
-          <button class="tb on" data-est="2p_colonial" onclick="setEst(this)">Colonial Madeira<br><small class="est-sub" style="font-size:10px;opacity:.6">2 em 2 placas</small></button>
-          <button class="tb" data-est="2p_fibro" onclick="setEst(this)">Fibromadeira<br><small class="est-sub" style="font-size:10px;opacity:.6">2 em 2 placas</small></button>
-          <button class="tb" data-est="4p_minitrilho" onclick="setEst(this)">Minitrilho<br><small class="est-sub" style="font-size:10px;opacity:.6">4 em 4 placas</small></button>
-          <button class="tb" data-est="4p_solo" onclick="setEst(this)">Solo<br><small class="est-sub" style="font-size:10px;opacity:.6">4 em 4 placas</small></button>
-          <button class="tb" data-est="sem" onclick="setEst(this)">Sem Estrutura<br><small class="est-sub" style="font-size:10px;opacity:.6">não inclusa</small></button>
+          <button class="tb on" data-est="2p_colonial" onclick="setEst(this)">Colonial Madeira</button>
+          <button class="tb" data-est="2p_fibro" onclick="setEst(this)">Fibromadeira</button>
+          <button class="tb" data-est="4p_minitrilho" onclick="setEst(this)">Minitrilho</button>
+          <button class="tb" data-est="4p_solo" onclick="setEst(this)">Solo</button>
+          <button class="tb" data-est="sem" onclick="setEst(this)">Sem Estrutura</button>
         </div>
       </div>
       <div class="gdisp" id="estD" style="display:none">
@@ -536,10 +539,11 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:22px;heigh
       </div>
 
       <div class="card">
-        <div class="ctitle"><span class="ic">👤</span>Dados do Cliente <span style="font-size:10px;color:var(--t3);font-weight:400;margin-left:6px;text-transform:none;letter-spacing:0">(nome + telefone = proposta registrada)</span></div>
+        <div class="ctitle"><span class="ic">👤</span>Dados do Cliente</div>
+        <div style="background:rgba(232,123,30,.08);border:1px solid rgba(232,123,30,.25);border-radius:var(--rs);padding:10px 14px;font-size:12px;color:var(--orange);margin-bottom:1rem;display:flex;align-items:flex-start;gap:8px"><span style="font-size:15px;flex-shrink:0">⚠️</span><span><strong>Nome e Telefone são obrigatórios</strong> para gerar a proposta e registrar na sua meta. Sem esses dados a proposta não é contabilizada.</span></div>
         <div class="fgrid">
-          <div class="fg" style="margin-bottom:0"><label>Nome do cliente</label><input type="text" id="cliNome" placeholder="Ex: João da Silva"></div>
-          <div class="fg" style="margin-bottom:0"><label>Telefone</label><input type="text" id="cliTel" placeholder="(44) 99999-9999"></div>
+          <div class="fg" style="margin-bottom:0"><label>Nome do cliente <span style="color:#e05050">*</span></label><input type="text" id="cliNome" placeholder="Ex: João da Silva" oninput="checkCamposObrig()"></div>
+          <div class="fg" style="margin-bottom:0"><label>Telefone <span style="color:#e05050">*</span></label><input type="text" id="cliTel" placeholder="(44) 99999-9999" oninput="checkCamposObrig()"></div>
         </div>
         <div class="fgrid" style="margin-top:10px">
           <div class="fg" style="margin-bottom:0"><label>Endereço / Cidade</label><input type="text" id="cliEnd" placeholder="Ex: Rua das Flores, 123 — Maringá-PR"></div>
@@ -555,8 +559,9 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:22px;heigh
       <div class="card">
         <div class="ctitle"><span class="ic">🔍</span>Composição do Kit</div>
         <table class="bk" id="bkTbl"></table>
+        <div id="camposAviso" style="display:none;font-size:12px;color:#e05050;margin-top:8px;padding:8px 12px;background:rgba(224,80,80,.08);border:1px solid rgba(224,80,80,.2);border-radius:var(--rs)">Preencha Nome e Telefone para gerar a proposta.</div>
         <div class="brow">
-          <button class="ba bor" onclick="abrirProposta()">📄 Gerar Proposta para Cliente</button>
+          <button class="ba bor" id="btnGerarProposta" onclick="tentarGerarProposta()" style="opacity:.5;cursor:not-allowed">📄 Gerar Proposta para Cliente</button>
           <button class="ba bot" onclick="novoCalc()">🔄 Novo Cálculo</button>
           <button class="ba bor" id="btnXls" style="display:none" onclick="expXls()">📥 Exportar Excel</button>
         </div>
@@ -647,7 +652,22 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:22px;heigh
       <div class="fg"><label>Login</label><input type="text" id="vLogin" placeholder="ex: joao.silva"></div>
       <div class="fg"><label>Senha</label><input type="text" id="vSenha" placeholder="ex: wm2026" value="wm2026"></div>
       <div class="fg"><label>Nome Completo</label><input type="text" id="vNome" placeholder="ex: João Silva"></div>
-      <div class="fg"><label>Meta Mensal</label><input type="number" id="vMeta" value="60" min="1"></div>
+      <div class="fg"><label>Meta Mensal (propostas)</label><input type="number" id="vMeta" value="60" min="1"></div>
+      <div class="fg">
+        <label>Tipo de Perfil</label>
+        <select id="vTipo" onchange="toggleNegOpts()">
+          <option value="vendedor">Vendedor Normal</option>
+          <option value="negociador">Vendedor Negociador</option>
+        </select>
+      </div>
+      <div id="negOpts" style="display:none;background:rgba(79,163,216,.06);border:1px solid rgba(79,163,216,.25);border-radius:var(--rs);padding:12px;margin-bottom:1rem">
+        <div style="font-size:11px;color:#4fa3d8;font-weight:600;text-transform:uppercase;letter-spacing:.05em;margin-bottom:10px">⚙️ Configurações do Negociador</div>
+        <div class="fg" style="margin-bottom:0">
+          <label>Desconto máximo permitido (%)</label>
+          <input type="number" id="vDescMax" value="10" min="1" max="15">
+          <div style="font-size:11px;color:var(--t3);margin-top:4px">Desconto máximo que este vendedor pode oferecer ao cliente.</div>
+        </div>
+      </div>
       <div id="modalVendMsg" style="font-size:12px;margin-bottom:10px;display:none"></div>
       <div style="display:flex;gap:8px;justify-content:flex-end">
         <button class="ba bot" onclick="fecharModalVend()">Cancelar</button>
@@ -717,12 +737,12 @@ async function doLogin(){
   const res = await api({action:'login', login:u, senha:p});
   btn.textContent='Entrar'; btn.disabled=false;
   if(res.ok){
-    S.role=res.role; S.login=res.login; S.nomeVend=res.nome; S.metaVend=res.meta||60;
+    S.role=res.role; S.login=res.login; S.nomeVend=res.nome; S.metaVend=res.meta||60; S.descMax=res.descMax||10;
     document.getElementById('ls').style.display='none';
     document.getElementById('app').style.display='block';
     const b=document.getElementById('rbadge');
-    b.textContent=(S.role==='admin'?'🔑 Admin':'👤 '+S.nomeVend);
-    b.className='brole '+(S.role==='admin'?'badm':'bvnd');
+    b.textContent=(S.role==='admin'?'🔑 Admin':S.role==='negociador'?'🏷️ '+S.nomeVend:'👤 '+S.nomeVend);
+    b.className='brole '+(S.role==='admin'?'badm':S.role==='negociador'?'bneg':'bvnd');
     // Tabs visíveis
     document.getElementById('tabMyBtn').style.display='flex';
     if(S.role==='admin'){
@@ -953,7 +973,7 @@ function calcRes(){
   document.getElementById('c3').style.display='none';
   document.getElementById('rSec').style.display='block';
   setStep(4);
-  document.getElementById('slC').value=0;updC();renderPC();
+  if(isNegociador()){renderResultNegociador();}else{document.getElementById('slC').value=0;updC();renderPC();}
 }
 
 function updC(){
@@ -1038,6 +1058,7 @@ function jmpC(p){document.getElementById('slC').value=p;updC()}
 
 function novoCalc(){
   document.getElementById('rSec').style.display='none';
+  const _b=document.getElementById('btnGerarProposta');if(_b){_b.style.opacity='0.5';_b.style.cursor='not-allowed';}
   document.getElementById('c1').style.display='block';
   document.getElementById('c2').style.display='none';
   document.getElementById('c3').style.display='none';
@@ -1210,8 +1231,8 @@ function fecharProposta(){
 
 function abrirProposta(){
   const r=S.R; if(!r) return;
-  const pct=r.cPct;
-  const preco=pv(r.precoBase, pct);
+  const pct=isNegociador()?parseInt(document.getElementById('slD')?.value||0):r.cPct;
+  const preco=isNegociador()?precoComDesc(precoCheioNeg(r.precoBase),pct):pv(r.precoBase,pct);
   const hoje=new Date().toLocaleDateString('pt-BR',{day:'2-digit',month:'long',year:'numeric'});
   const localLabel=parseFloat(document.getElementById('sLocal').value)===4?'Maringá / MS e região':'Curitiba e região';
   const orientMap={'0':'Norte (sem perda)','0.12':'Leste / Oeste (−12%)','0.25':'Sul (−25%)'};
@@ -1220,7 +1241,7 @@ function abrirProposta(){
   const cliTel =document.getElementById('cliTel').value.trim();
   const cliEnd =document.getElementById('cliEnd').value.trim();
 
-  const TARIFA=1.00; const REAJUSTE=0.15;
+  const TARIFA=0.86; const REAJUSTE=0.15;
   const paybackMeses=calcPayback(preco, r.gen, TARIFA, REAJUSTE);
   const paybackTxt=paybackMeses
     ?(paybackMeses+' meses (~'+(paybackMeses/12).toFixed(1)+' anos)')
@@ -1638,11 +1659,12 @@ async function loadVendedoresTbl(){
   if(!res.ok) return;
   const el=document.getElementById('vendTbl');
   if(!el) return;
-  let h='<table class="bk" style="font-size:12px"><thead><tr><th>Login</th><th>Nome</th><th>Meta</th><th>Ações</th></tr></thead><tbody>';
+  let h='<table class="bk" style="font-size:12px"><thead><tr><th>Login</th><th>Nome</th><th>Perfil</th><th>Meta</th><th>Ações</th></tr></thead><tbody>';
   res.vendedores.forEach(v=>{
     if(v.login==='admin') return;
-    h+='<tr><td style="color:var(--t2)">'+v.login+'</td><td>'+v.nome+'</td><td>'+v.meta+'</td>';
-    h+='<td><button class="ba bot" style="padding:4px 10px;font-size:11px;margin-right:4px" onclick="editarVend(\''+v.login+'\',\''+v.senha+'\',\''+v.nome+'\','+v.meta+')">✏️</button>';
+    const _tl=v.tipo==='negociador'?'<span style="font-size:10px;background:rgba(79,163,216,.12);color:#4fa3d8;border:1px solid rgba(79,163,216,.25);border-radius:10px;padding:2px 8px">🏷️ Neg '+(v.descMax||10)+'%</span>':'<span style="font-size:10px;background:var(--ol);color:var(--orange);border:1px solid rgba(232,123,30,.25);border-radius:10px;padding:2px 8px">👤 Normal</span>';
+    h+='<tr><td style="color:var(--t2)">'+v.login+'</td><td>'+v.nome+'</td><td>'+_tl+'</td><td>'+v.meta+'</td>';
+    h+='<td><button class="ba bot" style="padding:4px 10px;font-size:11px;margin-right:4px" onclick="editarVend(\''+v.login+'\',\''+v.senha+'\',\''+v.nome+'\','+v.meta+',\''+( v.tipo||'vendedor')+'\',' +(v.descMax||10)+')">&#9999;&#65039;</button>';
     h+='<button class="ba bot" style="padding:4px 10px;font-size:11px;color:#e05050" onclick="excluirVend(\''+v.login+'\')">🗑️</button></td></tr>';
   });
   h+='</tbody></table>';
@@ -1659,13 +1681,16 @@ function abrirModalVend(){
   document.getElementById('modalVendMsg').style.display='none';
   document.getElementById('modalVend').style.display='flex';
 }
-function editarVend(login,senha,nome,meta){
+function editarVend(login,senha,nome,meta,tipo,descMax){
   editandoLogin=login;
   document.getElementById('modalVendTitulo').textContent='Editar Vendedor';
   document.getElementById('vLogin').value=login; document.getElementById('vLogin').disabled=true;
   document.getElementById('vSenha').value=senha;
   document.getElementById('vNome').value=nome;
   document.getElementById('vMeta').value=meta;
+  const _vt=document.getElementById('vTipo');if(_vt)_vt.value=tipo||'vendedor';
+  const _vd=document.getElementById('vDescMax');if(_vd)_vd.value=descMax||10;
+  if(typeof toggleNegOpts==='function')toggleNegOpts();
   document.getElementById('modalVendMsg').style.display='none';
   document.getElementById('modalVend').style.display='flex';
 }
@@ -1675,9 +1700,11 @@ async function salvarVendedor(){
   const senha=document.getElementById('vSenha').value.trim();
   const nome=document.getElementById('vNome').value.trim();
   const meta=parseInt(document.getElementById('vMeta').value)||60;
+  const tipo=document.getElementById('vTipo')?.value||'vendedor';
+  const descMax=tipo==='negociador'?(parseInt(document.getElementById('vDescMax')?.value)||10):10;
   const msgEl=document.getElementById('modalVendMsg');
   if(!login||!senha||!nome){ msgEl.style.display='block'; msgEl.style.color='#e05050'; msgEl.textContent='Preencha todos os campos.'; return; }
-  const res=await api({action:'salvarVendedor', login:S.login, role:S.role, login:editandoLogin||login, senha, nome, meta});
+  const res=await api({action:'salvarVendedor', login:S.login, role:S.role, login:editandoLogin||login, senha, nome, meta, tipo, descMax});
   if(res.ok){ fecharModalVend(); loadVendedoresTbl(); }
   else { msgEl.style.display='block'; msgEl.style.color='#e05050'; msgEl.textContent=res.erro||'Erro ao salvar'; }
 }
@@ -1685,6 +1712,117 @@ async function excluirVend(login){
   if(!confirm('Excluir vendedor "'+login+'"? As propostas serão mantidas.')) return;
   const res=await api({action:'excluirVendedor', login:S.login, role:S.role, login});
   if(res.ok) loadVendedoresTbl();
+}
+
+
+// ====== NEGOCIADOR ======
+function toggleNegOpts(){
+  const t=document.getElementById('vTipo')?.value;
+  const el=document.getElementById('negOpts');
+  if(el) el.style.display=t==='negociador'?'block':'none';
+}
+function isNegociador(){ return S.role==='negociador'; }
+function getDescMax(){ return parseInt(S.descMax||10); }
+function precoCheioNeg(base){ return base/(1-0.15); }
+function precoComDesc(cheio,pct){ return cheio*(1-pct/100); }
+
+function updNeg(){
+  const pct=parseInt(document.getElementById('slD')?.value||0);
+  const r=S.R; if(!r) return;
+  const cheio=precoCheioNeg(r.precoBase);
+  const preco=precoComDesc(cheio,pct);
+  const econ=cheio-preco;
+  document.getElementById('rPrice').textContent='R$ '+fmtBRL(preco);
+  const badge=document.getElementById('descBadge');
+  if(badge){if(pct>0){badge.style.display='inline-flex';badge.textContent='-'+pct+'% desconto';}else badge.style.display='none';}
+  const ol=document.getElementById('rOrigLineNeg');
+  if(ol){if(pct>0){ol.style.display='block';const pc=document.getElementById('rPriceCheioNeg');if(pc)pc.textContent='R$ '+fmtBRL(cheio);}else ol.style.display='none';}
+  document.getElementById('rSub').textContent=(pct>0?pct+'% desconto - ':'')+r.qtd+' placas '+r.pl.pot+'W - '+r.kwp.toFixed(2)+' kWp';
+  const dPct=document.getElementById('dPctLbl'),dPre=document.getElementById('dPrecoLbl'),dLab=document.getElementById('dRightLabel'),dSav=document.getElementById('dSavingLbl');
+  if(dPct)dPct.textContent=pct+'%';if(dPre)dPre.textContent='R$ '+fmtBRL(preco);
+  if(dLab)dLab.textContent=pct>0?'Preco com desconto':'Preco final';
+  if(dSav){if(pct>0){dSav.style.display='block';dSav.textContent='Cliente economiza R$ '+fmtBRL(econ);}else dSav.style.display='none';}
+  renderMetsNeg(preco); renderPCNeg(cheio,pct);
+}
+function renderMetsNeg(preco){
+  const r=S.R; if(!r) return;
+  document.getElementById('mRow').innerHTML=
+    '<div class="met"><div class="mlabel">Potencia</div><div class="mval">'+r.kwp.toFixed(2)+' kWp</div><div class="mhint">'+r.qtd+' x '+r.pl.pot+'W</div></div>'+
+    '<div class="met"><div class="mlabel">Geracao/mes</div><div class="mval">'+fmtN(r.gen,0)+' kWh</div><div class="mhint">'+(S.oLoss>0?'-'+(S.oLoss*100)+'% orient.':'Norte, sem perda')+'</div></div>'+
+    '<div class="met"><div class="mlabel">Economia/mes</div><div class="mval">R$ '+fmtBRL(r.gen*TARIFA)+'</div><div class="mhint">Economia de ate 90%*</div></div>';
+}
+function renderPCNeg(cheio,cur){
+  const max=getDescMax(); let h='';
+  for(let p=0;p<=max;p++){
+    const preco=precoComDesc(cheio,p),isOn=p===cur;
+    h+='<div class="pci'+(isOn?' on':'')+'" onclick="jmpD('+p+')">';
+    h+='<div class="pp">'+(p===0?'CHEIO':'-'+p+'%')+'</div>';
+    h+='<div class="pv">R$'+fmtK(preco)+'</div>';
+    if(p>0)h+='<div class="pcv" style="color:#e05050">-R$'+fmtK(cheio-preco)+'</div>';
+    h+='</div>';
+  }
+  document.getElementById('pcGrid').innerHTML=h;
+}
+function jmpD(p){const sl=document.getElementById('slD');if(sl){sl.value=p;updNeg();}}
+
+function renderResultNegociador(){
+  const r=S.R; if(!r) return;
+  const cheio=precoCheioNeg(r.precoBase),max=getDescMax();
+  const slC=document.getElementById('slC');
+  const card=slC?slC.closest('.card'):null;
+  if(card){
+    card.innerHTML=
+      '<div class="ctitle"><span class="ic" style="color:#4fa3d8">Negociar Desconto</span></div>'+
+      '<div class="ctrack">'+
+        '<div class="chdr"><div><div style="font-size:11px;color:var(--t2);margin-bottom:4px">Desconto oferecido</div>'+
+        '<span class="cpct" id="dPctLbl" style="color:#4fa3d8">0%</span></div>'+
+        '<div class="cright"><div class="clsm" id="dRightLabel">Preco final</div>'+
+        '<div class="cpreco" id="dPrecoLbl">R$ '+fmtBRL(cheio)+'</div>'+
+        '<div style="font-size:12px;color:#e05050;margin-top:3px;display:none" id="dSavingLbl"></div></div></div>'+
+        '<input type="range" min="0" max="'+max+'" step="1" value="0" id="slD" oninput="updNeg()">'+
+        '<div class="cticks">'+(function(){var t='';for(var i=0;i<=max;i+=2)t+='<span>'+i+'%</span>';return t;})()+'</div>'+
+      '</div>'+
+      '<div style="margin-top:1rem;font-size:12px;color:var(--t3)">Desconto maximo: <strong style="color:#4fa3d8">'+max+'%</strong></div>';
+  }
+  if(!document.getElementById('descBadge')){
+    const pEl=document.getElementById('rPrice');
+    if(pEl&&pEl.parentNode){
+      const wrap=document.createElement('div');
+      wrap.style.cssText='display:flex;align-items:baseline;gap:12px;flex-wrap:wrap';
+      pEl.parentNode.insertBefore(wrap,pEl);wrap.appendChild(pEl);
+      const badge=document.createElement('div');
+      badge.id='descBadge';badge.className='desc-badge';badge.style.display='none';
+      wrap.appendChild(badge);
+      const ol=document.createElement('div');
+      ol.id='rOrigLineNeg';ol.style.cssText='display:none;margin-top:5px';
+      ol.innerHTML='<span style="font-size:12px;color:var(--t3)">De </span><span style="font-family:Syne,sans-serif;font-size:15px;color:var(--t3);text-decoration:line-through" id="rPriceCheioNeg"></span><span style="font-size:12px;color:var(--t3)"> por</span>';
+      wrap.insertAdjacentElement('afterend',ol);
+    }
+  }
+  document.getElementById('rPrice').textContent='R$ '+fmtBRL(cheio);
+  document.getElementById('rSub').textContent=r.qtd+' placas '+r.pl.pot+'W - '+r.kwp.toFixed(2)+' kWp';
+  renderMetsNeg(cheio); renderPCNeg(cheio,0);
+}
+
+// ====== VALIDACAO CAMPOS OBRIGATORIOS ======
+function checkCamposObrig(){
+  const nome=document.getElementById('cliNome')?.value.trim();
+  const tel=document.getElementById('cliTel')?.value.trim();
+  const ok=!!(nome&&tel);
+  const btn=document.getElementById('btnGerarProposta');
+  const aviso=document.getElementById('camposAviso');
+  if(btn){btn.style.opacity=ok?'1':'0.5';btn.style.cursor=ok?'pointer':'not-allowed';}
+  if(aviso)aviso.style.display='none';
+  return ok;
+}
+function tentarGerarProposta(){
+  if(!checkCamposObrig()){
+    const aviso=document.getElementById('camposAviso');
+    if(aviso)aviso.style.display='block';
+    document.getElementById('cliNome').focus();
+    return;
+  }
+  abrirProposta();
 }
 
 document.getElementById('lu').focus();
