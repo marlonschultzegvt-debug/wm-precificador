@@ -6,6 +6,8 @@
 <title>WM Energia Solar — Precificador</title>
 <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;500;600;700&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <style>
 :root {
   --orange:#E87B1E;--od:#c5650f;--ol:rgba(232,123,30,.10);
@@ -315,6 +317,27 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:22px;heigh
 
 .bneg{background:rgba(79,163,216,.12);color:#4fa3d8;border:1px solid rgba(79,163,216,.3)}
 .desc-badge{display:inline-flex;align-items:center;gap:6px;background:rgba(79,163,216,.12);border:1px solid rgba(79,163,216,.3);border-radius:20px;padding:4px 12px;font-size:12px;font-weight:600;color:#4fa3d8;margin-left:10px}
+
+/* Bloco autoridade topo */
+.pp-auth{background:#fff;border-bottom:1px solid #e8edf3;padding:1.1rem 2rem}
+.pp-auth-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:12px}
+.pp-auth-item{background:#f8fafc;border:1px solid #e8edf3;border-radius:10px;padding:.85rem .75rem;text-align:center}
+.pp-auth-ico{font-size:20px;margin-bottom:5px}
+.pp-auth-val{font-family:"Syne",sans-serif;font-size:13px;font-weight:700;color:#0f3460;line-height:1.2}
+.pp-auth-lbl{font-size:10px;color:#888;margin-top:3px;line-height:1.4}
+.pp-reclame{background:linear-gradient(135deg,#f0fff4,#e8f8ef);border:1.5px solid #86efac;border-radius:10px;padding:.75rem 1rem;display:flex;align-items:center;gap:12px}
+.pp-reclame-seal{display:none}
+.pp-reclame-txt{font-size:11px;color:#166534;line-height:1.4}
+.pp-reclame-txt strong{font-size:12px;color:#14532d;display:block;margin-bottom:2px}
+@media(max-width:600px){.pp-auth-grid{grid-template-columns:repeat(2,1fr)}}
+
+/* Bloco investimento compacto */
+.pp-inv-compact{background:#fff;padding:.85rem 2rem;border-bottom:1px solid #e8edf3;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px}
+.pp-inv-compact-left{}
+.pp-inv-compact-label{font-size:10px;color:#888;text-transform:uppercase;letter-spacing:.07em;margin-bottom:3px}
+.pp-inv-compact-val{font-family:"Syne",sans-serif;font-size:26px;font-weight:700;color:#0f3460;line-height:1}
+.pp-inv-compact-sub{font-size:11px;color:#aaa;margin-top:3px}
+.pp-inv-compact-right{text-align:right}
 </style>
 </head>
 <body>
@@ -368,8 +391,9 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:22px;heigh
         <div class="fg" style="margin-bottom:0">
           <label>Localidade</label>
           <select id="sLocal" onchange="refreshGen()">
-            <option value="4">Maringá / MS e região (4,0 kWh/kWp/dia)</option>
-            <option value="3.6">Curitiba e região (3,6 kWh/kWp/dia)</option>
+            <option value="4|maringa">Maringá e região (4,0 kWh/kWp/dia)</option>
+            <option value="4|ms">Mato Grosso do Sul e região (4,0 kWh/kWp/dia)</option>
+            <option value="3.6|curitiba">Curitiba e região (3,6 kWh/kWp/dia)</option>
           </select>
         </div>
       </div>
@@ -647,7 +671,7 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:22px;heigh
 
   <!-- Modal Vendedor -->
   <div id="modalVend" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.8);z-index:999;display:none;align-items:center;justify-content:center">
-    <div style="background:var(--bg2);border:1px solid var(--b2);border-radius:16px;padding:1.5rem;width:100%;max-width:420px;margin:1rem">
+    <div style="background:var(--bg2);border:1px solid var(--b2);border-radius:16px;padding:1.5rem;width:100%;max-width:460px;margin:1rem;max-height:90vh;overflow-y:auto">
       <div style="font-family:Syne,sans-serif;font-size:15px;font-weight:700;margin-bottom:1.25rem" id="modalVendTitulo">Novo Vendedor</div>
       <div class="fg"><label>Login</label><input type="text" id="vLogin" placeholder="ex: joao.silva"></div>
       <div class="fg"><label>Senha</label><input type="text" id="vSenha" placeholder="ex: wm2026" value="wm2026"></div>
@@ -819,7 +843,7 @@ function buildPlacaSel(){
 }
 function refreshGen(){
   const qtd=parseInt(document.getElementById('iQtd').value)||0;
-  const f=parseFloat(document.getElementById('sLocal').value);
+  const _slocal=document.getElementById('sLocal').value; const f=parseFloat(_slocal.split('|')[0]);
   const pl=getPlaca();
   const kwp=(pl.pot*qtd)/1000;
   const gen=kwp*f*30*(1-S.oLoss);
@@ -828,7 +852,7 @@ function refreshGen(){
 }
 function calcFrGen(){
   const kwh=parseFloat(document.getElementById('iGen').value)||0;
-  const f=parseFloat(document.getElementById('sLocal').value);
+  const _slocal=document.getElementById('sLocal').value; const f=parseFloat(_slocal.split('|')[0]);
   const pl=getPlaca();
   const eff=1-(S.oLoss||0);
   const kwp=kwh/(f*30*(eff||1));
@@ -949,7 +973,7 @@ function pv(base,pct){return pct>=100?Infinity:base/(1-pct/100)}
 function calcRes(){
   const pl=getPlaca();const inv=getInv();
   const est=DB.est[S.estKey];
-  const f=parseFloat(document.getElementById('sLocal').value);
+  const _slocal=document.getElementById('sLocal').value; const f=parseFloat(_slocal.split('|')[0]);
   const qtd=S.qtd;
   // microinversor: qty calculada automaticamente
   const qi=S.tipoInv==='micro' ? getMicroQtd() : S.qi;
@@ -1173,56 +1197,101 @@ function calcPayback(inv, gen, tarifa, reajuste){
 }
 
 function imprimirProposta(){
-  const conteudo = document.getElementById('propConteudo').innerHTML;
-  const win = window.open('', '_blank', 'width=900,height=700');
-  win.document.write(`<!DOCTYPE html><html lang="pt-BR"><head>
-<meta charset="UTF-8">
-<title>Proposta WM Energia Solar</title>
-<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
-<style>
-*{box-sizing:border-box;margin:0;padding:0}
-body{font-family:'DM Sans',sans-serif;background:#fff;color:#1a1a1a;padding:2rem;max-width:800px;margin:0 auto;-webkit-print-color-adjust:exact;print-color-adjust:exact}
-.prop-hdr{display:flex;justify-content:space-between;align-items:flex-start;padding-bottom:1.5rem;border-bottom:3px solid #E87B1E;margin-bottom:2rem;flex-wrap:wrap;gap:1rem}
-.prop-brand{display:flex;align-items:center;gap:12px}
-.prop-brand-name{font-family:'Syne',sans-serif;font-size:18px;font-weight:700}
-.prop-brand-sub{font-size:12px;color:#888;margin-top:2px}
-.prop-date{text-align:right;font-size:12px;color:#888}
-.prop-date strong{display:block;font-size:14px;color:#1a1a1a;margin-bottom:2px}
-.prop-hero{background:linear-gradient(135deg,#fff8f2,#fff3e8);border:2px solid #E87B1E;border-radius:14px;padding:1.75rem;margin-bottom:1.5rem;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:1rem}
-.prop-hero-lbl{font-size:11px;font-weight:600;color:#999;letter-spacing:.08em;text-transform:uppercase;margin-bottom:6px;font-family:'Syne',sans-serif}
-.prop-price{font-family:'Syne',sans-serif;font-size:42px;font-weight:700;color:#E87B1E;line-height:1}
-.prop-price-sub{font-size:13px;color:#888;margin-top:6px}
-.prop-badge{display:inline-block;background:#E87B1E;color:#fff;font-size:11px;font-weight:600;padding:4px 14px;border-radius:20px;letter-spacing:.05em;margin-bottom:8px}
-.prop-kwp{font-family:'Syne',sans-serif;font-size:22px;font-weight:700;color:#1a1a1a}
-.prop-kwp-sub{font-size:12px;color:#888;margin-top:3px}
-.prop-stats{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:1.5rem}
-.prop-stat{background:#f8f8f8;border-radius:12px;padding:1.1rem;text-align:center}
-.prop-stat-ico{font-size:22px;margin-bottom:6px}
-.prop-stat-val{font-family:'Syne',sans-serif;font-size:20px;font-weight:700;color:#1a1a1a}
-.prop-stat-lbl{font-size:11px;color:#888;margin-top:3px}
-.prop-sec{font-family:'Syne',sans-serif;font-size:11px;font-weight:600;color:#999;letter-spacing:.08em;text-transform:uppercase;margin-bottom:.9rem;display:flex;align-items:center;gap:10px}
-.prop-sec::after{content:'';flex:1;height:1px;background:#eee}
-.prop-kit-item{display:flex;align-items:center;justify-content:space-between;padding:11px 0;border-bottom:1px solid #f0f0f0}
-.prop-kit-item:last-child{border-bottom:none}
-.prop-kit-left{display:flex;align-items:center;gap:12px}
-.prop-kit-ico{width:36px;height:36px;border-radius:8px;background:#fff7f0;border:1px solid #ffe0c2;display:flex;align-items:center;justify-content:center;font-size:16px;flex-shrink:0}
-.prop-kit-name{font-size:14px;font-weight:500;color:#1a1a1a}
-.prop-kit-det{font-size:12px;color:#999;margin-top:2px}
-.prop-kit-ck{color:#E87B1E;font-size:18px;font-weight:700}
-.prop-info-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
-.prop-info-box{background:#f8f8f8;border-radius:10px;padding:.9rem 1.1rem}
-.prop-info-lbl{font-size:11px;color:#999;text-transform:uppercase;letter-spacing:.05em;margin-bottom:5px}
-.prop-info-val{font-size:14px;font-weight:500;color:#1a1a1a}
-.prop-footer{border-top:1px solid #eee;padding-top:1.25rem;margin-top:1.5rem;display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:1rem}
-.prop-footer-brand{font-family:'Syne',sans-serif;font-size:14px;font-weight:700;color:#E87B1E}
-.prop-footer-info{font-size:11px;color:#bbb;text-align:right}
-@media print{body{padding:1rem}button{display:none!important}}
-</style>
-</head><body>`);
-  win.document.write(conteudo);
-  win.document.write('</body></html>');
-  win.document.close();
-  win.onload = function(){ win.focus(); win.print(); };
+  // Mantido por compatibilidade — chama gerarPDF
+  gerarPDF();
+}
+
+async function gerarPDF(){
+  const btn = document.getElementById('btnGerarPDF');
+  if(btn){ btn.textContent='⏳ Gerando PDF...'; btn.disabled=true; }
+
+  const el = document.getElementById('propConteudo');
+
+  // Garantir que fontes carregaram
+  await document.fonts.ready;
+
+  try {
+    const canvas = await html2canvas(el, {
+      scale: 2,
+      useCORS: true,
+      allowTaint: true,
+      backgroundColor: '#ffffff',
+      logging: false,
+      windowWidth: 800,
+      onclone: function(clonedDoc){
+        // Forçar overflow visível no clone
+        const clonedEl = clonedDoc.getElementById('propConteudo');
+        if(clonedEl){
+          clonedEl.style.height = 'auto';
+          clonedEl.style.overflow = 'visible';
+          clonedEl.style.maxHeight = 'none';
+        }
+      }
+    });
+
+    const imgData = canvas.toDataURL('image/jpeg', 0.95);
+    const { jsPDF } = window.jspdf;
+
+    // A4: 210 x 297 mm
+    const pageW = 210;
+    const pageH = 297;
+    const margin = 10;
+    const usableW = pageW - margin * 2;
+
+    // Calcular altura proporcional
+    const imgW = canvas.width;
+    const imgH = canvas.height;
+    const ratio = usableW / (imgW / 3.7795); // px para mm (96dpi)
+    const imgHmm = (imgH / 3.7795) * ratio;
+
+    const pdf = new jsPDF({
+      orientation: 'portrait',
+      unit: 'mm',
+      format: 'a4'
+    });
+
+    let posY = margin;
+    let remaining = imgHmm;
+    let sourceY = 0;
+    let page = 0;
+
+    const usableH = pageH - margin * 2;
+
+    while(remaining > 0) {
+      if(page > 0) pdf.addPage();
+
+      const sliceH = Math.min(remaining, usableH);
+      const sourceH = sliceH / ratio * 3.7795; // mm para px
+
+      // Criar canvas da fatia
+      const sliceCanvas = document.createElement('canvas');
+      sliceCanvas.width = imgW;
+      sliceCanvas.height = Math.round(sourceH);
+      const ctx = sliceCanvas.getContext('2d');
+      ctx.fillStyle = '#ffffff';
+      ctx.fillRect(0, 0, sliceCanvas.width, sliceCanvas.height);
+      ctx.drawImage(canvas, 0, sourceY, imgW, Math.round(sourceH), 0, 0, imgW, Math.round(sourceH));
+
+      const sliceData = sliceCanvas.toDataURL('image/jpeg', 0.95);
+      pdf.addImage(sliceData, 'JPEG', margin, posY, usableW, sliceH);
+
+      sourceY += Math.round(sourceH);
+      remaining -= sliceH;
+      posY = margin;
+      page++;
+    }
+
+    // Nome do arquivo
+    const cliNome = document.getElementById('cliNome')?.value?.trim() || 'cliente';
+    const nomeArq = 'Proposta_WM_' + cliNome.split(' ')[0] + '_' + new Date().toLocaleDateString('pt-BR').replace(/\//g,'') + '.pdf';
+    pdf.save(nomeArq);
+
+  } catch(err) {
+    console.error('Erro ao gerar PDF:', err);
+    alert('Erro ao gerar PDF: ' + err.message);
+  } finally {
+    if(btn){ btn.textContent='📄 Baixar PDF'; btn.disabled=false; }
+  }
 }
 function fecharProposta(){
   document.getElementById('propostaModal').style.display='none';
@@ -1234,157 +1303,366 @@ function abrirProposta(){
   const pct=isNegociador()?parseInt(document.getElementById('slD')?.value||0):r.cPct;
   const preco=isNegociador()?precoComDesc(precoCheioNeg(r.precoBase),pct):pv(r.precoBase,pct);
   const hoje=new Date().toLocaleDateString('pt-BR',{day:'2-digit',month:'long',year:'numeric'});
-  const localLabel=parseFloat(document.getElementById('sLocal').value)===4?'Maringá / MS e região':'Curitiba e região';
-  const orientMap={'0':'Norte (sem perda)','0.12':'Leste / Oeste (−12%)','0.25':'Sul (−25%)'};
+  const _slv2=document.getElementById('sLocal').value;
+  const _slRegiao=_slv2.split('|')[1]||'maringa';
+  const localLabel=_slRegiao==='ms'?'Mato Grosso do Sul e região':_slRegiao==='curitiba'?'Curitiba e região':'Maringá e região';
+  const _tarifaEcon=_slRegiao==='ms'?1.00:0.86;
+  const orientMap={'0':'Norte (sem perda)','0.12':'Leste / Oeste (-12%)','0.25':'Sul (-25%)'};
   const orientLabel=orientMap[String(S.oLoss)]||'Norte';
   const cliNome=document.getElementById('cliNome').value.trim();
   const cliTel =document.getElementById('cliTel').value.trim();
   const cliEnd =document.getElementById('cliEnd').value.trim();
+  const cliCpf =(document.getElementById('cliCpf')?.value||'').trim();
+  const cliOrigem=(document.getElementById('cliOrigem')?.value||'');
 
-  const TARIFA=0.86; const REAJUSTE=0.15;
-  const paybackMeses=calcPayback(preco, r.gen, TARIFA, REAJUSTE);
-  const paybackTxt=paybackMeses
-    ?(paybackMeses+' meses (~'+(paybackMeses/12).toFixed(1)+' anos)')
-    :'< 30 anos';
-
-  const econMes=Math.round(r.gen*TARIFA);
-  const econMes60=econMes;
+  const TARIFA_SIM=_tarifaEcon;
+  const econMes=Math.round(r.gen*TARIFA_SIM);
   const n=60;
   const totalFinanc=preco*1.9;
-  const PMT=totalFinanc/n;
+  const PMT=Math.round(totalFinanc/n);
+  const totalParcFinanc=PMT*n;
+  const totalContaSemSolar=econMes*n;
+  const economiaLiq=totalContaSemSolar-totalParcFinanc;
+  const FATOR_CARTAO=1.181614; const PARC_CARTAO=18;
+  const totalCartao=Math.round(preco*FATOR_CARTAO);
+  const parcCartao=Math.round(totalCartao/PARC_CARTAO);
   const dtP=new Date(); dtP.setDate(dtP.getDate()+90);
   const dtFmt=dtP.toLocaleDateString('pt-BR',{day:'2-digit',month:'long',year:'numeric'});
-  const totalContaSemSolar=econMes60*n;
-  const totalParcelasFinanc=PMT*n;
-  const economiaLiquidaFinanc=totalContaSemSolar-totalParcelasFinanc;
-  const FATOR_CARTAO=1.181614; const PARCELAS_CARTAO=18;
-  const totalCartao=preco*FATOR_CARTAO;
-  const parcelaCartao=totalCartao/PARCELAS_CARTAO;
+  const logoSrc=document.querySelector('.tbrand img')?document.querySelector('.tbrand img').src:'';
 
-  // Build HTML via concatenation to avoid template literal conflicts
-  let h = '';
+  let h='';
 
+  // ── CSS interno da proposta
+  h+='<style>';
+  h+='.pp-root{font-family:"DM Sans",sans-serif;color:#1a2332;background:#f0f4f8;margin:0;padding:0}';
+  h+='.pp-root *{box-sizing:border-box}';
+  h+='.pp-wrap{max-width:800px;margin:0 auto;padding:0}';
   // Header
-  const logoSrc = document.querySelector('.tbrand img') ? document.querySelector('.tbrand img').src : '';
-  h += '<div class="prop-hdr">';
-  h += '<div class="prop-brand">';
-  if(logoSrc) h += '<img src="'+logoSrc+'" alt="WM Energia Solar" style="width:60px;height:60px;object-fit:contain;border-radius:8px;background:#fff;padding:4px;border:1px solid #f0e0d0;flex-shrink:0">';
-  h += '<div><div class="prop-brand-name" style="color:#E87B1E">WM Energia Solar</div><div class="prop-brand-sub">Proposta Comercial</div></div></div>';
-  h += '<div class="prop-date"><strong>Data</strong>'+hoje+'</div></div>';
-
-  // Client info
-  if(cliNome||cliTel||cliEnd){
-    h += '<div style="background:#fff8f0;border:1px solid #ffe0c2;border-radius:10px;padding:.9rem 1.1rem;margin-bottom:1.25rem;display:flex;flex-wrap:wrap;gap:12px">';
-    if(cliNome) h += '<div><div style="font-size:10px;color:#aaa;text-transform:uppercase;letter-spacing:.05em;margin-bottom:3px">Cliente</div><div style="font-size:15px;font-weight:600;color:#1a1a1a">'+cliNome+'</div></div>';
-    if(cliTel)  h += '<div><div style="font-size:10px;color:#aaa;text-transform:uppercase;letter-spacing:.05em;margin-bottom:3px">Telefone</div><div style="font-size:14px;color:#1a1a1a">'+cliTel+'</div></div>';
-    if(cliEnd)  h += '<div style="flex:1;min-width:200px"><div style="font-size:10px;color:#aaa;text-transform:uppercase;letter-spacing:.05em;margin-bottom:3px">Endereço</div><div style="font-size:14px;color:#1a1a1a">'+cliEnd+'</div></div>';
-    h += '</div>';
-  }
-
-  // Hero
-  h += '<div class="prop-hero">';
-  h += '<div><div class="prop-hero-lbl">Investimento total</div>';
-  h += '<div class="prop-price">R$ '+fmtBRL(preco)+'</div>';
-  h += '<div class="prop-price-sub">'+r.qtd+' painéis '+r.pl.pot+'W &middot; '+r.kwp.toFixed(2)+' kWp instalado</div></div>';
-  h += '<div style="text-align:right"><div class="prop-badge">&#9728; ENERGIA SOLAR</div>';
-  h += '<div class="prop-kwp">'+r.kwp.toFixed(2)+' kWp</div>';
-  h += '<div class="prop-kwp-sub">Potência instalada</div></div></div>';
-
-  // Stats
-  h += '<div class="prop-stats">';
-  h += '<div class="prop-stat"><div class="prop-stat-ico">&#9889;</div><div class="prop-stat-val">'+Math.round(r.gen).toLocaleString('pt-BR')+' kWh</div><div class="prop-stat-lbl">Geração estimada/mês</div></div>';
-  h += '<div class="prop-stat"><div class="prop-stat-ico">&#128184;</div><div class="prop-stat-val">R$ '+fmtBRL(econMes)+'</div><div class="prop-stat-lbl">Economia mensal est.</div></div>';
-  h += '<div class="prop-stat"><div class="prop-stat-ico">&#128197;</div><div class="prop-stat-val">'+paybackTxt+'</div><div class="prop-stat-lbl">Retorno do investimento</div></div>';
-  h += '</div>';
-
-  // Kit items
-  h += '<div class="prop-sec">Equipamentos inclusos</div><div style="margin-bottom:1.5rem">';
-  h += '<div class="prop-kit-item"><div class="prop-kit-left"><div class="prop-kit-ico">&#128262;</div><div>';
-  h += '<div class="prop-kit-name">'+r.pl.nome+'</div>';
-  h += '<div class="prop-kit-det">'+r.qtd+' unidades &middot; '+r.kwp.toFixed(2)+' kWp total</div>';
-  h += '</div></div><span class="prop-kit-ck">&#10003;</span></div>';
-
-  h += '<div class="prop-kit-item"><div class="prop-kit-left"><div class="prop-kit-ico">&#9889;</div><div>';
-  h += '<div class="prop-kit-name">'+r.inv.nome+(r.qi>1?' &times; '+r.qi:'')+'</div>';
-  h += '<div class="prop-kit-det">'+(r.isMicro?r.qi+' unidades (1 a cada 4 placas)':r.qi>1?r.qi+' unidades':'1 unidade')+'</div>';
-  h += '</div></div><span class="prop-kit-ck">&#10003;</span></div>';
-
-  if(r.est.passo>0){
-    const qtdArr = Math.ceil(r.qtd/r.est.passo)*r.est.passo;
-    h += '<div class="prop-kit-item"><div class="prop-kit-left"><div class="prop-kit-ico">&#127959;</div><div>';
-    h += '<div class="prop-kit-name">Estrutura de Fixação &mdash; '+r.est.nome+'</div>';
-    h += '<div class="prop-kit-det">'+r.kits+' kit(s) &middot; '+qtdArr+' placas dimensionadas</div>';
-    h += '</div></div><span class="prop-kit-ck">&#10003;</span></div>';
-  }
-
-  h += '<div class="prop-kit-item"><div class="prop-kit-left"><div class="prop-kit-ico">&#128268;</div><div>';
-  h += '<div class="prop-kit-name">Cabeamento Solar + Conectores MC4</div>';
-  h += '<div class="prop-kit-det">'+Math.ceil(r.metros)+'m de cabo &middot; '+r.mc4+' pares de conectores</div>';
-  h += '</div></div><span class="prop-kit-ck">&#10003;</span></div></div>';
-
-  // Project info
-  h += '<div class="prop-sec">Informações do projeto</div>';
-  h += '<div class="prop-info-grid" style="margin-bottom:1.5rem">';
-  h += '<div class="prop-info-box"><div class="prop-info-lbl">Localidade</div><div class="prop-info-val">'+localLabel+'</div></div>';
-  h += '<div class="prop-info-box"><div class="prop-info-lbl">Orientação do telhado</div><div class="prop-info-val">'+orientLabel+'</div></div>';
-  h += '<div class="prop-info-box"><div class="prop-info-lbl">Geração mensal estimada</div><div class="prop-info-val">'+Math.round(r.gen).toLocaleString('pt-BR')+' kWh/mês</div></div>';
-  h += '<div class="prop-info-box"><div class="prop-info-lbl">Potência total instalada</div><div class="prop-info-val">'+r.kwp.toFixed(2)+' kWp</div></div>';
-  h += '</div>';
-
-  // Payment simulation
-  h += '<div class="prop-sec">Simulação de pagamento</div>';
-  h += '<div style="background:#fffbf5;border:1px solid #ffe0b2;border-radius:10px;padding:.75rem 1rem;margin-bottom:1rem;font-size:11px;color:#b36a00;display:flex;align-items:flex-start;gap:6px">';
-  h += '<span style="font-size:14px">&#9888;&#65039;</span><span><strong>Simulação ilustrativa.</strong> Valores estimativos sem compromisso contratual. Condições reais dependem de análise de crédito e instituição financeira.</span></div>';
-
-  h += '<div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:1rem">';
-  // Financing
-  h += '<div style="background:#f0f7ff;border:1px solid #b3d4f5;border-radius:12px;padding:1.1rem">';
-  h += '<div style="font-size:11px;color:#1A6FA8;font-weight:600;text-transform:uppercase;letter-spacing:.06em;margin-bottom:10px">&#127968; Financiamento 60x</div>';
-  h += '<div style="font-size:11px;color:#888;margin-bottom:2px">Valor financiado</div>';
-  h += '<div style="font-family:Syne,sans-serif;font-size:16px;font-weight:700;color:#1a1a1a;margin-bottom:8px">R$ '+fmtBRL(preco)+'</div>';
-  h += '<div style="background:#fff;border-radius:8px;padding:.6rem .8rem;margin-bottom:6px">';
-  h += '<div style="font-size:10px;color:#aaa;margin-bottom:2px">Parcelas</div>';
-  h += '<div style="font-family:Syne,sans-serif;font-size:20px;font-weight:700;color:#1A6FA8">'+n+'x de R$ '+fmtBRL(PMT)+'</div></div>';
-  h += '<div style="font-size:11px;color:#888">1ª parcela: <strong style="color:#1a1a1a">'+dtFmt+'</strong></div></div>';
-  // Card
-  h += '<div style="background:#f5fff8;border:1px solid #b3e6c5;border-radius:12px;padding:1.1rem">';
-  h += '<div style="font-size:11px;color:#1a7a3c;font-weight:600;text-transform:uppercase;letter-spacing:.06em;margin-bottom:10px">&#128179; Cartão Visa/Master 18x</div>';
-  h += '<div style="font-size:11px;color:#888;margin-bottom:2px">Valor total no cartão</div>';
-  h += '<div style="font-family:Syne,sans-serif;font-size:16px;font-weight:700;color:#1a1a1a;margin-bottom:8px">R$ '+fmtBRL(totalCartao)+'</div>';
-  h += '<div style="background:#fff;border-radius:8px;padding:.6rem .8rem;margin-bottom:6px">';
-  h += '<div style="font-size:10px;color:#aaa;margin-bottom:2px">Parcelas</div>';
-  h += '<div style="font-family:Syne,sans-serif;font-size:20px;font-weight:700;color:#1a7a3c">'+PARCELAS_CARTAO+'x de R$ '+fmtBRL(parcelaCartao)+'</div></div>';
-  h += '<div style="font-size:11px;color:#888">Visa ou Mastercard</div></div></div>';
-
-  // Comparison table
-  const corEcon = economiaLiquidaFinanc >= 0 ? '#1a7a3c' : '#e05050';
-  const textoEcon = fmtBRL(Math.abs(economiaLiquidaFinanc)) + (economiaLiquidaFinanc >= 0 ? ' a favor' : ' a mais');
-  h += '<div style="background:linear-gradient(135deg,#f0fff4,#e8f8ef);border:1.5px solid #6fcf97;border-radius:12px;padding:1.25rem;margin-bottom:1.5rem">';
-  h += '<div style="font-size:12px;font-weight:700;color:#1a7a3c;text-transform:uppercase;letter-spacing:.06em;margin-bottom:12px">&#128200; Comparativo: financiamento &times; conta de luz (60 meses)</div>';
-  h += '<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:10px">';
-  h += '<div style="background:#fff;border-radius:8px;padding:.75rem;text-align:center"><div style="font-size:10px;color:#888;margin-bottom:4px">Economia mensal est.</div><div style="font-family:Syne,sans-serif;font-size:15px;font-weight:700;color:#1a7a3c">R$ '+fmtBRL(econMes60)+'</div><div style="font-size:10px;color:#aaa;margin-top:2px">'+Math.round(r.gen)+' kWh &times; R$ 1,00</div></div>';
-  h += '<div style="background:#fff;border-radius:8px;padding:.75rem;text-align:center"><div style="font-size:10px;color:#888;margin-bottom:4px">Conta s/ solar — 60 meses</div><div style="font-family:Syne,sans-serif;font-size:15px;font-weight:700;color:#e05050">R$ '+fmtBRL(totalContaSemSolar)+'</div><div style="font-size:10px;color:#aaa;margin-top:2px">R$ '+fmtBRL(econMes60)+'/mês &times; 60</div></div>';
-  h += '<div style="background:#fff;border-radius:8px;padding:.75rem;text-align:center"><div style="font-size:10px;color:#888;margin-bottom:4px">Total pago financiamento</div><div style="font-family:Syne,sans-serif;font-size:15px;font-weight:700;color:#1A6FA8">R$ '+fmtBRL(totalParcelasFinanc)+'</div><div style="font-size:10px;color:#aaa;margin-top:2px">R$ '+fmtBRL(PMT)+'/mês &times; 60</div></div>';
-  h += '</div>';
-  h += '<div style="background:#fff;border-radius:8px;padding:.85rem;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px">';
-  h += '<div style="font-size:13px;color:#1a1a1a;font-weight:500">&#128176; Economia líquida pagando com solar financiado:</div>';
-  h += '<div style="font-family:Syne,sans-serif;font-size:20px;font-weight:700;color:'+corEcon+'">R$ '+textoEcon+'</div></div>';
-  h += '<div style="font-size:10px;color:#aaa;margin-top:8px;text-align:center">* Tarifa base R$ 1,00/kWh &middot; Sem reajuste &middot; Geração constante. Economia real tende a ser maior com reajustes tarifários.</div></div>';
-
+  h+='.pp-hdr{background:linear-gradient(135deg,#0d1b2a 0%,#1a2f4a 60%,#0f3460 100%);padding:1.5rem 2rem;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:1rem}';
+  h+='.pp-brand{display:flex;align-items:center;gap:12px}';
+  h+='.pp-brand-name{font-size:22px;font-weight:700;color:#fff;letter-spacing:-.5px}';
+  h+='.pp-brand-name span{color:#f5c518}';
+  h+='.pp-brand-sub{font-size:11px;color:rgba(255,255,255,.5);margin-top:2px}';
+  h+='.pp-hdr-right{text-align:right}';
+  h+='.pp-hdr-date{font-size:11px;color:rgba(255,255,255,.5);margin-bottom:2px}';
+  h+='.pp-hdr-date strong{color:#fff;font-size:13px;display:block}';
+  // Tagline
+  h+='.pp-tagline{background:linear-gradient(90deg,#0f3460,#1a6fa8);padding:1.25rem 2rem;display:flex;align-items:center;gap:16px}';
+  h+='.pp-tagline-ico{width:44px;height:44px;background:rgba(245,197,24,.15);border:1px solid rgba(245,197,24,.3);border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:22px;flex-shrink:0}';
+  h+='.pp-tagline-txt{font-size:13px;color:rgba(255,255,255,.8);line-height:1.6}';
+  h+='.pp-tagline-txt strong{color:#fff;font-size:14px}';
+  // Client bar
+  h+='.pp-client{background:#fff;border-bottom:3px solid #f5c518;padding:1rem 2rem;display:flex;flex-wrap:wrap;gap:1.5rem;align-items:center}';
+  h+='.pp-client-lbl{font-size:10px;color:#888;text-transform:uppercase;letter-spacing:.07em;margin-bottom:3px}';
+  h+='.pp-client-val{font-size:14px;font-weight:600;color:#1a2332}';
+  // Hero investimento
+  h+='.pp-hero{background:#fff;padding:1.5rem 2rem;border-bottom:1px solid #e8edf3;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:1rem}';
+  h+='.pp-inv-lbl{font-size:11px;color:#888;text-transform:uppercase;letter-spacing:.07em;margin-bottom:6px}';
+  h+='.pp-inv-val{font-family:"Syne",sans-serif;font-size:42px;font-weight:700;color:#0f3460;line-height:1}';
+  h+='.pp-inv-sub{font-size:12px;color:#999;margin-top:6px}';
+  h+='.pp-kwp-badge{background:linear-gradient(135deg,#f5c518,#e8a800);color:#1a2332;font-size:11px;font-weight:700;padding:3px 12px;border-radius:20px;letter-spacing:.06em;margin-bottom:8px;display:inline-block}';
+  h+='.pp-kwp-val{font-family:"Syne",sans-serif;font-size:28px;font-weight:700;color:#1a2332}';
+  h+='.pp-kwp-sub{font-size:11px;color:#888;margin-top:2px}';
+  // Stats 3 col
+  h+='.pp-stats{display:grid;grid-template-columns:repeat(3,1fr);background:#0d1b2a;padding:1.25rem 2rem;gap:1rem}';
+  h+='.pp-stat{text-align:center}';
+  h+='.pp-stat-ico{font-size:20px;margin-bottom:4px}';
+  h+='.pp-stat-val{font-family:"Syne",sans-serif;font-size:20px;font-weight:700;color:#fff}';
+  h+='.pp-stat-lbl{font-size:10px;color:rgba(255,255,255,.5);margin-top:3px;text-transform:uppercase;letter-spacing:.05em}';
+  // Section title
+  h+='.pp-sec-title{font-size:10px;font-weight:700;color:#1a6fa8;text-transform:uppercase;letter-spacing:.1em;margin-bottom:1rem;display:flex;align-items:center;gap:8px}';
+  h+='.pp-sec-title::after{content:"";flex:1;height:1px;background:#e8edf3}';
+  // Cards pagamento
+  h+='.pp-pay-grid{display:grid;grid-template-columns:1.2fr 1fr;gap:12px;padding:1.5rem 2rem;background:#fff;border-bottom:1px solid #e8edf3}';
+  h+='.pp-pay-main{background:linear-gradient(135deg,#0f3460,#1a6fa8);border-radius:16px;padding:1.5rem;position:relative;overflow:hidden}';
+  h+='.pp-pay-main::before{content:"";position:absolute;top:-30px;right:-30px;width:120px;height:120px;background:rgba(245,197,24,.08);border-radius:50%}';
+  h+='.pp-pay-badge{background:#f5c518;color:#1a2332;font-size:9px;font-weight:700;padding:3px 10px;border-radius:20px;letter-spacing:.08em;display:inline-block;margin-bottom:10px}';
+  h+='.pp-pay-main-lbl{font-size:11px;color:rgba(255,255,255,.6);margin-bottom:4px}';
+  h+='.pp-pay-main-pmt{font-family:"Syne",sans-serif;font-size:40px;font-weight:700;color:#fff;line-height:1}';
+  h+='.pp-pay-main-mes{font-size:14px;color:rgba(255,255,255,.7);margin-left:4px;font-weight:400}';
+  h+='.pp-pay-main-sub{font-size:12px;color:rgba(255,255,255,.5);margin-top:6px;margin-bottom:14px}';
+  h+='.pp-pay-detail{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:10px}';
+  h+='.pp-pay-det-box{background:rgba(255,255,255,.08);border-radius:8px;padding:8px 10px}';
+  h+='.pp-pay-det-lbl{font-size:9px;color:rgba(255,255,255,.5);text-transform:uppercase;letter-spacing:.05em;margin-bottom:2px}';
+  h+='.pp-pay-det-val{font-family:"Syne",sans-serif;font-size:13px;font-weight:700;color:#fff}';
+  h+='.pp-pay-date{font-size:11px;color:rgba(255,255,255,.5)}';
+  h+='.pp-pay-date strong{color:rgba(255,255,255,.8)}';
+  h+='.pp-pay-sec{background:#f8fafc;border:1px solid #e8edf3;border-radius:16px;padding:1.25rem}';
+  h+='.pp-pay-sec-lbl{font-size:10px;color:#1a7a3c;font-weight:700;text-transform:uppercase;letter-spacing:.07em;margin-bottom:10px;display:flex;align-items:center;gap:6px}';
+  h+='.pp-pay-sec-total-lbl{font-size:11px;color:#888;margin-bottom:3px}';
+  h+='.pp-pay-sec-total{font-family:"Syne",sans-serif;font-size:20px;font-weight:700;color:#1a2332;margin-bottom:12px}';
+  h+='.pp-pay-sec-pmt{background:#fff;border:1px solid #d0ead8;border-radius:10px;padding:10px 12px}';
+  h+='.pp-pay-sec-pmt-lbl{font-size:9px;color:#888;text-transform:uppercase;letter-spacing:.05em;margin-bottom:3px}';
+  h+='.pp-pay-sec-pmt-val{font-family:"Syne",sans-serif;font-size:22px;font-weight:700;color:#1a7a3c}';
+  h+='.pp-pay-sec-flag{font-size:11px;color:#888;margin-top:8px}';
+  // Comparativo
+  h+='.pp-comp{padding:1.5rem 2rem;background:#fff;border-bottom:1px solid #e8edf3}';
+  h+='.pp-comp-grid{display:grid;grid-template-columns:1fr auto 1fr auto 1fr;gap:8px;align-items:center;margin-bottom:12px}';
+  h+='.pp-comp-col{border-radius:12px;padding:1rem;text-align:center}';
+  h+='.pp-comp-col.bad{background:#fff5f5;border:1.5px solid #fecaca}';
+  h+='.pp-comp-col.good{background:#f0fff4;border:1.5px solid #86efac}';
+  h+='.pp-comp-col.result{background:linear-gradient(135deg,#fefce8,#fef9c3);border:2px solid #f5c518}';
+  h+='.pp-comp-tag{font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;margin-bottom:8px;padding:2px 10px;border-radius:20px;display:inline-block}';
+  h+='.pp-comp-col.bad .pp-comp-tag{background:#fee2e2;color:#dc2626}';
+  h+='.pp-comp-col.good .pp-comp-tag{background:#dcfce7;color:#16a34a}';
+  h+='.pp-comp-col.result .pp-comp-tag{background:#f5c518;color:#1a2332}';
+  h+='.pp-comp-desc{font-size:11px;color:#666;margin-bottom:10px;line-height:1.5}';
+  h+='.pp-comp-val{font-family:"Syne",sans-serif;font-size:22px;font-weight:700;line-height:1;margin-bottom:3px}';
+  h+='.pp-comp-col.bad .pp-comp-val{color:#dc2626}';
+  h+='.pp-comp-col.good .pp-comp-val{color:#16a34a}';
+  h+='.pp-comp-col.result .pp-comp-val{color:#d97706;font-size:28px}';
+  h+='.pp-comp-sub{font-size:10px;color:#999}';
+  h+='.pp-comp-icon{font-size:22px;color:#d1d5db;font-weight:300}';
+  h+='.pp-comp-result-row{background:#1a2332;border-radius:10px;padding:.85rem 1.1rem;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px}';
+  h+='.pp-comp-result-lbl{font-size:12px;color:rgba(255,255,255,.7);font-weight:500}';
+  h+='.pp-comp-result-val{font-family:"Syne",sans-serif;font-size:22px;font-weight:700;color:#4ade80}';
+  h+='.pp-comp-note{font-size:10px;color:#aaa;margin-top:8px;text-align:center}';
+  // Economia prática
+  h+='.pp-econ{padding:1.5rem 2rem;background:#f8fafc;border-bottom:1px solid #e8edf3}';
+  h+='.pp-econ-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:1rem}';
+  h+='.pp-econ-card{background:#fff;border:1px solid #e8edf3;border-radius:12px;padding:1.1rem;text-align:center}';
+  h+='.pp-econ-ico{font-size:24px;margin-bottom:8px}';
+  h+='.pp-econ-lbl{font-size:10px;color:#888;text-transform:uppercase;letter-spacing:.06em;margin-bottom:6px}';
+  h+='.pp-econ-val{font-family:"Syne",sans-serif;font-size:22px;font-weight:700;color:#16a34a}';
+  // Bonus
+  h+='.pp-bonus{margin:0 2rem 1.5rem;background:linear-gradient(135deg,#fffbeb,#fef3c7);border:1.5px solid #f5c518;border-radius:14px;padding:1.1rem 1.25rem;display:flex;gap:14px;align-items:flex-start}';
+  h+='.pp-bonus-ico{font-size:28px;flex-shrink:0}';
+  h+='.pp-bonus-tag{font-size:9px;font-weight:700;color:#d97706;text-transform:uppercase;letter-spacing:.08em;margin-bottom:4px}';
+  h+='.pp-bonus-title{font-size:14px;font-weight:700;color:#1a2332;margin-bottom:4px}';
+  h+='.pp-bonus-desc{font-size:12px;color:#666;line-height:1.5}';
+  h+='.pp-bonus-note{font-size:10px;color:#92400e;margin-top:6px}';
+  // Kit
+  h+='.pp-kit{padding:0 2rem 1.5rem;background:#fff}';
+  h+='.pp-kit-item{display:flex;justify-content:space-between;align-items:center;padding:10px 0;border-bottom:1px solid #f0f4f8}';
+  h+='.pp-kit-item:last-child{border:none}';
+  h+='.pp-kit-left{display:flex;align-items:center;gap:10px}';
+  h+='.pp-kit-ico{width:34px;height:34px;background:#f0f7ff;border:1px solid #dbeafe;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:14px;flex-shrink:0}';
+  h+='.pp-kit-name{font-size:13px;font-weight:600;color:#1a2332}';
+  h+='.pp-kit-det{font-size:11px;color:#888;margin-top:1px}';
+  h+='.pp-kit-ck{color:#16a34a;font-size:18px;font-weight:700}';
+  // Prova social
+  h+='.pp-social{background:#0d1b2a;padding:1.25rem 2rem}';
+  h+='.pp-social-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:12px}';
+  h+='.pp-social-item{text-align:center}';
+  h+='.pp-social-ico{font-size:20px;margin-bottom:6px}';
+  h+='.pp-social-val{font-family:"Syne",sans-serif;font-size:16px;font-weight:700;color:#f5c518}';
+  h+='.pp-social-lbl{font-size:10px;color:rgba(255,255,255,.5);margin-top:2px;line-height:1.4}';
+  // Info tecnica
+  h+='.pp-info{padding:1.25rem 2rem;background:#fff;border-bottom:1px solid #e8edf3}';
+  h+='.pp-info-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:8px}';
+  h+='.pp-info-box{background:#f8fafc;border:1px solid #e8edf3;border-radius:10px;padding:.75rem 1rem}';
+  h+='.pp-info-lbl{font-size:10px;color:#888;text-transform:uppercase;letter-spacing:.05em;margin-bottom:4px}';
+  h+='.pp-info-val{font-size:13px;font-weight:600;color:#1a2332}';
   // Footer
-  h += '<div class="prop-footer">';
-  h += '<div class="prop-footer-info" style="text-align:left">Proposta válida por 7 dias &middot; Sujeita a visita técnica<br>Geração estimada com base em irradiação solar média da região<br>ROI calculado com reajuste tarifário de 15% a.a.</div>';
-  h += '<div style="text-align:right"><div class="prop-footer-brand">WM Energia Solar</div>';
-  h += '<div style="font-size:12px;color:#555;margin-top:4px">Av. Morangueira, 1121 &mdash; Maringá-PR</div>';
-  h += '<div style="font-size:12px;color:#555;margin-top:2px">(44) 4004-2951</div>';
-  h += '<div style="font-size:12px;color:#E87B1E;font-weight:600;margin-top:6px">+2.500 projetos instalados em todo o Brasil<br>Zero reclamações no Reclame Aqui</div></div>';
-  h += '</div>';
+  h+='.pp-footer{background:#0d1b2a;padding:1.25rem 2rem;display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:1rem}';
+  h+='.pp-footer-warn{display:flex;align-items:flex-start;gap:8px;flex:1;min-width:200px}';
+  h+='.pp-footer-warn-ico{font-size:16px;flex-shrink:0;margin-top:1px}';
+  h+='.pp-footer-warn-txt{font-size:10px;color:rgba(255,255,255,.4);line-height:1.5}';
+  h+='.pp-footer-right{text-align:right}';
+  h+='.pp-footer-brand{font-family:"Syne",sans-serif;font-size:14px;font-weight:700;color:#f5c518}';
+  h+='.pp-footer-info{font-size:11px;color:rgba(255,255,255,.4);margin-top:3px;line-height:1.6}';
+  h+='@media(max-width:600px){';
+  h+='.pp-stats{grid-template-columns:1fr 1fr}.pp-stat:last-child{display:none}';
+  h+='.pp-pay-grid{grid-template-columns:1fr}.pp-comp-grid{grid-template-columns:1fr}.pp-comp-icon{display:none}';
+  h+='.pp-econ-grid{grid-template-columns:1fr 1fr}.pp-social-grid{grid-template-columns:1fr 1fr}';
+  h+='.pp-info-grid{grid-template-columns:1fr}.pp-hero{flex-direction:column}.pp-pay-main-pmt{font-size:32px}';
+  h+='.pp-comp-col.result .pp-comp-val{font-size:22px}';
+  h+='}';
+  h+='@media print{.pp-root{background:#fff}.pp-social{-webkit-print-color-adjust:exact;print-color-adjust:exact}}';
+  h+='</style>';
+
+  h+='<div class="pp-root"><div class="pp-wrap">';
+
+  // HEADER
+  h+='<div class="pp-hdr">';
+  h+='<div class="pp-brand">';
+  if(logoSrc) h+='<img src="'+logoSrc+'" style="height:44px;width:auto;border-radius:8px;background:#fff;padding:4px 8px;object-fit:contain">';
+  h+='<div><div class="pp-brand-name"><span>WM</span> Energia Solar</div><div class="pp-brand-sub">Proposta Comercial Personalizada</div></div></div>';
+  h+='<div class="pp-hdr-right"><div class="pp-hdr-date"><strong>'+hoje+'</strong>Data da proposta</div></div>';
+  h+='</div>';
+
+  // TAGLINE
+  h+='<div class="pp-tagline" style="padding:.85rem 2rem">';
+  h+='<div class="pp-tagline-ico">☀️</div>';
+  h+='<div class="pp-tagline-txt">Você já paga energia todos os meses.<br><strong>A diferença é que agora esse valor pode virar investimento no seu patrimônio.</strong></div>';
+  h+='</div>';
+
+  // AUTORIDADE E VALIDAÇÃO
+  h+='<div class="pp-auth" style="padding:.75rem 2rem">';
+  h+='<div class="pp-auth-grid">';
+  h+='<div class="pp-auth-item"><div class="pp-auth-ico">👥</div><div class="pp-auth-val">+2.500</div><div class="pp-auth-lbl">projetos instalados<br>Clientes em todo o Brasil</div></div>';
+  h+='<div class="pp-auth-item"><div class="pp-auth-ico">🏆</div><div class="pp-auth-val">+5 anos</div><div class="pp-auth-lbl">de experiência<br>Energia solar fotovoltaica</div></div>';
+  h+='<div class="pp-auth-item"><div class="pp-auth-ico">⚡</div><div class="pp-auth-val">Alto padrão</div><div class="pp-auth-lbl">Equipamentos líderes<br>de mercado</div></div>';
+  h+='<div class="pp-auth-item"><div class="pp-auth-ico">🎧</div><div class="pp-auth-val">Suporte</div><div class="pp-auth-lbl">Do início ao pós-venda<br>Atendimento humanizado</div></div>';
+  h+='</div>';
+  h+='<div class="pp-reclame">';
+  h+='<img src="data:image/png;base64,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aXH+S71C9plxLYoLZG71/wBJLg9w5D48fcFztWv1YWc7h80tvV8vmZqFLvaigQuuqZK2smq5jl8ry4+XkulEXhM5yqSc5PLe7JQkksIIi+ta57gxg3nOOAPElWgnGzK34ZPc3ji79FH7OZU1Xks9G2gtdPRt/qmAE+J7z8cr1r3bR7FWFlTodUt/V7v5kXuKve1HILH6kh9IsNbFnGYXHPs4rILjIxskbo3jLXAgjyK361NVacoPqmviYovhaZSQ5L6u2thdT1s9O8AOjkc0jzBXUvnucHCTjLmiWp5WUERFaA0lrg5pIcDkEcwVZ+jL6LtRdVOWishGHj8Y7nfzVYLuoqmejqo6mmkMcrDlrh+XsXc0HWZ6VccfOD2kvuvav2Na6tlXhjr0LoRYbTN/prxThuRFVNH6SIn5jxCzK9mtbqldUlVoyzFkdnCUJcMluERFsFgREQBERAEREAREQBERAEREAREQBERAEREAREQBERAEREAREQBERAEREAREQBERAEREAREQBERAEREAREQBERAEREAREQBVDqOuNxvdVVZywv3Y/wCwOA/n71Zmp6o0dhrJxne6stGDg5PD6qo15327vGlStk/OT+i+519Lp/5T9wREXnJ1wstpCl9L1FSRnGGu6w5/Z4rEqXbMIN+51dRwIiiDeXIuP/8AJXX0G3VxqVGm/PPw3+xgup8FGTLAREXuZGAiIgKz2hUfo2oXTNGGVLA8e0cD+Q+KjqsraBbXVtmNRE3MtKes5cS3v/n7iq1XjHaqwdpqM2l4Z+Je/n88kjsaveUV5rYFTGj0UKu0U9SyrdDUSR7zmPbluT3eI+aidJEZ6uGADJkka3HtKueJjY42xt4NaAB7Auj2Q0e3v+9lcR4ksJer9PQw6hcTpcKg8Fa1OjL1Ef0bIZgBzZJj814n6cvjTg2yc+zB+qtlFI6vYfT5vMJSj7190acdTqrmkyp4LJqCCZs0Nvqo5GHLXNwCPmrA03W3aoiMV2t74JWjhJw3X+7PArMIujpPZ2GlzcqNWWHzTxh/L6GGvduusSigiIpEagREQBERAEREAREQBERAEREAREQBERAEREAREQBERAEREAREQBERAEREAREQBERAEREAREQBERAEREAREQBERAEREAREQEY2lTdXp9kf+lna34An6KuFOdqchEVvizwc6R3wDR9VBl492xqueqSj/pSXyz9yQ6dHFBPzCIiixuhTzZbHikrpvxSNb8Bn+JQNT/ZcR9mVjc8RODj+6P5KT9j0nqsM+UvozS1D/oP3EvREXsZHgiIgDgHAgjIPAqptVWl9our4g0iCTL4Tjhjw938lbKx+oLVBd7e6mlw13ON+OLHeKj/aPRlqlriP+cd4/de/64NuzuO4nl8nzK00pF12o6FnhKHfDj9FbarTTNvqaDWtLTVTCx8ZefJw3TxHkrLXN7FUJUbOoprEuNpr0SM2pTUqixywERFMjnBERAEREAREQBERAEREAREQBERAEREAREQBERAEREAREQBERAEREAREQBERAEREAREQBERAEREAREQBERAEREAREQBERAEREAREQEG2qfrLZ7Jv4FClOtqcZNPb5scGve3PtAP8Kgq8Z7Wxa1aq/Ph/2okVg/7Eff8AUIpjpDSraqD065sPVvaeqi7zn7x+ij1/tU9nr3U03aYeMcgHBzf5rRudFu7a0hd1I4jL4ryz5Z6f8GWFzTnUdNPdGPU12WSdu4Qk8xG4D94H6KFKR7OqgQ6iEZH66JzOfLkfotjszWVHVKMn1ePimvuWXseKhJFloiL2wjYREQBERAdb4IXzMmfG0yR53HEcRnnxXYiKiSXIBERVAREQBERAEREAREQBERAEREAREQBERAEREAREQBERAEREAREQBERAEREAREQBERAEREAREQBERAEREAREQBERAEREAREQBERAEREBGNpMXWaebJ/op2u+II+qj2hrD9o1XptVGTSRHsg8pHeHsCnV9oPtO1TUW+GGQDDiM44rvoKWKiooaSBuI4mho4c/NRi60CN3qyu6qzBRW3nJN/JLH8ybsLt06Hdx55+R3gADAGAvBe7VS3ejNPUt4jix49Zh8QveikdWlCtB06iynzRpxk4vKKhvtnq7PVdVUtyx36uUeq8fz8l02eq9CutLVcMRygnPLHereraWnrKZ9NVRNlieMOa4f/MHzUA1Fo+qpN+e3B1TT8SWffYPqvMdX7LXGn1Vc2XiinnHVY396+fn5nat76FWPBU2ZYo4jKLEaQrjX2Gne8nrYh1UmeeW8PywsuvS7avG4oxrQ5SSfxONODhJxfQIiLOWhERAEREAREQBERAEREAREQBERAEREAREQBERAEREAREQBERAEREAREQBERAEREAREQBE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" alt="RA1000 Reclame Aqui" style="height:64px;width:auto;flex-shrink:0;object-fit:contain">';
+  h+='<div class="pp-reclame-txt"><strong>Somos RA1000 no Reclame Aqui</strong>Empresa com reputação verificada, máxima qualidade de atendimento e zero reclamações não respondidas.</div>';
+  h+='</div>';
+  h+='</div>';
+
+
+  // CLIENTE
+  if(cliNome||cliTel||cliEnd||cliOrigem){
+    h+='<div class="pp-client">';
+    if(cliNome){h+='<div><div class="pp-client-lbl">Cliente</div><div class="pp-client-val">'+cliNome+'</div></div>';}
+    if(cliTel) {h+='<div><div class="pp-client-lbl">Telefone</div><div class="pp-client-val">'+cliTel+'</div></div>';}
+    if(cliEnd) {h+='<div style="flex:1;min-width:200px"><div class="pp-client-lbl">Local de instalação</div><div class="pp-client-val">'+cliEnd+'</div></div>';}
+    if(cliOrigem){h+='<div><div class="pp-client-lbl">Origem</div><div class="pp-client-val">'+cliOrigem+'</div></div>';}
+    h+='</div>';
+  }
+
+  // HERO INVESTIMENTO
+  h+='<div class="pp-hero" style="padding:.85rem 2rem">';
+  h+='<div style="display:flex;align-items:center;gap:10px">';
+  h+='<div class="pp-kwp-badge" style="margin-bottom:0">&#9728;&#65039; ENERGIA SOLAR</div>';
+  h+='<div style="font-size:13px;color:#555">';
+  h+=r.qtd+' painéis '+r.pl.pot+'W &middot; '+r.kwp.toFixed(2)+' kWp instalado';
+  h+='</div></div>';
+  h+='<div style="font-family:Syne,sans-serif;font-size:20px;font-weight:700;color:#0f3460">';
+  h+=r.kwp.toFixed(2)+' kWp';
+  h+='</div>';
+  h+='</div>';
+
+  // STATS
+  h+='<div class="pp-stats" style="padding:.75rem 2rem">';
+  h+='<div class="pp-stat"><div class="pp-stat-ico">⚡</div><div class="pp-stat-val">'+Math.round(r.gen).toLocaleString('pt-BR')+' kWh</div><div class="pp-stat-lbl">Geração/mês</div></div>';
+  h+='<div class="pp-stat"><div class="pp-stat-ico">💰</div><div class="pp-stat-val">R$ '+fmtBRL(econMes)+'</div><div class="pp-stat-lbl">Economia mensal est.</div></div>';
+  h+='<div class="pp-stat"><div class="pp-stat-ico">📍</div><div class="pp-stat-val">'+(cliEnd?cliEnd.split(',')[0].split('-')[0].trim():'—')+'</div><div class="pp-stat-lbl">Local da instalação</div></div>';
+  h+='</div>';
+
+
+
+  // KIT
+  h+='<div style="background:#fff;padding:.6rem 2rem .8rem">';
+  h+='<div class="pp-sec-title">🔧 EQUIPAMENTOS INCLUSOS</div>';
+  h+='<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px">';
+  h+='<div style="display:flex;align-items:center;gap:8px;background:#f8fafc;border:1px solid #e8edf3;border-radius:8px;padding:8px 10px">';
+  h+='<div style="width:30px;height:30px;background:#f0f7ff;border:1px solid #dbeafe;border-radius:6px;display:flex;align-items:center;justify-content:center;font-size:14px;flex-shrink:0">🔆</div>';
+  h+='<div><div style="font-size:11px;font-weight:600;color:#1a2332">'+r.pl.nome+'</div>';
+  h+='<div style="font-size:10px;color:#888;margin-top:1px">'+r.qtd+' un. &middot; '+r.kwp.toFixed(2)+' kWp</div></div></div>';
+  h+='<div style="display:flex;align-items:center;gap:8px;background:#f8fafc;border:1px solid #e8edf3;border-radius:8px;padding:8px 10px">';
+  h+='<div style="width:30px;height:30px;background:#f0f7ff;border:1px solid #dbeafe;border-radius:6px;display:flex;align-items:center;justify-content:center;font-size:14px;flex-shrink:0">⚡</div>';
+  h+='<div><div style="font-size:11px;font-weight:600;color:#1a2332">'+r.inv.nome+(r.qi>1?' &times;'+r.qi:'')+'</div>';
+  h+='<div style="font-size:10px;color:#888;margin-top:1px">'+(r.isMicro?r.qi+' un. (4 pl/un)':r.qi>1?r.qi+' unidades':'1 unidade')+'</div></div></div>';
+  if(r.est.passo>0){
+    const qtdA=Math.ceil(r.qtd/r.est.passo)*r.est.passo;
+    h+='<div style="display:flex;align-items:center;gap:8px;background:#f8fafc;border:1px solid #e8edf3;border-radius:8px;padding:8px 10px">';
+    h+='<div style="width:30px;height:30px;background:#f0f7ff;border:1px solid #dbeafe;border-radius:6px;display:flex;align-items:center;justify-content:center;font-size:14px;flex-shrink:0">🏗️</div>';
+    h+='<div><div style="font-size:11px;font-weight:600;color:#1a2332">Estrutura '+r.est.nome+'</div>';
+    h+='<div style="font-size:10px;color:#888;margin-top:1px">'+r.kits+' kit(s) &middot; '+qtdA+' placas</div></div></div>';
+  } else {
+    h+='<div style="display:flex;align-items:center;gap:8px;background:#f8fafc;border:1px solid #e8edf3;border-radius:8px;padding:8px 10px;opacity:.4">';
+    h+='<div style="width:30px;height:30px;background:#f0f7ff;border:1px solid #dbeafe;border-radius:6px;display:flex;align-items:center;justify-content:center;font-size:14px;flex-shrink:0">🏗️</div>';
+    h+='<div><div style="font-size:11px;font-weight:600;color:#1a2332">Sem Estrutura</div>';
+    h+='<div style="font-size:10px;color:#888;margin-top:1px">Não inclusa</div></div></div>';
+  }
+  h+='</div>';
+  h+='</div>';
+
+  // INVESTIMENTO COMPACTO
+  h+='<div style="background:#fff;padding:.75rem 2rem;border-bottom:1px solid #e8edf3;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px">';
+  h+='<div>';
+  h+='<div style="font-size:10px;color:#888;text-transform:uppercase;letter-spacing:.07em;margin-bottom:3px">Investimento total</div>';
+  h+='<div style="font-family:Syne,sans-serif;font-size:24px;font-weight:700;color:#0f3460;line-height:1">R$ '+fmtBRL(preco)+'</div>';
+  h+='<div style="font-size:11px;color:#aaa;margin-top:3px">';
+  h+=r.qtd+' painéis '+r.pl.pot+'W &middot; '+r.kwp.toFixed(2)+' kWp instalado';
+  h+='</div></div>';
+  h+='<div style="text-align:right">';
+  h+='<div style="font-size:11px;color:#888;font-style:italic">Projeto personalizado para seu consumo</div>';
+  h+='</div>';
+  h+='</div>';
+
+  // PAGAMENTO
+  h+='<div class="pp-pay-grid" style="padding:1rem 2rem">';
+  // Financiamento
+  h+='<div class="pp-pay-main">';
+  h+='<div class="pp-pay-badge">⭐ OPÇÃO MAIS ESCOLHIDA</div>';
+  h+='<div style="font-size:11px;color:rgba(255,255,255,.6);text-transform:uppercase;letter-spacing:.07em;margin-bottom:4px">🏦 FINANCIAMENTO 60X</div>';
+  h+='<div class="pp-pay-main-lbl">Parcela estimada:</div>';
+  h+='<div><span class="pp-pay-main-pmt" style="font-size:32px">R$ '+fmtBRL(PMT)+'</span><span class="pp-pay-main-mes">/mês</span></div>';
+  h+='<div class="pp-pay-main-sub">Menor que muitas contas de energia.</div>';
+  h+='<div class="pp-pay-detail">';
+  h+='<div class="pp-pay-det-box"><div class="pp-pay-det-lbl">Valor financiado</div><div class="pp-pay-det-val">R$ '+fmtBRL(preco)+'</div></div>';
+  h+='<div class="pp-pay-det-box"><div class="pp-pay-det-lbl">Parcelas</div><div class="pp-pay-det-val">'+n+'x de R$ '+fmtBRL(PMT)+'</div></div>';
+  h+='</div>';
+  h+='<div class="pp-pay-date">📅 1ª parcela: <strong>'+dtFmt+'</strong></div>';
+  h+='</div>';
+  // Cartão
+  h+='<div class="pp-pay-sec">';
+  h+='<div class="pp-pay-sec-lbl">💳 CARTÃO VISA/MASTER 18X</div>';
+  h+='<div class="pp-pay-sec-total-lbl">Valor total no cartão</div>';
+  h+='<div class="pp-pay-sec-total">R$ '+fmtBRL(totalCartao)+'</div>';
+  h+='<div class="pp-pay-sec-pmt"><div class="pp-pay-sec-pmt-lbl">Parcelas</div><div class="pp-pay-sec-pmt-val">'+PARC_CARTAO+'x de R$ '+fmtBRL(parcCartao)+'</div></div>';
+  h+='<div class="pp-pay-sec-flag">Visa ou Mastercard</div>';
+  h+='</div>';
+  h+='</div>';
+
+  // COMPARATIVO
+  h+='<div class="pp-comp" style="padding:1rem 2rem">';
+  h+='<div id="p1footer" style="background:#0d1b2a;padding:14px 18px;display:flex;justify-content:space-between;align-items:center">';
+  h+='<div style="font-family:Syne,sans-serif;font-size:11px;font-weight:700;color:#f5c518">WM Energia Solar</div>';
+  h+='<div style="font-size:9px;color:rgba(255,255,255,.5)">Proposta válida por 7 dias &middot; '+(cliNome||'')+'</div>';
+  h+='</div>';
+
+  h+='<div style="display:flex;justify-content:space-between;align-items:center;padding-bottom:10px;margin-bottom:12px;border-bottom:2px solid #0f3460">';
+  h+='<div style="font-family:Syne,sans-serif;font-size:14px;font-weight:700;color:#0f3460"><span style=\"color:#f5c518\">WM</span> Energia Solar — Proposta Comercial</div>';
+  h+='<div style="font-size:10px;color:#888">'+(cliNome?cliNome:'')+'</div>';
+  h+='</div>';
+  h+='<div class="pp-sec-title">📊 COMPARATIVO: FINANCIAMENTO × CONTA DE LUZ (60 MESES)</div>';
+  h+='<div class="pp-comp-grid">';
+  h+='<div class="pp-comp-col bad"><div class="pp-comp-tag">❌ SEM ENERGIA SOLAR</div><div class="pp-comp-desc">Você continua pagando energia e não vê retorno.</div><div class="pp-comp-val">R$ '+fmtBRL(totalContaSemSolar)+'</div><div class="pp-comp-sub">Conta de luz em 60 meses<br>(média atual R$ '+fmtBRL(econMes)+'/mês)</div></div>';
+  h+='<div class="pp-comp-icon">−</div>';
+  h+='<div class="pp-comp-col good"><div class="pp-comp-tag">✅ COM ENERGIA SOLAR</div><div class="pp-comp-desc">Você investe e economiza todos os meses.</div><div class="pp-comp-val">R$ '+fmtBRL(totalParcFinanc)+'</div><div class="pp-comp-sub">Total do financiamento<br>'+n+'x de R$ '+fmtBRL(PMT)+'</div></div>';
+  h+='<div class="pp-comp-icon">=</div>';
+  h+='<div class="pp-comp-col result"><div class="pp-comp-tag">💰 ECONOMIA ESTIMADA</div><div class="pp-comp-desc">Dinheiro que fica no seu bolso.</div><div class="pp-comp-val">R$ '+fmtBRL(Math.abs(economiaLiq))+'</div><div class="pp-comp-sub">em 60 meses</div></div>';
+  h+='</div>';
+  h+='<div class="pp-comp-result-row">';
+  h+='<div class="pp-comp-result-lbl">💵 Economia líquida pagando com solar financiado:</div>';
+  h+='<div class="pp-comp-result-val">R$ '+fmtBRL(Math.abs(economiaLiq))+' a favor</div>';
+  h+='</div>';
+  h+='<div class="pp-comp-note">Simulação sem considerar reajustes anuais da energia. Na prática, a economia tende a ser ainda maior.</div>';
+  h+='</div>';
+
+  // ECONOMIA PRÁTICA
+  const econ12=econMes*12;
+  const econ5=econMes*60;
+  h+='<div class="pp-econ" style="padding:1rem 2rem">';
+  h+='<div class="pp-sec-title">📈 SUA ECONOMIA NA PRÁTICA</div>';
+  h+='<div class="pp-econ-grid">';
+  h+='<div class="pp-econ-card"><div class="pp-econ-ico">💼</div><div class="pp-econ-lbl">Economia média mensal</div><div class="pp-econ-val">R$ '+fmtBRL(econMes)+'</div></div>';
+  h+='<div class="pp-econ-card"><div class="pp-econ-ico">📅</div><div class="pp-econ-lbl">Economia em 12 meses</div><div class="pp-econ-val">R$ '+fmtBRL(econ12)+'</div></div>';
+  h+='<div class="pp-econ-card"><div class="pp-econ-ico">📈</div><div class="pp-econ-lbl">Economia em 5 anos</div><div class="pp-econ-val">R$ '+fmtBRL(econ5)+'</div></div>';
+  h+='</div>';
+  h+='<div style="font-size:10px;color:#888;text-align:center">ℹ️ Simulação sem considerar reajustes anuais da energia. Na prática, a economia tende a ser ainda maior.</div>';
+  h+='</div>';
+
+  // BÔNUS
+  h+='<div style="background:#fff;padding:0 0 .5rem">';
+  h+='<div class="pp-bonus">';
+  h+='<div class="pp-bonus-ico">🎁</div>';
+  h+='<div><div class="pp-bonus-tag">BENEFÍCIO EXCLUSIVO WM</div>';
+  h+='<div class="pp-bonus-title">Proteção Solar WM — Gratuita no 1º ano*</div>';
+  h+='<div class="pp-bonus-desc">A Proteção Solar WM pode ser <strong>GRATUITA no primeiro ano</strong> para clientes que realizarem no mínimo 10 indicações válidas. Cobertura contra danos elétricos, suporte técnico e auxílio em garantia.</div>';
+  h+='<div class="pp-bonus-note">* Consulte regras e condições. O benefício não é automático e está sujeito ao cumprimento dos critérios de indicação.</div>';
+  h+='</div></div></div>';
+
+    // (kit movido)
+
+  // (info removida)
+
+    // FOOTER
+  h+='<div class="pp-footer">';
+  h+='<div class="pp-footer-warn"><div class="pp-footer-warn-ico">⚠️</div><div class="pp-footer-warn-txt">Condições sujeitas à alteração conforme estoque, taxas bancárias e disponibilidade promocional.<br>Proposta válida por 7 dias &middot; Sujeita a visita técnica</div></div>';
+  h+='<div class="pp-footer-right"><div class="pp-footer-brand">WM Energia Solar</div><div class="pp-footer-info">📍 Av. Morangueira, 1121 &mdash; Maringá/PR<br>📱 (44) 4004-2951</div></div>';
+  h+='</div>';
+
+  h+='</div></div>';
 
   document.getElementById('propConteudo').innerHTML = h;
   document.getElementById('propostaModal').style.display = 'block';
   document.body.style.overflow = 'hidden';
   document.getElementById('propostaModal').scrollTop = 0;
-  // Registrar proposta automaticamente se tiver nome e telefone
   const nome=document.getElementById('cliNome').value.trim();
   const tel=document.getElementById('cliTel').value.trim();
   if(nome && tel) salvarProposta();
@@ -1679,6 +1957,7 @@ function abrirModalVend(){
   document.getElementById('vMeta').value='60';
   document.getElementById('vLogin').disabled=false;
   document.getElementById('modalVendMsg').style.display='none';
+  const _vt=document.getElementById('vTipo');if(_vt){_vt.value='vendedor';if(typeof toggleNegOpts==='function')toggleNegOpts();}
   document.getElementById('modalVend').style.display='flex';
 }
 function editarVend(login,senha,nome,meta,tipo,descMax){
@@ -1688,7 +1967,7 @@ function editarVend(login,senha,nome,meta,tipo,descMax){
   document.getElementById('vSenha').value=senha;
   document.getElementById('vNome').value=nome;
   document.getElementById('vMeta').value=meta;
-  const _vt=document.getElementById('vTipo');if(_vt)_vt.value=tipo||'vendedor';
+  const _vt=document.getElementById('vTipo');if(_vt){_vt.value=tipo||'vendedor';}
   const _vd=document.getElementById('vDescMax');if(_vd)_vd.value=descMax||10;
   if(typeof toggleNegOpts==='function')toggleNegOpts();
   document.getElementById('modalVendMsg').style.display='none';
@@ -1749,7 +2028,7 @@ function renderMetsNeg(preco){
   document.getElementById('mRow').innerHTML=
     '<div class="met"><div class="mlabel">Potencia</div><div class="mval">'+r.kwp.toFixed(2)+' kWp</div><div class="mhint">'+r.qtd+' x '+r.pl.pot+'W</div></div>'+
     '<div class="met"><div class="mlabel">Geracao/mes</div><div class="mval">'+fmtN(r.gen,0)+' kWh</div><div class="mhint">'+(S.oLoss>0?'-'+(S.oLoss*100)+'% orient.':'Norte, sem perda')+'</div></div>'+
-    '<div class="met"><div class="mlabel">Economia/mes</div><div class="mval">R$ '+fmtBRL(r.gen*TARIFA)+'</div><div class="mhint">Economia de ate 90%*</div></div>';
+    '<div class="met"><div class="mlabel">Economia/mes</div><div class="mval">R$ '+fmtBRL(r.gen*(document.getElementById('sLocal')&&document.getElementById('sLocal').value.includes('|ms')?1.00:0.86))+'</div><div class="mhint">Economia de ate 90%*</div></div>';
 }
 function renderPCNeg(cheio,cur){
   const max=getDescMax(); let h='';
@@ -1834,7 +2113,7 @@ document.getElementById('lu').focus();
     <div class="modal-bar">
       <span class="modal-bar-title">WM Energia Solar — Proposta</span>
       <div class="modal-bar-btns">
-        <button class="mpbtn mpbtn-print" onclick="imprimirProposta()">🖨️ Imprimir / PDF</button>
+        <button class="mpbtn mpbtn-print" id="btnGerarPDF" onclick="gerarPDF()">📄 Baixar PDF</button>
         <button class="mpbtn mpbtn-close" onclick="fecharProposta()">✕ Fechar</button>
       </div>
     </div>
