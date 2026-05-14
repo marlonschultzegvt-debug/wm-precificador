@@ -641,7 +641,7 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:22px;heigh
         <button class="ba bot" onclick="loadMyPropostas()">🔄 Atualizar</button>
         <button class="ba bor" onclick="exportMyXls()">📥 Excel</button>
       </div>
-      <div id="myTabela" style="overflow-x:auto"></div>
+      <div id="myTabela" style="overflow-x:auto;-webkit-overflow-scrolling:touch"></div>
     </div>
   </div>
 
@@ -761,7 +761,23 @@ async function doLogin(){
   const res = await api({action:'login', login:u, senha:p});
   btn.textContent='Entrar'; btn.disabled=false;
   if(res.ok){
-    S.role=res.role; S.login=res.login; S.nomeVend=res.nome; S.metaVend=res.meta||60; S.descMax=res.descMax||10;
+    S.role=res.role; S.login=res.login; S.nomeVend=res.nome; S.metaVend=res.meta||60;
+    // descMax: pegar da API ou do cache local
+    let _descMax=res.descMax||0;
+    if(!_descMax){
+      try{
+        const cache=JSON.parse(localStorage.getItem('wmTipos')||'{}');
+        if(cache[res.login]) _descMax=cache[res.login].descMax||10;
+      }catch(e){}
+    }
+    S.descMax=_descMax||10;
+    // role negociador: verificar cache se API não retornar
+    if(res.role==='vendedor'){
+      try{
+        const cache=JSON.parse(localStorage.getItem('wmTipos')||'{}');
+        if(cache[res.login]&&cache[res.login].tipo==='negociador') S.role='negociador';
+      }catch(e){}
+    }
     document.getElementById('ls').style.display='none';
     document.getElementById('app').style.display='block';
     const b=document.getElementById('rbadge');
@@ -965,7 +981,7 @@ function goBack(to){
 }
 
 // ====== CÁLCULO ======
-// custo_liq = custo × 0.97
+// custo_liq = custo × 0.95
 // preco_base = custo_liq × 1.70
 // preco_venda(pct) = preco_base ÷ (1 - pct/100)
 function pv(base,pct){return pct>=100?Infinity:base/(1-pct/100)}
@@ -987,7 +1003,7 @@ function calcRes(){
   const mc4=inv.mc4*qi;
   const cMC4=mc4*DB.mc4;
   const custo=cPl+cInv+cEst+cCabo+cMC4+(S.isRural?450:0);
-  const custoLiq=custo*0.97;
+  const custoLiq=custo*0.95;
   const precoBase=custoLiq*1.70;
   const kwp=(pl.pot*qtd)/1000;
   const gen=kwp*f*30*(1-S.oLoss);
@@ -1030,8 +1046,8 @@ function renderMets(preco,pct,comv){
   if(pct>0)h+=`<div class="met"><div class="mlabel">Sua Comissão</div><div class="mval" style="color:var(--orange)">R$ ${fmtBRL(comv)}</div><div class="mhint">${pct}% sobre o preço</div></div>`;
   if(isAdm){
     const mg=((preco-r.custo)/preco*100);
-    h+=`<div class="met adm"><div class="mlabel">Custo Bruto</div><div class="mval">R$ ${fmtBRL(r.custo)}</div><div class="mhint">Antes do desc. 3%</div></div>
-    <div class="met adm"><div class="mlabel">Custo Líquido</div><div class="mval">R$ ${fmtBRL(r.custoLiq)}</div><div class="mhint">−3% aplicado</div></div>
+    h+=`<div class="met adm"><div class="mlabel">Custo Bruto</div><div class="mval">R$ ${fmtBRL(r.custo)}</div><div class="mhint">Antes do desc. 5%</div></div>
+    <div class="met adm"><div class="mlabel">Custo Líquido</div><div class="mval">R$ ${fmtBRL(r.custoLiq)}</div><div class="mhint">−5% aplicado</div></div>
     <div class="met adm"><div class="mlabel">Margem Bruta</div><div class="mval">${mg.toFixed(1)}%</div><div class="mhint">R$ ${fmtBRL(preco-r.custo)}</div></div>`;
   }
   document.getElementById('mRow').innerHTML=h;
@@ -1053,7 +1069,7 @@ function renderBk(){
   });
   if(isAdm){
     h+=`<tr class="admr"><td>Subtotal</td><td></td><td>R$ ${fmtBRL(r.custo)}</td></tr>`;
-    h+=`<tr class="admr"><td>Desconto 3%</td><td></td><td>− R$ ${fmtBRL(r.custo-r.custoLiq)}</td></tr>`;
+    h+=`<tr class="admr"><td>Desconto 5%</td><td></td><td>− R$ ${fmtBRL(r.custo-r.custoLiq)}</td></tr>`;
     h+=`<tr class="admr"><td>Custo Líquido</td><td></td><td>R$ ${fmtBRL(r.custoLiq)}</td></tr>`;
     h+=`<tr class="admr tot"><td>Preço Base (×1,70)</td><td></td><td>R$ ${fmtBRL(r.precoBase)}</td></tr>`;
   }else{
@@ -1196,6 +1212,211 @@ function calcPayback(inv, gen, tarifa, reajuste){
   return paybackMeses;
 }
 
+function imprimirProposta(){
+  // Mantido por compatibilidade — chama gerarPDF
+  gerarPDF();
+}
+
+async function gerarPDF(){
+  const btn = document.getElementById('btnGerarPDF');
+  if(btn){ btn.textContent='⏳ Gerando PDF...'; btn.disabled=true; }
+
+  const el = document.getElementById('propConteudo');
+  await document.fonts.ready;
+
+  try {
+    const canvas = await html2canvas(el, {
+      scale: 2,
+      useCORS: true,
+      allowTaint: true,
+      backgroundColor: '#ffffff',
+      logging: false,
+      windowWidth: 800,
+      onclone: function(clonedDoc){
+        const clonedEl = clonedDoc.getElementById('propConteudo');
+        if(clonedEl){
+          clonedEl.style.height = 'auto';
+          clonedEl.style.overflow = 'visible';
+          clonedEl.style.maxHeight = 'none';
+        }
+      }
+    });
+
+    const { jsPDF } = window.jspdf;
+    const pageW = 210;
+    const pageH = 297;
+    const margin = 8;
+    const usableW = pageW - margin * 2;
+    const usableH = pageH - margin * 2;
+
+    // Calcular mm por px
+    const mmPerPx = (pageW - margin*2) / (canvas.width / 2) * (canvas.width / 2 / (usableW / (pageW/canvas.width*2)));
+    // Simplificado: canvas.width px = usableW mm (em scale=2)
+    const pxPerMm = (canvas.width / 2) / usableW;
+    const mmPerPxSimple = 1 / pxPerMm;
+
+    // Encontrar posição do bloco de pagamento (pp-pay-grid)
+    // usando getBoundingClientRect relativo ao propConteudo
+    let breakPx = null;
+    const elRect = el.getBoundingClientRect();
+
+    // Tentar pegar pp-pay-grid
+    const payEl = el.querySelector('.pp-pay-grid');
+    if(payEl){
+      const r = payEl.getBoundingClientRect();
+      breakPx = Math.round((r.top - elRect.top) * 2); // scale=2
+    }
+
+    // Se não encontrou ou está muito no final, usar 55% da altura
+    const totalH = canvas.height;
+    if(!breakPx || breakPx > totalH * 0.75 || breakPx < totalH * 0.3){
+      breakPx = Math.round(totalH * 0.52);
+    }
+
+    const pdf = new jsPDF({ orientation:'portrait', unit:'mm', format:'a4' });
+
+    // ── PÁGINA 1
+    const slice1 = document.createElement('canvas');
+    slice1.width = canvas.width;
+    slice1.height = breakPx;
+    const ctx1 = slice1.getContext('2d');
+    ctx1.fillStyle = '#fff';
+    ctx1.fillRect(0, 0, slice1.width, slice1.height);
+    ctx1.drawImage(canvas, 0, 0, canvas.width, breakPx, 0, 0, canvas.width, breakPx);
+    const h1mm = breakPx * mmPerPxSimple;
+    pdf.addImage(slice1.toDataURL('image/jpeg', 0.96), 'JPEG', margin, margin, usableW, h1mm);
+
+    // ── PÁGINA 2
+    const remainPx = totalH - breakPx;
+    if(remainPx > 20){
+      pdf.addPage();
+      const slice2 = document.createElement('canvas');
+      slice2.width = canvas.width;
+      slice2.height = remainPx;
+      const ctx2 = slice2.getContext('2d');
+      ctx2.fillStyle = '#fff';
+      ctx2.fillRect(0, 0, slice2.width, slice2.height);
+      ctx2.drawImage(canvas, 0, breakPx, canvas.width, remainPx, 0, 0, canvas.width, remainPx);
+      const h2mm = remainPx * mmPerPxSimple;
+      pdf.addImage(slice2.toDataURL('image/jpeg', 0.96), 'JPEG', margin, margin, usableW, h2mm);
+    }
+
+    const cliNome = document.getElementById('cliNome')?.value?.trim() || 'cliente';
+    const nomeArq = 'Proposta_WM_' + cliNome.split(' ')[0] + '_' + new Date().toLocaleDateString('pt-BR').replace(/\//g,'') + '.pdf';
+    pdf.save(nomeArq);
+
+  } catch(err) {
+    console.error('Erro PDF:', err);
+    alert('Erro ao gerar PDF: ' + err.message);
+  } finally {
+    if(btn){ btn.textContent='📄 Baixar PDF'; btn.disabled=false; }
+  }
+}
+function imprimirProposta(){
+  // Mantido por compatibilidade — chama gerarPDF
+  gerarPDF();
+}
+
+async function gerarPDF(){
+  const btn = document.getElementById('btnGerarPDF');
+  if(btn){ btn.textContent='⏳ Gerando PDF...'; btn.disabled=true; }
+
+  const el = document.getElementById('propConteudo');
+  await document.fonts.ready;
+
+  try {
+    // Capturar o canvas completo
+    const canvas = await html2canvas(el, {
+      scale: 2,
+      useCORS: true,
+      allowTaint: true,
+      backgroundColor: '#ffffff',
+      logging: false,
+      windowWidth: 800,
+      onclone: function(clonedDoc){
+        const clonedEl = clonedDoc.getElementById('propConteudo');
+        if(clonedEl){
+          clonedEl.style.height = 'auto';
+          clonedEl.style.overflow = 'visible';
+          clonedEl.style.maxHeight = 'none';
+        }
+      }
+    });
+
+    const { jsPDF } = window.jspdf;
+    const pageW = 210;
+    const pageH = 297;
+    const margin = 10;
+    const usableW = pageW - margin * 2;
+    const usableH = pageH - margin * 2;
+
+    // px por mm (canvas scale=2, 96dpi base)
+    const pxPerMm = (canvas.width / 2) / (usableW + margin * 2) * (210 / pageW);
+    const mmPerPx = 1 / pxPerMm;
+
+    // Encontrar posição Y do bloco de pagamento no elemento original
+    const payGrid = el.querySelector('.pp-kit') || el.querySelector('.pp-pay-grid');
+    let breakY1px = null; // ponto de corte em px do canvas (scale=2)
+    if(payGrid){
+      const elRect = el.getBoundingClientRect();
+      const payRect = payGrid.getBoundingClientRect();
+      const relY = payRect.top - elRect.top; // px relativos ao elemento
+      breakY1px = relY * 2; // scale=2
+    }
+
+    // Calcular posição do corte em mm
+    const canvasMmH = canvas.height * mmPerPx;
+    let breakY1mm = breakY1px ? breakY1px * mmPerPx : usableH;
+
+    // Se breakY1mm > usableH, usar usableH
+    if(breakY1mm > usableH) breakY1mm = usableH;
+
+    const pdf = new jsPDF({ orientation:'portrait', unit:'mm', format:'a4' });
+
+    // ── PÁGINA 1: do topo até antes do financiamento
+    {
+      const h1px = breakY1px || (usableH / mmPerPx);
+      const slice1 = document.createElement('canvas');
+      slice1.width = canvas.width;
+      slice1.height = Math.round(h1px);
+      const ctx1 = slice1.getContext('2d');
+      ctx1.fillStyle = '#fff';
+      ctx1.fillRect(0, 0, slice1.width, slice1.height);
+      ctx1.drawImage(canvas, 0, 0, canvas.width, Math.round(h1px), 0, 0, canvas.width, Math.round(h1px));
+      const h1mm = h1px * mmPerPx;
+      pdf.addImage(slice1.toDataURL('image/jpeg',0.96), 'JPEG', margin, margin, usableW, h1mm);
+    }
+
+    // ── PÁGINA 2: do financiamento até o fim
+    {
+      const startPx = breakY1px || Math.round(usableH / mmPerPx);
+      const remainPx = canvas.height - startPx;
+      if(remainPx > 10){
+        pdf.addPage();
+        const slice2 = document.createElement('canvas');
+        slice2.width = canvas.width;
+        slice2.height = remainPx;
+        const ctx2 = slice2.getContext('2d');
+        ctx2.fillStyle = '#fff';
+        ctx2.fillRect(0, 0, slice2.width, slice2.height);
+        ctx2.drawImage(canvas, 0, startPx, canvas.width, remainPx, 0, 0, canvas.width, remainPx);
+        const h2mm = remainPx * mmPerPx;
+        // Se h2mm > usableH, vai ultrapassar — mas fica numa única página grande
+        pdf.addImage(slice2.toDataURL('image/jpeg',0.96), 'JPEG', margin, margin, usableW, h2mm);
+      }
+    }
+
+    const cliNome = document.getElementById('cliNome')?.value?.trim() || 'cliente';
+    const nomeArq = 'Proposta_WM_' + cliNome.split(' ')[0] + '_' + new Date().toLocaleDateString('pt-BR').replace(/\//g,'') + '.pdf';
+    pdf.save(nomeArq);
+
+  } catch(err) {
+    console.error('Erro PDF:', err);
+    alert('Erro ao gerar PDF: ' + err.message);
+  } finally {
+    if(btn){ btn.textContent='📄 Baixar PDF'; btn.disabled=false; }
+  }
+}
 function imprimirProposta(){
   // Mantido por compatibilidade — chama gerarPDF
   gerarPDF();
@@ -1628,7 +1849,7 @@ function abrirProposta(){
   const econ12=econMes*12;
   const econ5=econMes*60;
   h+='<div class="pp-econ" style="padding:1rem 2rem">';
-  h+='<div class="pp-sec-title">📈 SUA ECONOMIA NA PRÁTICA</div>';
+  h+='<div class="pp-sec-title">💵 PAGAMENTO À VISTA</div>';
   h+='<div class="pp-econ-grid">';
   h+='<div class="pp-econ-card"><div class="pp-econ-ico">💼</div><div class="pp-econ-lbl">Economia média mensal</div><div class="pp-econ-val">R$ '+fmtBRL(econMes)+'</div></div>';
   h+='<div class="pp-econ-card"><div class="pp-econ-ico">📅</div><div class="pp-econ-lbl">Economia em 12 meses</div><div class="pp-econ-val">R$ '+fmtBRL(econ12)+'</div></div>';
@@ -1663,6 +1884,8 @@ function abrirProposta(){
   document.getElementById('propostaModal').style.display = 'block';
   document.body.style.overflow = 'hidden';
   document.getElementById('propostaModal').scrollTop = 0;
+  // Cache local do HTML para reabrir depois
+  try{ sessionStorage.setItem('ultimaProposta', document.getElementById('propConteudo').innerHTML); }catch(e){}
   const nome=document.getElementById('cliNome').value.trim();
   const tel=document.getElementById('cliTel').value.trim();
   if(nome && tel) salvarProposta();
@@ -1681,7 +1904,7 @@ function expXls(){
     ['Cabo Solar',`${Math.ceil(r.metros)}m`,r.cCabo],
     ['Conectores MC4',`${r.mc4} pares`,r.cMC4],[''],
     ['Subtotal Custo','',r.custo],
-    ['Desconto 3%','',(r.custo-r.custoLiq)],
+    ['Desconto 5%','',(r.custo-r.custoLiq)],
     ['Custo Líquido','',r.custoLiq],
     ['Preço Base (×1,70)','',r.precoBase],[''],
     [`Preço Venda (${pct}% comissão)`,'',preco],
@@ -1758,7 +1981,8 @@ async function salvarProposta(){
     geracao:Math.round(r.gen),
     valor:Math.round(preco),
     inversor:r.inv.nome+(r.qi>1?' x'+r.qi:''),
-    estrutura:r.est.nome
+    estrutura:r.est.nome,
+    html:document.getElementById('propConteudo').innerHTML
   };
   const statusEl = document.getElementById('savePropostaStatus');
   statusEl.style.display='block';
@@ -1824,19 +2048,39 @@ async function loadMyPropostas(){
   const tEl=document.getElementById('myTabela');
   if(!tEl) return;
   if(!myPropostas.length){ tEl.innerHTML='<div style="color:var(--t2);font-size:13px;padding:1rem 0">Nenhuma proposta encontrada.</div>'; return; }
-  let h='<table class="bk" style="font-size:12px;min-width:600px"><thead><tr>';
-  ['Data','Cliente','Telefone','Origem','Placas','kWp','Geração','Valor (R$)','Inversor'].forEach(col=>{
+  let h='<table class="bk" style="font-size:11px;min-width:700px;border-collapse:collapse"><thead><tr>';
+  ['Data','Cliente','Telefone','Origem','kWp','Geração','Valor (R$)','Inversor',''].forEach(col=>{
     h+='<th>'+col+'</th>';
   });
   h+='</tr></thead><tbody>';
   myPropostas.forEach(p=>{
-    h+='<tr><td>'+p['Data']+'</td><td>'+p['Cliente']+'</td><td>'+p['Telefone']+'</td><td>'+(p['Origem']||'—')+'</td>';
-    h+='<td>'+p['Placas']+'</td><td>'+p['Potência (kWp)']+'</td><td>'+p['Geração (kWh/mês)']+' kWh</td>';
-    h+='<td style="color:var(--orange)">R$ '+fmtBRL(parseFloat(p['Valor Venda (R$)'])||0)+'</td><td>'+p['Inversor']+'</td></tr>';
+    const hasHtml = p['HTML'] && p['HTML'].length > 10;
+    h+='<tr>';
+    h+='<td style="white-space:nowrap">'+p['Data']+'</td>';
+    h+='<td><strong>'+p['Cliente']+'</strong></td>';
+    h+='<td style="color:var(--t2)">'+p['Telefone']+'</td>';
+    h+='<td>'+(p['Origem']||'—')+'</td>';
+    h+='<td style="font-weight:600">'+p['Potência (kWp)']+' kWp</td>';
+    h+='<td>'+p['Geração (kWh/mês)']+' kWh</td>';
+    h+='<td style="color:var(--orange);font-weight:700;font-family:Syne,sans-serif">R$ '+fmtBRL(parseFloat(p['Valor Venda (R$)'])||0)+'</td>';
+    h+='<td style="color:var(--t2);font-size:11px">'+p['Inversor']+'</td>';
+    h+='<td>'+(hasHtml ? '<button class="ba bot" style="padding:4px 10px;font-size:11px" onclick="reabrirProposta('+myPropostas.indexOf(p)+')">📄 Ver</button>' : '—')+'</td>';
+    h+='</tr>';
   });
   h+='</tbody></table>';
   tEl.innerHTML=h;
 }
+function reabrirProposta(idx){
+  const p = myPropostas[idx];
+  // Tentar HTML da API, depois cache local
+  const htmlContent = p['HTML'] || p['html'] || sessionStorage.getItem('propHtml_'+idx);
+  if(!htmlContent){ alert('HTML da proposta não disponível. Gere novamente.'); return; }
+  document.getElementById('propConteudo').innerHTML = htmlContent;
+  document.getElementById('propostaModal').style.display = 'block';
+  document.body.style.overflow = 'hidden';
+  document.getElementById('propostaModal').scrollTop = 0;
+}
+
 function exportMyXls(){
   if(!myPropostas.length) return;
   const wb=XLSX.utils.book_new();
@@ -1940,6 +2184,14 @@ async function loadVendedoresTbl(){
   let h='<table class="bk" style="font-size:12px"><thead><tr><th>Login</th><th>Nome</th><th>Perfil</th><th>Meta</th><th>Ações</th></tr></thead><tbody>';
   res.vendedores.forEach(v=>{
     if(v.login==='admin') return;
+    // Usar cache local se API não retornar tipo
+    try{
+      const cache=JSON.parse(localStorage.getItem('wmTipos')||'{}');
+      if(!v.tipo && cache[v.login]) {
+        v.tipo=cache[v.login].tipo;
+        v.descMax=cache[v.login].descMax;
+      }
+    }catch(e){}
     const _tl=v.tipo==='negociador'?'<span style="font-size:10px;background:rgba(79,163,216,.12);color:#4fa3d8;border:1px solid rgba(79,163,216,.25);border-radius:10px;padding:2px 8px">🏷️ Neg '+(v.descMax||10)+'%</span>':'<span style="font-size:10px;background:var(--ol);color:var(--orange);border:1px solid rgba(232,123,30,.25);border-radius:10px;padding:2px 8px">👤 Normal</span>';
     h+='<tr><td style="color:var(--t2)">'+v.login+'</td><td>'+v.nome+'</td><td>'+_tl+'</td><td>'+v.meta+'</td>';
     h+='<td><button class="ba bot" style="padding:4px 10px;font-size:11px;margin-right:4px" onclick="editarVend(\''+v.login+'\',\''+v.senha+'\',\''+v.nome+'\','+v.meta+',\''+( v.tipo||'vendedor')+'\',' +(v.descMax||10)+')">&#9999;&#65039;</button>';
@@ -1957,7 +2209,8 @@ function abrirModalVend(){
   document.getElementById('vMeta').value='60';
   document.getElementById('vLogin').disabled=false;
   document.getElementById('modalVendMsg').style.display='none';
-  const _vt=document.getElementById('vTipo');if(_vt){_vt.value='vendedor';if(typeof toggleNegOpts==='function')toggleNegOpts();}
+  const _vt=document.getElementById('vTipo');if(_vt){_vt.value='vendedor';}
+  document.getElementById('negOpts').style.display='none';
   document.getElementById('modalVend').style.display='flex';
 }
 function editarVend(login,senha,nome,meta,tipo,descMax){
@@ -1967,8 +2220,18 @@ function editarVend(login,senha,nome,meta,tipo,descMax){
   document.getElementById('vSenha').value=senha;
   document.getElementById('vNome').value=nome;
   document.getElementById('vMeta').value=meta;
-  const _vt=document.getElementById('vTipo');if(_vt){_vt.value=tipo||'vendedor';}
-  const _vd=document.getElementById('vDescMax');if(_vd)_vd.value=descMax||10;
+  // Usar cache local se tipo não vier da API
+  let _tipoFinal=tipo||'vendedor';
+  let _descMaxFinal=descMax||10;
+  try{
+    const cache=JSON.parse(localStorage.getItem('wmTipos')||'{}');
+    if((!tipo||tipo==='vendedor')&&cache[login]){
+      _tipoFinal=cache[login].tipo||'vendedor';
+      _descMaxFinal=cache[login].descMax||10;
+    }
+  }catch(e){}
+  const _vt=document.getElementById('vTipo');if(_vt){_vt.value=_tipoFinal;}
+  const _vd=document.getElementById('vDescMax');if(_vd)_vd.value=_descMaxFinal;
   if(typeof toggleNegOpts==='function')toggleNegOpts();
   document.getElementById('modalVendMsg').style.display='none';
   document.getElementById('modalVend').style.display='flex';
@@ -1984,7 +2247,16 @@ async function salvarVendedor(){
   const msgEl=document.getElementById('modalVendMsg');
   if(!login||!senha||!nome){ msgEl.style.display='block'; msgEl.style.color='#e05050'; msgEl.textContent='Preencha todos os campos.'; return; }
   const res=await api({action:'salvarVendedor', login:S.login, role:S.role, login:editandoLogin||login, senha, nome, meta, tipo, descMax});
-  if(res.ok){ fecharModalVend(); loadVendedoresTbl(); }
+  if(res.ok){
+    // Cache local do tipo (enquanto Apps Script não retorna este campo)
+    try{
+      const cache=JSON.parse(localStorage.getItem('wmTipos')||'{}');
+      const loginKey=editandoLogin||login;
+      cache[loginKey]={tipo, descMax};
+      localStorage.setItem('wmTipos', JSON.stringify(cache));
+    }catch(e){}
+    fecharModalVend(); loadVendedoresTbl();
+  }
   else { msgEl.style.display='block'; msgEl.style.color='#e05050'; msgEl.textContent=res.erro||'Erro ao salvar'; }
 }
 async function excluirVend(login){
@@ -1998,7 +2270,11 @@ async function excluirVend(login){
 function toggleNegOpts(){
   const t=document.getElementById('vTipo')?.value;
   const el=document.getElementById('negOpts');
-  if(el) el.style.display=t==='negociador'?'block':'none';
+  if(el){
+    el.style.display=t==='negociador'?'block':'none';
+    // Forçar display imediato
+    el.style.visibility='visible';
+  }
 }
 function isNegociador(){ return S.role==='negociador'; }
 function getDescMax(){ return parseInt(S.descMax||10); }
