@@ -743,7 +743,10 @@ const API_URL = 'https://script.google.com/macros/s/AKfycbwErfRbFEdKfZpWNrXFMWrE
 
 async function api(payload){
   try{
-    const r = await fetch(API_URL, {method:'POST', body:JSON.stringify(payload)});
+    // Google Apps Script requer GET para evitar CORS preflight
+    const params = encodeURIComponent(JSON.stringify(payload));
+    const url = API_URL + '?payload=' + params;
+    const r = await fetch(url, {method:'GET', redirect:'follow'});
     return await r.json();
   } catch(e) {
     return {ok:false, erro:'Sem conexão com o servidor: '+e.message};
