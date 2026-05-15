@@ -1236,100 +1236,93 @@ async function gerarPDF(){
   const el = document.getElementById('propConteudo');
   await document.fonts.ready;
 
+  // Garantir que todo o conteúdo está visível antes de capturar
+  const origStyle = el.style.cssText;
+  el.style.height = 'auto';
+  el.style.maxHeight = 'none';
+  el.style.overflow = 'visible';
+
   try {
-    // Capturar o canvas completo
     const canvas = await html2canvas(el, {
       scale: 2,
       useCORS: true,
       allowTaint: true,
       backgroundColor: '#ffffff',
       logging: false,
-      windowWidth: 800,
+      windowWidth: 820,
+      scrollY: -window.scrollY,
       onclone: function(clonedDoc){
         const clonedEl = clonedDoc.getElementById('propConteudo');
         if(clonedEl){
           clonedEl.style.height = 'auto';
           clonedEl.style.overflow = 'visible';
           clonedEl.style.maxHeight = 'none';
+          clonedEl.style.position = 'relative';
+          clonedEl.style.width = '800px';
         }
+        // Garantir que todos os filhos estão visíveis
+        clonedDoc.querySelectorAll('#propConteudo *').forEach(function(el){
+          el.style.overflow = 'visible';
+        });
       }
     });
 
     const { jsPDF } = window.jspdf;
+    // A4: 210 x 297 mm, margens 8mm
+    const margin = 8;
     const pageW = 210;
     const pageH = 297;
-    const margin = 10;
-    const usableW = pageW - margin * 2;
-    const usableH = pageH - margin * 2;
+    const usableW = pageW - margin * 2;  // 194mm
+    const usableH = pageH - margin * 2;  // 281mm
 
-    // px por mm (canvas scale=2, 96dpi base)
-    const pxPerMm = (canvas.width / 2) / (usableW + margin * 2) * (210 / pageW);
-    const mmPerPx = 1 / pxPerMm;
-
-    // Encontrar posição Y do bloco de pagamento no elemento original
-    const payGrid = el.querySelector('.pp-kit') || el.querySelector('.pp-pay-grid');
-    let breakY1px = null; // ponto de corte em px do canvas (scale=2)
-    if(payGrid){
-      const elRect = el.getBoundingClientRect();
-      const payRect = payGrid.getBoundingClientRect();
-      const relY = payRect.top - elRect.top; // px relativos ao elemento
-      breakY1px = relY * 2; // scale=2
-    }
-
-    // Calcular posição do corte em mm
-    const canvasMmH = canvas.height * mmPerPx;
-    let breakY1mm = breakY1px ? breakY1px * mmPerPx : usableH;
-
-    // Se breakY1mm > usableH, usar usableH
-    if(breakY1mm > usableH) breakY1mm = usableH;
+    // Calcular escala: canvas.width px → usableW mm
+    // canvas.width = 820 * 2 = 1640px (scale=2)
+    const mmPerPx = usableW / (canvas.width);  // mm por pixel do canvas
 
     const pdf = new jsPDF({ orientation:'portrait', unit:'mm', format:'a4' });
 
-    // ── PÁGINA 1: do topo até antes do financiamento
-    {
-      const h1px = breakY1px || (usableH / mmPerPx);
-      const slice1 = document.createElement('canvas');
-      slice1.width = canvas.width;
-      slice1.height = Math.round(h1px);
-      const ctx1 = slice1.getContext('2d');
-      ctx1.fillStyle = '#fff';
-      ctx1.fillRect(0, 0, slice1.width, slice1.height);
-      ctx1.drawImage(canvas, 0, 0, canvas.width, Math.round(h1px), 0, 0, canvas.width, Math.round(h1px));
-      const h1mm = h1px * mmPerPx;
-      pdf.addImage(slice1.toDataURL('image/jpeg',0.96), 'JPEG', margin, margin, usableW, h1mm);
+    const totalHmm = canvas.height * mmPerPx;
+    let offsetPx = 0;
+    let page = 0;
+
+    while(offsetPx < canvas.height) {
+      if(page > 0) pdf.addPage();
+
+      // Quantos px cabem numa página
+      const sliceHpx = Math.round(usableH / mmPerPx);
+      const actualSliceHpx = Math.min(sliceHpx, canvas.height - offsetPx);
+
+      // Criar canvas da fatia
+      const slice = document.createElement('canvas');
+      slice.width = canvas.width;
+      slice.height = actualSliceHpx;
+      const ctx = slice.getContext('2d');
+      ctx.fillStyle = '#ffffff';
+      ctx.fillRect(0, 0, slice.width, slice.height);
+      ctx.drawImage(canvas, 0, offsetPx, canvas.width, actualSliceHpx,
+                             0, 0,         canvas.width, actualSliceHpx);
+
+      const sliceHmm = actualSliceHpx * mmPerPx;
+      pdf.addImage(slice.toDataURL('image/jpeg', 0.92), 'JPEG',
+                   margin, margin, usableW, sliceHmm);
+
+      offsetPx += actualSliceHpx;
+      page++;
     }
 
-    // ── PÁGINA 2: do financiamento até o fim
-    {
-      const startPx = breakY1px || Math.round(usableH / mmPerPx);
-      const remainPx = canvas.height - startPx;
-      if(remainPx > 10){
-        pdf.addPage();
-        const slice2 = document.createElement('canvas');
-        slice2.width = canvas.width;
-        slice2.height = remainPx;
-        const ctx2 = slice2.getContext('2d');
-        ctx2.fillStyle = '#fff';
-        ctx2.fillRect(0, 0, slice2.width, slice2.height);
-        ctx2.drawImage(canvas, 0, startPx, canvas.width, remainPx, 0, 0, canvas.width, remainPx);
-        const h2mm = remainPx * mmPerPx;
-        // Se h2mm > usableH, vai ultrapassar — mas fica numa única página grande
-        pdf.addImage(slice2.toDataURL('image/jpeg',0.96), 'JPEG', margin, margin, usableW, h2mm);
-      }
-    }
-
+    // Nome do arquivo
     const cliNome = document.getElementById('cliNome')?.value?.trim() || 'cliente';
-    const nomeArq = 'Proposta_WM_' + cliNome.split(' ')[0] + '_' + new Date().toLocaleDateString('pt-BR').replace(/\//g,'') + '.pdf';
-    pdf.save(nomeArq);
+    const data = new Date().toLocaleDateString('pt-BR').replace(/\//g,'');
+    pdf.save('Proposta_WM_' + cliNome.split(' ')[0] + '_' + data + '.pdf');
 
   } catch(err) {
     console.error('Erro PDF:', err);
     alert('Erro ao gerar PDF: ' + err.message);
   } finally {
+    el.style.cssText = origStyle;
     if(btn){ btn.textContent='📄 Baixar PDF'; btn.disabled=false; }
   }
 }
-
 function fecharProposta(){
   document.getElementById('propostaModal').style.display='none';
   document.body.style.overflow='';
