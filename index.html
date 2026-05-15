@@ -1215,106 +1215,15 @@ function calcPayback(inv, gen, tarifa, reajuste){
   return paybackMeses;
 }
 
-function imprimirProposta(){
-  // Mantido por compatibilidade — chama gerarPDF
-  gerarPDF();
-}
 
-async function gerarPDF(){
-  const btn = document.getElementById('btnGerarPDF');
-  if(btn){ btn.textContent='⏳ Gerando PDF...'; btn.disabled=true; }
 
-  const el = document.getElementById('propConteudo');
-  await document.fonts.ready;
 
-  try {
-    const canvas = await html2canvas(el, {
-      scale: 2,
-      useCORS: true,
-      allowTaint: true,
-      backgroundColor: '#ffffff',
-      logging: false,
-      windowWidth: 800,
-      onclone: function(clonedDoc){
-        const clonedEl = clonedDoc.getElementById('propConteudo');
-        if(clonedEl){
-          clonedEl.style.height = 'auto';
-          clonedEl.style.overflow = 'visible';
-          clonedEl.style.maxHeight = 'none';
-        }
-      }
-    });
 
-    const { jsPDF } = window.jspdf;
-    const pageW = 210;
-    const pageH = 297;
-    const margin = 8;
-    const usableW = pageW - margin * 2;
-    const usableH = pageH - margin * 2;
 
-    // Calcular mm por px
-    const mmPerPx = (pageW - margin*2) / (canvas.width / 2) * (canvas.width / 2 / (usableW / (pageW/canvas.width*2)));
-    // Simplificado: canvas.width px = usableW mm (em scale=2)
-    const pxPerMm = (canvas.width / 2) / usableW;
-    const mmPerPxSimple = 1 / pxPerMm;
 
-    // Encontrar posição do bloco de pagamento (pp-pay-grid)
-    // usando getBoundingClientRect relativo ao propConteudo
-    let breakPx = null;
-    const elRect = el.getBoundingClientRect();
 
-    // Tentar pegar pp-pay-grid
-    const payEl = el.querySelector('.pp-pay-grid');
-    if(payEl){
-      const r = payEl.getBoundingClientRect();
-      breakPx = Math.round((r.top - elRect.top) * 2); // scale=2
-    }
 
-    // Se não encontrou ou está muito no final, usar 55% da altura
-    const totalH = canvas.height;
-    if(!breakPx || breakPx > totalH * 0.75 || breakPx < totalH * 0.3){
-      breakPx = Math.round(totalH * 0.52);
-    }
 
-    const pdf = new jsPDF({ orientation:'portrait', unit:'mm', format:'a4' });
-
-    // ── PÁGINA 1
-    const slice1 = document.createElement('canvas');
-    slice1.width = canvas.width;
-    slice1.height = breakPx;
-    const ctx1 = slice1.getContext('2d');
-    ctx1.fillStyle = '#fff';
-    ctx1.fillRect(0, 0, slice1.width, slice1.height);
-    ctx1.drawImage(canvas, 0, 0, canvas.width, breakPx, 0, 0, canvas.width, breakPx);
-    const h1mm = breakPx * mmPerPxSimple;
-    pdf.addImage(slice1.toDataURL('image/jpeg', 0.96), 'JPEG', margin, margin, usableW, h1mm);
-
-    // ── PÁGINA 2
-    const remainPx = totalH - breakPx;
-    if(remainPx > 20){
-      pdf.addPage();
-      const slice2 = document.createElement('canvas');
-      slice2.width = canvas.width;
-      slice2.height = remainPx;
-      const ctx2 = slice2.getContext('2d');
-      ctx2.fillStyle = '#fff';
-      ctx2.fillRect(0, 0, slice2.width, slice2.height);
-      ctx2.drawImage(canvas, 0, breakPx, canvas.width, remainPx, 0, 0, canvas.width, remainPx);
-      const h2mm = remainPx * mmPerPxSimple;
-      pdf.addImage(slice2.toDataURL('image/jpeg', 0.96), 'JPEG', margin, margin, usableW, h2mm);
-    }
-
-    const cliNome = document.getElementById('cliNome')?.value?.trim() || 'cliente';
-    const nomeArq = 'Proposta_WM_' + cliNome.split(' ')[0] + '_' + new Date().toLocaleDateString('pt-BR').replace(/\//g,'') + '.pdf';
-    pdf.save(nomeArq);
-
-  } catch(err) {
-    console.error('Erro PDF:', err);
-    alert('Erro ao gerar PDF: ' + err.message);
-  } finally {
-    if(btn){ btn.textContent='📄 Baixar PDF'; btn.disabled=false; }
-  }
-}
 function imprimirProposta(){
   // Mantido por compatibilidade — chama gerarPDF
   gerarPDF();
@@ -1420,103 +1329,7 @@ async function gerarPDF(){
     if(btn){ btn.textContent='📄 Baixar PDF'; btn.disabled=false; }
   }
 }
-function imprimirProposta(){
-  // Mantido por compatibilidade — chama gerarPDF
-  gerarPDF();
-}
 
-async function gerarPDF(){
-  const btn = document.getElementById('btnGerarPDF');
-  if(btn){ btn.textContent='⏳ Gerando PDF...'; btn.disabled=true; }
-
-  const el = document.getElementById('propConteudo');
-
-  // Garantir que fontes carregaram
-  await document.fonts.ready;
-
-  try {
-    const canvas = await html2canvas(el, {
-      scale: 2,
-      useCORS: true,
-      allowTaint: true,
-      backgroundColor: '#ffffff',
-      logging: false,
-      windowWidth: 800,
-      onclone: function(clonedDoc){
-        // Forçar overflow visível no clone
-        const clonedEl = clonedDoc.getElementById('propConteudo');
-        if(clonedEl){
-          clonedEl.style.height = 'auto';
-          clonedEl.style.overflow = 'visible';
-          clonedEl.style.maxHeight = 'none';
-        }
-      }
-    });
-
-    const imgData = canvas.toDataURL('image/jpeg', 0.95);
-    const { jsPDF } = window.jspdf;
-
-    // A4: 210 x 297 mm
-    const pageW = 210;
-    const pageH = 297;
-    const margin = 10;
-    const usableW = pageW - margin * 2;
-
-    // Calcular altura proporcional
-    const imgW = canvas.width;
-    const imgH = canvas.height;
-    const ratio = usableW / (imgW / 3.7795); // px para mm (96dpi)
-    const imgHmm = (imgH / 3.7795) * ratio;
-
-    const pdf = new jsPDF({
-      orientation: 'portrait',
-      unit: 'mm',
-      format: 'a4'
-    });
-
-    let posY = margin;
-    let remaining = imgHmm;
-    let sourceY = 0;
-    let page = 0;
-
-    const usableH = pageH - margin * 2;
-
-    while(remaining > 0) {
-      if(page > 0) pdf.addPage();
-
-      const sliceH = Math.min(remaining, usableH);
-      const sourceH = sliceH / ratio * 3.7795; // mm para px
-
-      // Criar canvas da fatia
-      const sliceCanvas = document.createElement('canvas');
-      sliceCanvas.width = imgW;
-      sliceCanvas.height = Math.round(sourceH);
-      const ctx = sliceCanvas.getContext('2d');
-      ctx.fillStyle = '#ffffff';
-      ctx.fillRect(0, 0, sliceCanvas.width, sliceCanvas.height);
-      ctx.drawImage(canvas, 0, sourceY, imgW, Math.round(sourceH), 0, 0, imgW, Math.round(sourceH));
-
-      const sliceData = sliceCanvas.toDataURL('image/jpeg', 0.95);
-      pdf.addImage(sliceData, 'JPEG', margin, posY, usableW, sliceH);
-
-      sourceY += Math.round(sourceH);
-      remaining -= sliceH;
-      posY = margin;
-      page++;
-    }
-
-    // Nome do arquivo
-    const cliNome = document.getElementById('cliNome')?.value?.trim() || 'cliente';
-    const nomeArq = 'Proposta_WM_' + cliNome.split(' ')[0] + '_' + new Date().toLocaleDateString('pt-BR').replace(/\//g,'') + '.pdf';
-    pdf.save(nomeArq);
-
-  } catch(err) {
-    console.error('Erro ao gerar PDF:', err);
-    alert('Erro ao gerar PDF: ' + err.message);
-  } finally {
-    if(btn){ btn.textContent='📄 Baixar PDF'; btn.disabled=false; }
-  }
-}
 function fecharProposta(){
   document.getElementById('propostaModal').style.display='none';
   document.body.style.overflow='';
