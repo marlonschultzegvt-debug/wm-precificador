@@ -1236,90 +1236,84 @@ async function gerarPDF(){
   const el = document.getElementById('propConteudo');
   await document.fonts.ready;
 
-  // Garantir que todo o conteúdo está visível antes de capturar
-  const origStyle = el.style.cssText;
-  el.style.height = 'auto';
-  el.style.maxHeight = 'none';
-  el.style.overflow = 'visible';
-
   try {
+    // Expandir elemento antes de capturar
+    const prevH = el.style.height;
+    const prevMax = el.style.maxHeight;
+    const prevOv = el.style.overflow;
+    el.style.height = 'auto';
+    el.style.maxHeight = 'none';
+    el.style.overflow = 'visible';
+
+    await new Promise(r => setTimeout(r, 300)); // aguardar render
+
     const canvas = await html2canvas(el, {
-      scale: 2,
+      scale: 1.5,
       useCORS: true,
       allowTaint: true,
       backgroundColor: '#ffffff',
       logging: false,
-      windowWidth: 820,
-      scrollY: -window.scrollY,
-      onclone: function(clonedDoc){
-        const clonedEl = clonedDoc.getElementById('propConteudo');
-        if(clonedEl){
-          clonedEl.style.height = 'auto';
-          clonedEl.style.overflow = 'visible';
-          clonedEl.style.maxHeight = 'none';
-          clonedEl.style.position = 'relative';
-          clonedEl.style.width = '800px';
+      windowWidth: 800,
+      height: el.scrollHeight,
+      onclone: function(doc){
+        const c = doc.getElementById('propConteudo');
+        if(c){
+          c.style.height = 'auto';
+          c.style.maxHeight = 'none';
+          c.style.overflow = 'visible';
+          c.style.width = '800px';
         }
-        // Garantir que todos os filhos estão visíveis
-        clonedDoc.querySelectorAll('#propConteudo *').forEach(function(el){
-          el.style.overflow = 'visible';
-        });
       }
     });
 
+    // Restaurar
+    el.style.height = prevH;
+    el.style.maxHeight = prevMax;
+    el.style.overflow = prevOv;
+
     const { jsPDF } = window.jspdf;
-    // A4: 210 x 297 mm, margens 8mm
-    const margin = 8;
+    const margin = 10;
     const pageW = 210;
     const pageH = 297;
-    const usableW = pageW - margin * 2;  // 194mm
-    const usableH = pageH - margin * 2;  // 281mm
+    const usableW = pageW - margin * 2;
+    const usableH = pageH - margin * 2;
 
-    // Calcular escala: canvas.width px → usableW mm
-    // canvas.width = 820 * 2 = 1640px (scale=2)
-    const mmPerPx = usableW / (canvas.width);  // mm por pixel do canvas
+    // px por mm
+    const pxPerMm = canvas.width / usableW;
+    const sliceHpx = Math.round(usableH * pxPerMm);
 
     const pdf = new jsPDF({ orientation:'portrait', unit:'mm', format:'a4' });
 
-    const totalHmm = canvas.height * mmPerPx;
     let offsetPx = 0;
     let page = 0;
 
-    while(offsetPx < canvas.height) {
+    while(offsetPx < canvas.height){
       if(page > 0) pdf.addPage();
 
-      // Quantos px cabem numa página
-      const sliceHpx = Math.round(usableH / mmPerPx);
-      const actualSliceHpx = Math.min(sliceHpx, canvas.height - offsetPx);
-
-      // Criar canvas da fatia
+      const h = Math.min(sliceHpx, canvas.height - offsetPx);
       const slice = document.createElement('canvas');
       slice.width = canvas.width;
-      slice.height = actualSliceHpx;
+      slice.height = h;
       const ctx = slice.getContext('2d');
-      ctx.fillStyle = '#ffffff';
-      ctx.fillRect(0, 0, slice.width, slice.height);
-      ctx.drawImage(canvas, 0, offsetPx, canvas.width, actualSliceHpx,
-                             0, 0,         canvas.width, actualSliceHpx);
+      ctx.fillStyle = '#fff';
+      ctx.fillRect(0, 0, slice.width, h);
+      ctx.drawImage(canvas, 0, offsetPx, canvas.width, h, 0, 0, canvas.width, h);
 
-      const sliceHmm = actualSliceHpx * mmPerPx;
-      pdf.addImage(slice.toDataURL('image/jpeg', 0.92), 'JPEG',
-                   margin, margin, usableW, sliceHmm);
+      const hMm = h / pxPerMm;
+      pdf.addImage(slice.toDataURL('image/jpeg', 0.93), 'JPEG', margin, margin, usableW, hMm);
 
-      offsetPx += actualSliceHpx;
+      offsetPx += h;
       page++;
     }
 
-    // Nome do arquivo
-    const cliNome = document.getElementById('cliNome')?.value?.trim() || 'cliente';
+    const nome = (document.getElementById('cliNome')?.value?.trim() || 'cliente').split(' ')[0];
     const data = new Date().toLocaleDateString('pt-BR').replace(/\//g,'');
-    pdf.save('Proposta_WM_' + cliNome.split(' ')[0] + '_' + data + '.pdf');
+    pdf.save('Proposta_WM_' + nome + '_' + data + '.pdf');
 
-  } catch(err) {
+  } catch(err){
     console.error('Erro PDF:', err);
     alert('Erro ao gerar PDF: ' + err.message);
   } finally {
-    el.style.cssText = origStyle;
     if(btn){ btn.textContent='📄 Baixar PDF'; btn.disabled=false; }
   }
 }
@@ -1790,8 +1784,7 @@ async function salvarProposta(){
     geracao:Math.round(r.gen),
     valor:Math.round(preco),
     inversor:r.inv.nome+(r.qi>1?' x'+r.qi:''),
-    estrutura:r.est.nome,
-    html:document.getElementById('propConteudo').innerHTML
+    estrutura:r.est.nome
   };
   const statusEl = document.getElementById('savePropostaStatus');
   statusEl.style.display='block';
