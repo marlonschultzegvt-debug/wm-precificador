@@ -1886,57 +1886,104 @@ async function loadMyPropostas(){
 }
 function reabrirProposta(idx){
   const p = myPropostas[idx];
-  // Mostrar modal com dados da proposta salva
   const modal = document.getElementById('propostaModal');
   const conteudo = document.getElementById('propConteudo');
 
-  // Construir visualização a partir dos dados salvos
-  const nome = p['Cliente'] || p['cliente'] || '—';
-  const tel  = p['Telefone'] || p['telefone'] || '—';
-  const kwp  = p['Potência (kWp)'] || p['kWp'] || p['kwp'] || '—';
-  const ger  = p['Geração (kWh/mês)'] || p['geracao'] || '—';
-  const valRaw = parseFloat(p['Valor Venda (R$)'] || p['Valor (R$)'] || p['valor'] || 0);
-  const val  = valRaw || '—';
-  const inv  = p['Inversor'] || p['inversor'] || '—';
-  const est  = p['Estrutura'] || p['estrutura'] || '—';
-  const data = p['Data'] || p['data'] || '—';
-  const orig = p['Origem'] || p['origem'] || '—';
-  const end  = p['Endereço'] || p['endereco'] || '—';
+  // Pegar campos com fallback em todos os possíveis nomes de coluna
+  const nome  = p['Cliente']       || p['cliente']   || '—';
+  const tel   = p['Telefone']      || p['telefone']  || '—';
+  const end   = p['Endereço']      || p['endereco']  || '—';
+  const orig  = p['Origem']        || p['origem']    || '—';
+  const inv   = p['Inversor']      || p['inversor']  || '—';
+  const est   = p['Estrutura']     || p['estrutura'] || '—';
+  const placas= p['Placas']        || p['placas']    || '—';
+
+  // kWp — pode vir como número ou string
+  const kwpRaw = p['Potência (kWp)'] || p['kWp'] || p['kwp'] || '';
+  const kwp = kwpRaw ? parseFloat(kwpRaw) : null;
+
+  // Geração
+  const gerRaw = p['Geração (kWh/mês)'] || p['Geração'] || p['geracao'] || '';
+  const ger = gerRaw ? Math.round(parseFloat(gerRaw)) : null;
+
+  // Valor
+  const valRaw = p['Valor Venda (R$)'] || p['Valor (R$)'] || p['valor'] || '';
+  const val = valRaw ? Math.round(parseFloat(valRaw)) : null;
+
+  // Data
+  let dataFmt = p['Data'] || p['data'] || '—';
+  try {
+    if(dataFmt.includes('T')){
+      const d = new Date(dataFmt);
+      if(!isNaN(d)) dataFmt = d.toLocaleDateString('pt-BR') + ' ' + d.toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'});
+    }
+  } catch(e){}
 
   conteudo.innerHTML = `
-    <div style="padding:32px;background:#fff;min-height:400px;font-family:inherit">
-      <div style="display:flex;align-items:center;gap:16px;margin-bottom:24px;padding-bottom:16px;border-bottom:2px solid #f0f0f0">
-        <div style="flex:1">
-          <div style="font-size:11px;letter-spacing:1px;text-transform:uppercase;color:#888;margin-bottom:4px">Proposta WM Energia Solar</div>
-          <div style="font-size:22px;font-weight:800;color:#0d0d0d">${nome}</div>
-          <div style="font-size:13px;color:#555;margin-top:4px">${data}</div>
+    <div style="padding:0;background:#fff;font-family:'Syne',sans-serif">
+
+      <!-- Header -->
+      <div style="background:#0d0d0d;padding:24px 32px;display:flex;align-items:center;justify-content:space-between">
+        <div>
+          <div style="font-size:22px;font-weight:800;color:#fff">WM <span style="color:#E87B1E">Energia Solar</span></div>
+          <div style="font-size:11px;color:rgba(255,255,255,.5);letter-spacing:1px;text-transform:uppercase;margin-top:2px">Proposta Comercial</div>
+        </div>
+        <div style="text-align:right;font-size:12px;color:rgba(255,255,255,.5)">${dataFmt}</div>
+      </div>
+
+      <!-- Cliente -->
+      <div style="padding:24px 32px;border-bottom:1px solid #f0f0f0">
+        <div style="font-size:11px;letter-spacing:1px;text-transform:uppercase;color:#aaa;margin-bottom:4px">Cliente</div>
+        <div style="font-size:26px;font-weight:800;color:#0d0d0d">${nome}</div>
+        <div style="display:flex;gap:24px;margin-top:8px;flex-wrap:wrap">
+          <span style="font-size:13px;color:#555">📞 ${tel}</span>
+          ${end && end!=='—' ? `<span style="font-size:13px;color:#555">📍 ${end}</span>` : ''}
+          ${orig && orig!=='—' ? `<span style="font-size:13px;color:#555">🔗 ${orig}</span>` : ''}
         </div>
       </div>
-      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:16px;margin-bottom:24px">
-        <div style="background:#f8f8f8;border-radius:8px;padding:14px;border-left:3px solid #E87B1E">
-          <div style="font-size:10px;font-weight:700;letter-spacing:.8px;text-transform:uppercase;color:#888;margin-bottom:4px">Potência</div>
-          <div style="font-size:20px;font-weight:800;color:#0d0d0d">${kwp} kWp</div>
+
+      <!-- Cards de stats -->
+      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:0;border-bottom:1px solid #f0f0f0">
+        <div style="padding:20px 24px;border-right:1px solid #f0f0f0;text-align:center">
+          <div style="font-size:10px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:#aaa;margin-bottom:6px">Potência</div>
+          <div style="font-size:28px;font-weight:800;color:#0d0d0d">${kwp ? kwp.toFixed(2) : '—'} <span style="font-size:14px;font-weight:600;color:#888">kWp</span></div>
         </div>
-        <div style="background:#f8f8f8;border-radius:8px;padding:14px;border-left:3px solid #1A6FA8">
-          <div style="font-size:10px;font-weight:700;letter-spacing:.8px;text-transform:uppercase;color:#888;margin-bottom:4px">Geração Est./mês</div>
-          <div style="font-size:20px;font-weight:800;color:#0d0d0d">${ger} kWh</div>
+        <div style="padding:20px 24px;border-right:1px solid #f0f0f0;text-align:center">
+          <div style="font-size:10px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:#aaa;margin-bottom:6px">Geração Est./mês</div>
+          <div style="font-size:28px;font-weight:800;color:#1A6FA8">${ger ? ger.toLocaleString('pt-BR') : '—'} <span style="font-size:14px;font-weight:600;color:#888">kWh</span></div>
         </div>
-        <div style="background:#f8f8f8;border-radius:8px;padding:14px;border-left:3px solid #F5C518">
-          <div style="font-size:10px;font-weight:700;letter-spacing:.8px;text-transform:uppercase;color:#888;margin-bottom:4px">Valor</div>
-          <div style="font-size:20px;font-weight:800;color:#E87B1E">R$ ${valRaw ? valRaw.toLocaleString('pt-BR',{minimumFractionDigits:0,maximumFractionDigits:0}) : '—'}</div>
+        <div style="padding:20px 24px;text-align:center">
+          <div style="font-size:10px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:#aaa;margin-bottom:6px">Investimento</div>
+          <div style="font-size:28px;font-weight:800;color:#E87B1E">R$ ${val ? val.toLocaleString('pt-BR') : '—'}</div>
         </div>
       </div>
-      <table style="width:100%;border-collapse:collapse;font-size:14px">
-        <tr style="border-bottom:1px solid #eee"><td style="padding:10px 0;color:#888;width:140px">Telefone</td><td style="padding:10px 0;font-weight:600">${tel}</td></tr>
-        <tr style="border-bottom:1px solid #eee"><td style="padding:10px 0;color:#888">Endereço</td><td style="padding:10px 0;font-weight:600">${end||'—'}</td></tr>
-        <tr style="border-bottom:1px solid #eee"><td style="padding:10px 0;color:#888">Origem</td><td style="padding:10px 0;font-weight:600">${orig||'—'}</td></tr>
-        <tr style="border-bottom:1px solid #eee"><td style="padding:10px 0;color:#888">Inversor</td><td style="padding:10px 0;font-weight:600">${inv}</td></tr>
-        <tr><td style="padding:10px 0;color:#888">Estrutura</td><td style="padding:10px 0;font-weight:600">${est}</td></tr>
-      </table>
-      <div style="margin-top:24px;background:#0d0d0d;border-radius:8px;padding:16px;color:#fff;text-align:center">
-        <div style="font-size:11px;letter-spacing:1px;text-transform:uppercase;color:#888;margin-bottom:4px">Investimento Total</div>
-        <div style="font-size:36px;font-weight:800;color:#E87B1E">R$ ${valRaw ? valRaw.toLocaleString('pt-BR',{minimumFractionDigits:0,maximumFractionDigits:0}) : '—'}</div>
+
+      <!-- Detalhes do kit -->
+      <div style="padding:24px 32px;border-bottom:1px solid #f0f0f0">
+        <div style="font-size:11px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:#aaa;margin-bottom:14px">Composição do Kit</div>
+        <table style="width:100%;border-collapse:collapse;font-size:14px">
+          <tr style="border-bottom:1px solid #f0f0f0">
+            <td style="padding:10px 0;color:#888;width:160px">Painéis Solares</td>
+            <td style="padding:10px 0;font-weight:600;color:#0d0d0d">${placas !== '—' ? placas+' unidades' : '—'}</td>
+          </tr>
+          <tr style="border-bottom:1px solid #f0f0f0">
+            <td style="padding:10px 0;color:#888">Inversor</td>
+            <td style="padding:10px 0;font-weight:600;color:#0d0d0d">${inv}</td>
+          </tr>
+          <tr>
+            <td style="padding:10px 0;color:#888">Estrutura</td>
+            <td style="padding:10px 0;font-weight:600;color:#0d0d0d">${est}</td>
+          </tr>
+        </table>
       </div>
+
+      <!-- Investimento destaque -->
+      <div style="background:linear-gradient(135deg,#0d0d0d,#1a1a1a);padding:28px 32px;text-align:center">
+        <div style="font-size:11px;letter-spacing:2px;text-transform:uppercase;color:rgba(255,255,255,.4);margin-bottom:8px">Investimento Total</div>
+        <div style="font-size:48px;font-weight:800;color:#E87B1E;line-height:1">${val ? 'R$ '+val.toLocaleString('pt-BR') : '—'}</div>
+        <div style="font-size:12px;color:rgba(255,255,255,.3);margin-top:8px">Proposta válida por 7 dias · WM Energia Solar</div>
+      </div>
+
     </div>
   `;
 
@@ -1944,6 +1991,7 @@ function reabrirProposta(idx){
   document.body.style.overflow = 'hidden';
   modal.scrollTop = 0;
 }
+
 
 function exportMyXls(){
   if(!myPropostas.length) return;
