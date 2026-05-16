@@ -1861,9 +1861,16 @@ async function loadMyPropostas(){
   });
   h+='</tr></thead><tbody>';
   myPropostas.forEach(p=>{
-    const hasHtml = p['HTML'] && p['HTML'].length > 10;
+    // Formatar data: pode vir como ISO ou dd/mm/yyyy hh:mm
+    let dataFmt = p['Data'] || '—';
+    try {
+      if(dataFmt.includes('T') || dataFmt.length > 16){
+        const d = new Date(dataFmt);
+        if(!isNaN(d)) dataFmt = d.toLocaleDateString('pt-BR') + ' ' + d.toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'});
+      }
+    } catch(e){}
     h+='<tr>';
-    h+='<td style="white-space:nowrap">'+p['Data']+'</td>';
+    h+='<td style="white-space:nowrap">'+dataFmt+'</td>';
     h+='<td><strong>'+p['Cliente']+'</strong></td>';
     h+='<td style="color:var(--t2)">'+p['Telefone']+'</td>';
     h+='<td>'+(p['Origem']||'—')+'</td>';
@@ -1871,7 +1878,7 @@ async function loadMyPropostas(){
     h+='<td>'+p['Geração (kWh/mês)']+' kWh</td>';
     h+='<td style="color:var(--orange);font-weight:700;font-family:Syne,sans-serif">R$ '+fmtBRL(parseFloat(p['Valor Venda (R$)'])||0)+'</td>';
     h+='<td style="color:var(--t2);font-size:11px">'+p['Inversor']+'</td>';
-    h+='<td>'+('<button class="ba bot" style="padding:4px 10px;font-size:11px" onclick="reabrirProposta('+myPropostas.indexOf(p)+')">📄 Ver</button>')+'</td>';
+    h+='<td><button class="ba bot" style="padding:4px 10px;font-size:11px" onclick="reabrirProposta('+myPropostas.indexOf(p)+')">📄 Ver</button></td>';
     h+='</tr>';
   });
   h+='</tbody></table>';
