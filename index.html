@@ -1892,15 +1892,16 @@ function reabrirProposta(idx){
 
   // Construir visualização a partir dos dados salvos
   const nome = p['Cliente'] || p['cliente'] || '—';
-  const tel = p['Telefone'] || p['telefone'] || '—';
-  const kwp = p['kWp'] || p['kwp'] || '—';
-  const ger = p['Geração (kWh/mês)'] || p['geracao'] || '—';
-  const val = p['Valor (R$)'] || p['valor'] || '—';
-  const inv = p['Inversor'] || p['inversor'] || '—';
-  const est = p['Estrutura'] || p['estrutura'] || '—';
+  const tel  = p['Telefone'] || p['telefone'] || '—';
+  const kwp  = p['Potência (kWp)'] || p['kWp'] || p['kwp'] || '—';
+  const ger  = p['Geração (kWh/mês)'] || p['geracao'] || '—';
+  const valRaw = parseFloat(p['Valor Venda (R$)'] || p['Valor (R$)'] || p['valor'] || 0);
+  const val  = valRaw || '—';
+  const inv  = p['Inversor'] || p['inversor'] || '—';
+  const est  = p['Estrutura'] || p['estrutura'] || '—';
   const data = p['Data'] || p['data'] || '—';
   const orig = p['Origem'] || p['origem'] || '—';
-  const end = p['Endereço'] || p['endereco'] || '—';
+  const end  = p['Endereço'] || p['endereco'] || '—';
 
   conteudo.innerHTML = `
     <div style="padding:32px;background:#fff;min-height:400px;font-family:inherit">
@@ -1922,7 +1923,7 @@ function reabrirProposta(idx){
         </div>
         <div style="background:#f8f8f8;border-radius:8px;padding:14px;border-left:3px solid #F5C518">
           <div style="font-size:10px;font-weight:700;letter-spacing:.8px;text-transform:uppercase;color:#888;margin-bottom:4px">Valor</div>
-          <div style="font-size:20px;font-weight:800;color:#E87B1E">R$ ${Number(val).toLocaleString('pt-BR')}</div>
+          <div style="font-size:20px;font-weight:800;color:#E87B1E">R$ ${valRaw ? valRaw.toLocaleString('pt-BR',{minimumFractionDigits:0,maximumFractionDigits:0}) : '—'}</div>
         </div>
       </div>
       <table style="width:100%;border-collapse:collapse;font-size:14px">
@@ -1934,7 +1935,7 @@ function reabrirProposta(idx){
       </table>
       <div style="margin-top:24px;background:#0d0d0d;border-radius:8px;padding:16px;color:#fff;text-align:center">
         <div style="font-size:11px;letter-spacing:1px;text-transform:uppercase;color:#888;margin-bottom:4px">Investimento Total</div>
-        <div style="font-size:36px;font-weight:800;color:#E87B1E">R$ ${Number(val).toLocaleString('pt-BR')}</div>
+        <div style="font-size:36px;font-weight:800;color:#E87B1E">R$ ${valRaw ? valRaw.toLocaleString('pt-BR',{minimumFractionDigits:0,maximumFractionDigits:0}) : '—'}</div>
       </div>
     </div>
   `;
