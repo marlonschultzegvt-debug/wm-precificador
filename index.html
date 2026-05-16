@@ -2281,6 +2281,51 @@ function tentarGerarProposta(){
 }
 
 document.getElementById('lu').focus();
+
+function abrirTrocarSenha(){
+  document.getElementById('senhaUser').textContent = S.login;
+  document.getElementById('senhaAtual').value = '';
+  document.getElementById('senhaNova').value = '';
+  document.getElementById('senhaConfirm').value = '';
+  document.getElementById('senhaMsg').style.display = 'none';
+  document.getElementById('modalSenha').style.display = 'flex';
+}
+
+function fecharTrocarSenha(){
+  document.getElementById('modalSenha').style.display = 'none';
+}
+
+async function salvarNovaSenha(){
+  const atual   = document.getElementById('senhaAtual').value.trim();
+  const nova    = document.getElementById('senhaNova').value.trim();
+  const confirm = document.getElementById('senhaConfirm').value.trim();
+  const msg     = document.getElementById('senhaMsg');
+
+  function showMsg(txt, ok){
+    msg.textContent = txt;
+    msg.style.display = 'block';
+    msg.style.background = ok ? 'rgba(0,200,100,.15)' : 'rgba(229,57,53,.15)';
+    msg.style.color = ok ? '#00c864' : '#ff5252';
+  }
+
+  if(!atual || !nova || !confirm){ showMsg('Preencha todos os campos.', false); return; }
+  if(nova.length < 4){ showMsg('Nova senha deve ter pelo menos 4 caracteres.', false); return; }
+  if(nova !== confirm){ showMsg('As senhas não coincidem.', false); return; }
+
+  const btn = document.querySelector('#modalSenha button');
+  btn.textContent = '⏳ Salvando...'; btn.disabled = true;
+
+  const res = await api({action:'alterarSenha', login:S.login, senhaAtual:atual, senhaNova:nova});
+
+  btn.textContent = 'Salvar'; btn.disabled = false;
+
+  if(res.ok){
+    showMsg('✅ Senha alterada com sucesso!', true);
+    setTimeout(fecharTrocarSenha, 1800);
+  } else {
+    showMsg(res.erro || 'Erro ao alterar senha.', false);
+  }
+}
 </script>
 
 <!-- MODAL PROPOSTA -->
