@@ -1792,8 +1792,13 @@ async function salvarProposta(){
   statusEl.style.color='#4fa3d8';
   statusEl.style.border='1px solid rgba(26,111,168,0.2)';
   statusEl.textContent='Salvando proposta...';
+  // Salvar HTML da proposta localmente antes de enviar
+  const propHtmlLocal = document.getElementById('propConteudo')?.innerHTML || '';
   const res = await api(payload);
   if(res.ok){
+    // Guardar HTML no sessionStorage indexado pela data/cliente
+    const propKey = 'propHtml_' + Date.now();
+    try { sessionStorage.setItem('lastPropHtml', propHtmlLocal); } catch(e){}
     statusEl.style.background='rgba(16,130,80,0.12)';
     statusEl.style.color='#3ecf8e';
     statusEl.style.border='1px solid rgba(62,207,142,0.2)';
@@ -1866,7 +1871,7 @@ async function loadMyPropostas(){
     h+='<td>'+p['Geração (kWh/mês)']+' kWh</td>';
     h+='<td style="color:var(--orange);font-weight:700;font-family:Syne,sans-serif">R$ '+fmtBRL(parseFloat(p['Valor Venda (R$)'])||0)+'</td>';
     h+='<td style="color:var(--t2);font-size:11px">'+p['Inversor']+'</td>';
-    h+='<td>'+(hasHtml ? '<button class="ba bot" style="padding:4px 10px;font-size:11px" onclick="reabrirProposta('+myPropostas.indexOf(p)+')">📄 Ver</button>' : '—')+'</td>';
+    h+='<td>'+('<button class="ba bot" style="padding:4px 10px;font-size:11px" onclick="reabrirProposta('+myPropostas.indexOf(p)+')">📄 Ver</button>')+'</td>';
     h+='</tr>';
   });
   h+='</tbody></table>';
@@ -1874,13 +1879,62 @@ async function loadMyPropostas(){
 }
 function reabrirProposta(idx){
   const p = myPropostas[idx];
-  // Tentar HTML da API, depois cache local
-  const htmlContent = p['HTML'] || p['html'] || sessionStorage.getItem('propHtml_'+idx);
-  if(!htmlContent){ alert('HTML da proposta não disponível. Gere novamente.'); return; }
-  document.getElementById('propConteudo').innerHTML = htmlContent;
-  document.getElementById('propostaModal').style.display = 'block';
+  // Mostrar modal com dados da proposta salva
+  const modal = document.getElementById('propostaModal');
+  const conteudo = document.getElementById('propConteudo');
+
+  // Construir visualização a partir dos dados salvos
+  const nome = p['Cliente'] || p['cliente'] || '—';
+  const tel = p['Telefone'] || p['telefone'] || '—';
+  const kwp = p['kWp'] || p['kwp'] || '—';
+  const ger = p['Geração (kWh/mês)'] || p['geracao'] || '—';
+  const val = p['Valor (R$)'] || p['valor'] || '—';
+  const inv = p['Inversor'] || p['inversor'] || '—';
+  const est = p['Estrutura'] || p['estrutura'] || '—';
+  const data = p['Data'] || p['data'] || '—';
+  const orig = p['Origem'] || p['origem'] || '—';
+  const end = p['Endereço'] || p['endereco'] || '—';
+
+  conteudo.innerHTML = `
+    <div style="padding:32px;background:#fff;min-height:400px;font-family:inherit">
+      <div style="display:flex;align-items:center;gap:16px;margin-bottom:24px;padding-bottom:16px;border-bottom:2px solid #f0f0f0">
+        <div style="flex:1">
+          <div style="font-size:11px;letter-spacing:1px;text-transform:uppercase;color:#888;margin-bottom:4px">Proposta WM Energia Solar</div>
+          <div style="font-size:22px;font-weight:800;color:#0d0d0d">${nome}</div>
+          <div style="font-size:13px;color:#555;margin-top:4px">${data}</div>
+        </div>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:16px;margin-bottom:24px">
+        <div style="background:#f8f8f8;border-radius:8px;padding:14px;border-left:3px solid #E87B1E">
+          <div style="font-size:10px;font-weight:700;letter-spacing:.8px;text-transform:uppercase;color:#888;margin-bottom:4px">Potência</div>
+          <div style="font-size:20px;font-weight:800;color:#0d0d0d">${kwp} kWp</div>
+        </div>
+        <div style="background:#f8f8f8;border-radius:8px;padding:14px;border-left:3px solid #1A6FA8">
+          <div style="font-size:10px;font-weight:700;letter-spacing:.8px;text-transform:uppercase;color:#888;margin-bottom:4px">Geração Est./mês</div>
+          <div style="font-size:20px;font-weight:800;color:#0d0d0d">${ger} kWh</div>
+        </div>
+        <div style="background:#f8f8f8;border-radius:8px;padding:14px;border-left:3px solid #F5C518">
+          <div style="font-size:10px;font-weight:700;letter-spacing:.8px;text-transform:uppercase;color:#888;margin-bottom:4px">Valor</div>
+          <div style="font-size:20px;font-weight:800;color:#E87B1E">R$ ${Number(val).toLocaleString('pt-BR')}</div>
+        </div>
+      </div>
+      <table style="width:100%;border-collapse:collapse;font-size:14px">
+        <tr style="border-bottom:1px solid #eee"><td style="padding:10px 0;color:#888;width:140px">Telefone</td><td style="padding:10px 0;font-weight:600">${tel}</td></tr>
+        <tr style="border-bottom:1px solid #eee"><td style="padding:10px 0;color:#888">Endereço</td><td style="padding:10px 0;font-weight:600">${end||'—'}</td></tr>
+        <tr style="border-bottom:1px solid #eee"><td style="padding:10px 0;color:#888">Origem</td><td style="padding:10px 0;font-weight:600">${orig||'—'}</td></tr>
+        <tr style="border-bottom:1px solid #eee"><td style="padding:10px 0;color:#888">Inversor</td><td style="padding:10px 0;font-weight:600">${inv}</td></tr>
+        <tr><td style="padding:10px 0;color:#888">Estrutura</td><td style="padding:10px 0;font-weight:600">${est}</td></tr>
+      </table>
+      <div style="margin-top:24px;background:#0d0d0d;border-radius:8px;padding:16px;color:#fff;text-align:center">
+        <div style="font-size:11px;letter-spacing:1px;text-transform:uppercase;color:#888;margin-bottom:4px">Investimento Total</div>
+        <div style="font-size:36px;font-weight:800;color:#E87B1E">R$ ${Number(val).toLocaleString('pt-BR')}</div>
+      </div>
+    </div>
+  `;
+
+  modal.style.display = 'block';
   document.body.style.overflow = 'hidden';
-  document.getElementById('propostaModal').scrollTop = 0;
+  modal.scrollTop = 0;
 }
 
 function exportMyXls(){
