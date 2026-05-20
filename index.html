@@ -2069,6 +2069,13 @@ async function loadDashboard(){
   if(!res.ok||!rp.ok) return;
   dashPropostas=rp.propostas||[];
 
+  // Buscar vendedores para os dropdowns (se não tiver cache)
+  if(!window._vendedoresList || window._vendedoresList.length===0){
+    const rv = await api({action:'getVendedores', login:S.login, role:S.role});
+    if(rv.ok) window._vendedoresList = rv.vendedores || [];
+  }
+  const _vends = window._vendedoresList || [];
+
   // Adaptar formato novo do GAS para o formato esperado pelo frontend
   // Calcular totais a partir das propostas retornadas
   const _props = rp.propostas||[];
@@ -2114,12 +2121,7 @@ async function loadDashboard(){
   const sg=document.getElementById('dFiltroGestor');
   const prevV=sv.value, prevO=so.value, prevG=sg?sg.value:'todos';
 
-  // Buscar vendedores para os dropdowns (se não tiver cache)
-  if(!window._vendedoresList || window._vendedoresList.length===0){
-    const rv = await api({action:'getVendedores', login:S.login, role:S.role});
-    if(rv.ok) window._vendedoresList = rv.vendedores || [];
-  }
-  const _vends = window._vendedoresList || [];
+  // _vends carregado anteriormente
 
   sv.innerHTML='<option value="todos">Todos</option>';
   _vends.forEach(v=>{ const o=document.createElement('option'); o.value=v.login; o.textContent=v.nome; sv.appendChild(o); });
