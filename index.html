@@ -2075,8 +2075,16 @@ async function loadDashboard(){
   const so=document.getElementById('dFiltroOrig');
   const sg=document.getElementById('dFiltroGestor');
   const prevV=sv.value, prevO=so.value, prevG=sg?sg.value:'todos';
+
+  // Buscar vendedores para os dropdowns (se não tiver cache)
+  if(!window._vendedoresList || window._vendedoresList.length===0){
+    const rv = await api({action:'getVendedores', login:S.login, role:S.role});
+    if(rv.ok) window._vendedoresList = rv.vendedores || [];
+  }
+  const _vends = window._vendedoresList || [];
+
   sv.innerHTML='<option value="todos">Todos</option>';
-  d.vendedores.forEach(v=>{ const o=document.createElement('option'); o.value=v.login; o.textContent=v.nome; sv.appendChild(o); });
+  _vends.forEach(v=>{ const o=document.createElement('option'); o.value=v.login; o.textContent=v.nome; sv.appendChild(o); });
   sv.value=prevV;
   so.innerHTML='<option value="todas">Todas</option>';
   ORIGENS.forEach(o=>{ const op=document.createElement('option'); op.value=o; op.textContent=o; so.appendChild(op); });
@@ -2084,7 +2092,7 @@ async function loadDashboard(){
   // Preencher gestores
   if(sg){
     sg.innerHTML='<option value="todos">Todos</option>';
-    d.vendedores.filter(v=>v.tipo==='gestor'||v.role==='gestor').forEach(v=>{
+    _vends.filter(v=>v.tipo==='gestor').forEach(v=>{
       const op=document.createElement('option'); op.value=v.login; op.textContent=v.nome; sg.appendChild(op);
     });
     sg.value=prevG;
