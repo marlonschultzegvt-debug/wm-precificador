@@ -2068,7 +2068,45 @@ async function loadDashboard(){
     filtroGestor:gestor==='todos'?'':gestor});
   if(!res.ok||!rp.ok) return;
   dashPropostas=rp.propostas||[];
-  const d=res;
+
+  // Adaptar formato novo do GAS para o formato esperado pelo frontend
+  // Calcular totais a partir das propostas retornadas
+  const _props = rp.propostas||[];
+  const _agora = new Date();
+  const _mes = _agora.getMonth(), _ano = _agora.getFullYear();
+
+  // Agrupar por vendedor para ranking
+  const _byVend = {};
+  _props.forEach(p=>{
+    const v = p['Vendedor']||'';
+    if(!_byVend[v]) _byVend[v]={login:v,nome:v,mes:0,total:0,valor:0,meta:60};
+    _byVend[v].total++;
+    _byVend[v].valor += parseFloat(p['Valor Venda (R$)']||0);
+    try{
+      const pd = new Date(p['Data']);
+      if(pd.getMonth()===_mes && pd.getFullYear()===_ano) _byVend[v].mes++;
+    }catch(e){}
+  });
+
+  // Enriquecer com nomes e metas dos vendedores
+  (_vends||[]).forEach(v=>{ if(_byVend[v.login]){_byVend[v.login].nome=v.nome;_byVend[v.login].meta=v.meta||60;} });
+
+  const _vendList = Object.values(_byVend).sort((a,b)=>b.mes-a.mes);
+  const _mesGeral = _vendList.reduce((s,v)=>s+v.mes,0);
+  const _metaTotal = _vendList.reduce((s,v)=>s+v.meta,0);
+
+  // Montar objeto d no formato antigo que o frontend espera
+  const d = {
+    ok: true,
+    countMes: res.countMes||0,
+    countTotal: res.countTotal||0,
+    totalValor: res.totalValor||0,
+    totais: {
+      mesGeral: _mesGeral,
+      mesAtual: _mesGeral + ' / ' + _metaTotal + ' meta'
+    },
+    vendedores: _vendList
+  };
 
   // Preencher filtros
   const sv=document.getElementById('dFiltroVend');
@@ -2109,7 +2147,7 @@ async function loadDashboard(){
     '<div class="met"><div class="mlabel">Valor total</div><div class="mval">R$ '+fmtK(valorTotal)+'</div></div>'+
     '<div class="met"><div class="mlabel">Ticket médio</div><div class="mval">R$ '+fmtK(ticketMedio)+'</div></div>'+
     '<div class="met"><div class="mlabel">Placas instaladas</div><div class="mval">'+placasTotal+'</div></div>'+
-    '<div class="met"><div class="mlabel">Meta do mês</div><div class="mval">'+d.totais.mesGeral+' / '+(d.vendedores.length*60)+'</div><div class="mhint">'+d.totais.mesAtual+'</div></div>';
+    '<div class="met"><div class="mlabel">Meta do mês</div><div class="mval">'+d.totais.mesGeral+' / '+d.vendedores.reduce((s,v)=>s+(v.meta||60),0)+'</div><div class="mhint">'+d.totais.mesAtual+'</div></div>';
 
   // Ranking
   let rkH='<div style="overflow-x:auto"><table class="bk" style="font-size:13px;min-width:580px"><thead><tr>';
