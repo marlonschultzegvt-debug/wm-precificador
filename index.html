@@ -567,14 +567,14 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:22px;heigh
         <div style="background:rgba(232,123,30,.08);border:1px solid rgba(232,123,30,.25);border-radius:var(--rs);padding:10px 14px;font-size:12px;color:var(--orange);margin-bottom:1rem;display:flex;align-items:flex-start;gap:8px"><span style="font-size:15px;flex-shrink:0">⚠️</span><span><strong>Nome e Telefone são obrigatórios</strong> para gerar a proposta e registrar na sua meta. Sem esses dados a proposta não é contabilizada.</span></div>
         <div class="fgrid">
           <div class="fg" style="margin-bottom:0"><label>Nome do cliente <span style="color:#e05050">*</span></label><input type="text" id="cliNome" placeholder="Ex: João da Silva" oninput="checkCamposObrig()"></div>
-          <div class="fg" style="margin-bottom:0"><label>Telefone <span style="color:#e05050">*</span></label><input type="text" id="cliTel" placeholder="(44) 99999-9999" oninput="checkCamposObrig()" onblur="validarTelExistente(this.value)"><div id="alertaTel" style="display:none;margin-top:6px;padding:8px 12px;border-radius:6px;font-size:12px;background:rgba(229,57,53,.12);color:#ff5252;border-left:3px solid #ff5252"></div></div>
+          <div class="fg" style="margin-bottom:0"><label>Telefone <span style="color:#e05050">*</span></label><input type="text" id="cliTel" placeholder="(44) 99999-9999" oninput="checkCamposObrig()" onblur="validarTelExistente(this.value)" oninput="telDuplicado=false"><div id="alertaTel" style="display:none;margin-top:6px;padding:8px 12px;border-radius:6px;font-size:12px;background:rgba(229,57,53,.12);color:#ff5252;border-left:3px solid #ff5252"></div></div>
         </div>
         <div class="fgrid" style="margin-top:10px">
           <div class="fg" style="margin-bottom:0"><label>Endereço / Cidade</label><input type="text" id="cliEnd" placeholder="Ex: Rua das Flores, 123 — Maringá-PR"></div>
           <div class="fg" style="margin-bottom:0"><label>CPF <span style="font-weight:400;opacity:.6">(opcional)</span></label><input type="text" id="cliCpf" placeholder="000.000.000-00" maxlength="14" oninput="fmtCpf(this)"></div>
         </div>
         <div class="fg" style="margin-top:10px;margin-bottom:0">
-          <label>Origem do Lead</label>
+          <label>Origem do Lead <span style="color:#E87B1E">*</span></label>
           <select id="cliOrigem"><option value="">Selecione a origem...</option></select>
         </div>
         <div id="savePropostaStatus" style="display:none;margin-top:10px;font-size:12px;padding:8px 12px;border-radius:8px"></div>
@@ -754,6 +754,7 @@ async function api(payload){
 }
 
 // ====== AUTH ======
+let telDuplicado=false;
 let S={role:null,login:null,nomeVend:null,metaVend:60,mode:'qtd',tipoInv:'mono',oLoss:0,estKey:'2p_colonial',qtd:10,qi:1,isRural:false,R:null};
 
 async function doLogin(){
@@ -1769,9 +1770,15 @@ async function excluirOrigem(o){
 // ====== SALVAR PROPOSTA ======
 async function salvarProposta(){
   const r=S.R; if(!r) return;
+  if(telDuplicado){
+    const st=document.getElementById('savePropostaStatus');
+    if(st){st.style.display='block';st.style.background='rgba(229,57,53,.12)';st.style.color='#ff5252';st.textContent='⚠️ Número já atendido — proposta não salva na meta.';}
+    return;
+  }
   const nome=document.getElementById('cliNome').value.trim();
   const tel=document.getElementById('cliTel').value.trim();
-  if(!nome || !tel) return; // precisa nome e telefone para registrar
+  const orig=document.getElementById('cliOrigem').value;
+  if(!nome || !tel || !orig) return; // precisa nome e telefone para registrar
   const pct=r.cPct;
   const preco=pv(r.precoBase,pct);
   const payload={
@@ -2263,7 +2270,8 @@ function renderResultNegociador(){
 function checkCamposObrig(){
   const nome=document.getElementById('cliNome')?.value.trim();
   const tel=document.getElementById('cliTel')?.value.trim();
-  const ok=!!(nome&&tel);
+  const orig=document.getElementById('cliOrigem')?.value;
+  const ok=!!(nome&&tel&&orig);
   const btn=document.getElementById('btnGerarProposta');
   const aviso=document.getElementById('camposAviso');
   if(btn){btn.style.opacity=ok?'1':'0.5';btn.style.cursor=ok?'pointer':'not-allowed';}
@@ -2298,11 +2306,13 @@ async function validarTelExistente(tel){
   const res = await api({action:'verificarTelefone', telefone:t});
 
   if(res.ok && res.encontrado){
+    telDuplicado = true;
     alerta.style.background='rgba(229,57,53,.12)';
     alerta.style.color='#ff5252';
     alerta.style.borderLeftColor='#ff5252';
-    alerta.textContent='⚠️ Este número já está na base! Atendido por: ' + (res.vendedor || 'outro vendedor') + (res.data ? ' em ' + res.data : '');
+    alerta.textContent='⚠️ Número já atendido por: ' + (res.vendedor || 'outro vendedor') + (res.data ? ' em ' + res.data : '') + ' — proposta não será salva na meta.';
   } else {
+    telDuplicado = false;
     alerta.style.display='none';
   }
 }
