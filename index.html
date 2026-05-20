@@ -316,6 +316,7 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:22px;heigh
 @media(max-width:600px){.prop-hero{flex-direction:column}.prop-stats{grid-template-columns:1fr 1fr}.prop-price{font-size:36px}.prop-info-grid{grid-template-columns:1fr}.prop-page{padding:1.25rem}}
 
 .bneg{background:rgba(79,163,216,.12);color:#4fa3d8;border:1px solid rgba(79,163,216,.3)}
+.bges{background:rgba(26,111,168,.15);color:#1A6FA8;border:1px solid rgba(26,111,168,.3)}
 .desc-badge{display:inline-flex;align-items:center;gap:6px;background:rgba(79,163,216,.12);border:1px solid rgba(79,163,216,.3);border-radius:20px;padding:4px 12px;font-size:12px;font-weight:600;color:#4fa3d8;margin-left:10px}
 
 /* Bloco autoridade topo */
@@ -362,6 +363,7 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:22px;heigh
   </div>
   <div class="tabs">
     <button class="tab on" onclick="showTab('calc',this)">🧮 Precificador</button>
+    <button class="tab" id="tabGestorBtn" onclick="showTab('gestor',this)" style="display:none">📊 Painel Gestor</button>
     <button class="tab" id="tabMyBtn" onclick="showTab('my',this)" style="display:none">📊 Minhas Propostas</button>
     <button class="tab" id="tabDashBtn" onclick="showTab('dash',this)" style="display:none">📈 Dashboard</button>
     <button class="tab" id="atab" onclick="showTab('adm',this)" style="display:none">⚙️ Admin</button>
@@ -658,6 +660,9 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:22px;heigh
         <div class="fg" style="margin-bottom:0;flex:1;min-width:140px"><label>Origem</label>
           <select id="dFiltroOrig"><option value="todas">Todas</option></select>
         </div>
+        <div class="fg" style="margin-bottom:0;flex:1;min-width:140px"><label>Gestor</label>
+          <select id="dFiltroGestor"><option value="todos">Todos</option></select>
+        </div>
         <button class="ba bor" onclick="loadDashboard()" style="align-self:flex-end">🔍 Filtrar</button>
         <button class="ba bot" onclick="exportDashXls()" style="align-self:flex-end">📥 Excel</button>
       </div>
@@ -669,7 +674,45 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:22px;heigh
     </div>
   </div>
 
-  <!-- Modal Vendedor -->
+  
+  <!-- TAB GESTOR -->
+  <div id="tGestor" style="display:none">
+    <div class="card" style="margin-bottom:1rem">
+      <div style="font-family:Syne,sans-serif;font-size:13px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:var(--t2);margin-bottom:1rem">📊 PAINEL DO GESTOR</div>
+      <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:1.5rem">
+        <div class="dcard"><div class="dlbl">PROPOSTAS EQUIPE/MÊS</div><div class="dval" id="gCountMes" style="color:var(--orange)">—</div><div class="dlbl" id="gMetaLabel">Meta: —</div></div>
+        <div class="dcard"><div class="dlbl">VALOR GERADO EQUIPE</div><div class="dval" id="gValorTotal">—</div></div>
+        <div class="dcard"><div class="dlbl">% DA META</div><div class="dval" id="gPctMeta">—</div><div class="prog" style="margin-top:6px"><div id="gProgBar" class="prog-fill" style="width:0%"></div></div></div>
+      </div>
+      <!-- Filtro por vendedor -->
+      <div style="margin-bottom:1rem;display:flex;gap:10px;flex-wrap:wrap;align-items:center">
+        <select id="gFiltroVend" onchange="renderTabelaGestor()" style="background:var(--bg2);border:1px solid var(--b2);border-radius:8px;padding:8px 12px;color:var(--t1);font-size:13px;font-family:inherit">
+          <option value="">Todos os vendedores</option>
+        </select>
+        <button onclick="loadDashboardGestor()" style="background:var(--orange);color:#fff;border:none;border-radius:8px;padding:8px 16px;font-size:13px;cursor:pointer;font-family:inherit">🔄 Atualizar</button>
+      </div>
+      <!-- Tabela da equipe -->
+      <div style="overflow-x:auto">
+        <table style="width:100%;border-collapse:collapse;font-size:13px" id="gTabelaEquipe">
+          <thead><tr>
+            <th style="text-align:left;padding:8px 10px;border-bottom:2px solid var(--b2);color:var(--t2);font-size:11px;letter-spacing:.05em">VENDEDOR</th>
+            <th style="text-align:center;padding:8px 10px;border-bottom:2px solid var(--b2);color:var(--t2);font-size:11px">PROPOSTAS/MÊS</th>
+            <th style="text-align:center;padding:8px 10px;border-bottom:2px solid var(--b2);color:var(--t2);font-size:11px">META</th>
+            <th style="text-align:center;padding:8px 10px;border-bottom:2px solid var(--b2);color:var(--t2);font-size:11px">%</th>
+            <th style="text-align:right;padding:8px 10px;border-bottom:2px solid var(--b2);color:var(--t2);font-size:11px">VALOR GERADO</th>
+          </tr></thead>
+          <tbody id="gTbody"></tbody>
+        </table>
+      </div>
+    </div>
+    <!-- Propostas da equipe -->
+    <div class="card">
+      <div style="font-family:Syne,sans-serif;font-size:13px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:var(--t2);margin-bottom:1rem">📋 PROPOSTAS DA EQUIPE</div>
+      <div id="gTabela" style="overflow-x:auto"></div>
+    </div>
+  </div>
+
+<!-- Modal Vendedor -->
   <div id="modalVend" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.8);z-index:999;display:none;align-items:center;justify-content:center">
     <div style="background:var(--bg2);border:1px solid var(--b2);border-radius:16px;padding:1.5rem;width:100%;max-width:460px;margin:1rem;max-height:90vh;overflow-y:auto">
       <div style="font-family:Syne,sans-serif;font-size:15px;font-weight:700;margin-bottom:1.25rem" id="modalVendTitulo">Novo Vendedor</div>
@@ -682,7 +725,12 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:22px;heigh
         <select id="vTipo" onchange="toggleNegOpts()">
           <option value="vendedor">Vendedor Normal</option>
           <option value="negociador">Vendedor Negociador</option>
+          <option value="gestor">Gestor</option>
         </select>
+      </div>
+      <div class="fg" id="gestorField">
+        <label>Gestor Responsável</label>
+        <select id="vGestor"><option value="">Sem gestor / É um gestor</option></select>
       </div>
       <div id="negOpts" style="display:none;background:rgba(79,163,216,.06);border:1px solid rgba(79,163,216,.25);border-radius:var(--rs);padding:12px;margin-bottom:1rem">
         <div style="font-size:11px;color:#4fa3d8;font-weight:600;text-transform:uppercase;letter-spacing:.05em;margin-bottom:10px">⚙️ Configurações do Negociador</div>
@@ -785,8 +833,8 @@ async function doLogin(){
     document.getElementById('ls').style.display='none';
     document.getElementById('app').style.display='block';
     const b=document.getElementById('rbadge');
-    b.textContent=(S.role==='admin'?'🔑 Admin':S.role==='negociador'?'🏷️ '+S.nomeVend:'👤 '+S.nomeVend);
-    b.className='brole '+(S.role==='admin'?'badm':S.role==='negociador'?'bneg':'bvnd');
+    b.textContent=(S.role==='admin'?'🔑 Admin':S.role==='gestor'?'📊 '+S.nomeVend:S.role==='negociador'?'🏷️ '+S.nomeVend:'👤 '+S.nomeVend);
+    b.className='brole '+(S.role==='admin'?'badm':S.role==='gestor'?'bges':S.role==='negociador'?'bneg':'bvnd');
     // Tabs visíveis
     document.getElementById('tabMyBtn').style.display='flex';
     if(S.role==='admin'){
@@ -794,6 +842,11 @@ async function doLogin(){
       document.getElementById('tabDashBtn').style.display='flex';
       document.getElementById('btnXls').style.display='inline-flex';
       renderAdmTbl(); loadVendedoresTbl(); loadOrigensTbl();
+    }
+    if(S.role==='gestor'){
+      document.getElementById('tabGestorBtn').style.display='flex';
+      document.getElementById('tabMyBtn').style.display='flex';
+      loadDashboardGestor();
     }
     refreshGen(); buildPlacaSel(); loadOrigens();
   } else {
@@ -2005,10 +2058,14 @@ async function loadDashboard(){
   const orig=document.getElementById('dFiltroOrig').value;
   // Formatar datas para dd/MM/yyyy
   function fmtDate(d){ if(!d)return''; const [y,m,dd]=d.split('-'); return dd+'/'+m+'/'+y; }
+  const gestor=document.getElementById('dFiltroGestor')?.value||'todos';
   const res=await api({action:'getDashboard', login:S.login, role:S.role});
-  const rp=await api({action:'getPropostas', login:S.login, role:S.role,
-    dataInicio:fmtDate(ini), dataFim:fmtDate(fim),
-    filtroVendedor:vend||'todos', filtroOrigem:orig||'todas'});
+  const actionProp = S.role==='admin' ? 'getPropostasAdmin' : 'getPropostas';
+  const rp=await api({action:actionProp, login:S.login, role:S.role,
+    dataInicio:ini, dataFim:fim,
+    filtroVendedor:vend==='todos'?'':vend,
+    filtroOrigem:orig==='todas'?'':orig,
+    filtroGestor:gestor==='todos'?'':gestor});
   if(!res.ok||!rp.ok) return;
   dashPropostas=rp.propostas||[];
   const d=res;
@@ -2016,13 +2073,22 @@ async function loadDashboard(){
   // Preencher filtros
   const sv=document.getElementById('dFiltroVend');
   const so=document.getElementById('dFiltroOrig');
-  const prevV=sv.value, prevO=so.value;
+  const sg=document.getElementById('dFiltroGestor');
+  const prevV=sv.value, prevO=so.value, prevG=sg?sg.value:'todos';
   sv.innerHTML='<option value="todos">Todos</option>';
   d.vendedores.forEach(v=>{ const o=document.createElement('option'); o.value=v.login; o.textContent=v.nome; sv.appendChild(o); });
   sv.value=prevV;
   so.innerHTML='<option value="todas">Todas</option>';
   ORIGENS.forEach(o=>{ const op=document.createElement('option'); op.value=o; op.textContent=o; so.appendChild(op); });
   so.value=prevO;
+  // Preencher gestores
+  if(sg){
+    sg.innerHTML='<option value="todos">Todos</option>';
+    d.vendedores.filter(v=>v.tipo==='gestor'||v.role==='gestor').forEach(v=>{
+      const op=document.createElement('option'); op.value=v.login; op.textContent=v.nome; sg.appendChild(op);
+    });
+    sg.value=prevG;
+  }
 
   // Cards gerais
   const totalProps=dashPropostas.length;
@@ -2086,12 +2152,12 @@ let editandoLogin=null;
 async function loadVendedoresTbl(){
   const res=await api({action:'getVendedores', login:S.login, role:S.role});
   if(!res.ok) return;
+  window._vendedoresList = res.vendedores; // cache global para dropdown de gestores
   const el=document.getElementById('vendTbl');
   if(!el) return;
-  let h='<table class="bk" style="font-size:12px"><thead><tr><th>Login</th><th>Nome</th><th>Perfil</th><th>Meta</th><th>Ações</th></tr></thead><tbody>';
+  let h='<table class="bk" style="font-size:12px"><thead><tr><th>Login</th><th>Nome</th><th>Perfil</th><th>Gestor</th><th>Meta</th><th>Ações</th></tr></thead><tbody>';
   res.vendedores.forEach(v=>{
     if(v.login==='admin') return;
-    // Usar cache local se API não retornar tipo
     try{
       const cache=JSON.parse(localStorage.getItem('wmTipos')||'{}');
       if(!v.tipo && cache[v.login]) {
@@ -2099,9 +2165,13 @@ async function loadVendedoresTbl(){
         v.descMax=cache[v.login].descMax;
       }
     }catch(e){}
-    const _tl=v.tipo==='negociador'?'<span style="font-size:10px;background:rgba(79,163,216,.12);color:#4fa3d8;border:1px solid rgba(79,163,216,.25);border-radius:10px;padding:2px 8px">🏷️ Neg '+(v.descMax||10)+'%</span>':'<span style="font-size:10px;background:var(--ol);color:var(--orange);border:1px solid rgba(232,123,30,.25);border-radius:10px;padding:2px 8px">👤 Normal</span>';
-    h+='<tr><td style="color:var(--t2)">'+v.login+'</td><td>'+v.nome+'</td><td>'+_tl+'</td><td>'+v.meta+'</td>';
-    h+='<td><button class="ba bot" style="padding:4px 10px;font-size:11px;margin-right:4px" onclick="editarVend(\''+v.login+'\',\''+v.senha+'\',\''+v.nome+'\','+v.meta+',\''+( v.tipo||'vendedor')+'\',' +(v.descMax||10)+')">&#9999;&#65039;</button>';
+    let _tl='';
+    if(v.tipo==='negociador') _tl='<span style="font-size:10px;background:rgba(79,163,216,.12);color:#4fa3d8;border:1px solid rgba(79,163,216,.25);border-radius:10px;padding:2px 8px">🏷️ Neg '+(v.descMax||10)+'%</span>';
+    else if(v.tipo==='gestor') _tl='<span style="font-size:10px;background:rgba(26,111,168,.15);color:#1A6FA8;border:1px solid rgba(26,111,168,.3);border-radius:10px;padding:2px 8px">📊 Gestor</span>';
+    else _tl='<span style="font-size:10px;background:var(--ol);color:var(--orange);border:1px solid rgba(232,123,30,.25);border-radius:10px;padding:2px 8px">👤 Normal</span>';
+    const _gestorNome = v.gestor ? (res.vendedores.find(g=>g.login===v.gestor)?.nome||v.gestor) : '—';
+    h+='<tr><td style="color:var(--t2)">'+v.login+'</td><td>'+v.nome+'</td><td>'+_tl+'</td><td style="color:var(--t2);font-size:11px">'+_gestorNome+'</td><td>'+v.meta+'</td>';
+    h+='<td><button class="ba bot" style="padding:4px 10px;font-size:11px;margin-right:4px" onclick="editarVend(\''+v.login+'\',\''+v.senha+'\',\''+v.nome+'\','+v.meta+',\''+( v.tipo||'vendedor')+'\',' +(v.descMax||10)+',' +'\'' +(v.gestor||'')+'\')">&#9999;&#65039;</button>';
     h+='<button class="ba bot" style="padding:4px 10px;font-size:11px;color:#e05050" onclick="excluirVend(\''+v.login+'\')">🗑️</button></td></tr>';
   });
   h+='</tbody></table>';
@@ -2120,7 +2190,7 @@ function abrirModalVend(){
   document.getElementById('negOpts').style.display='none';
   document.getElementById('modalVend').style.display='flex';
 }
-function editarVend(login,senha,nome,meta,tipo,descMax){
+async function editarVend(login,senha,nome,meta,tipo,descMax,gestor){
   editandoLogin=login;
   document.getElementById('modalVendTitulo').textContent='Editar Vendedor';
   document.getElementById('vLogin').value=login; document.getElementById('vLogin').disabled=true;
@@ -2140,6 +2210,7 @@ function editarVend(login,senha,nome,meta,tipo,descMax){
   const _vt=document.getElementById('vTipo');if(_vt){_vt.value=_tipoFinal;}
   const _vd=document.getElementById('vDescMax');if(_vd)_vd.value=_descMaxFinal;
   if(typeof toggleNegOpts==='function')toggleNegOpts();
+  await carregarGestoresSelect(gestor||'');
   document.getElementById('modalVendMsg').style.display='none';
   document.getElementById('modalVend').style.display='flex';
 }
@@ -2315,6 +2386,123 @@ async function validarTelExistente(tel){
     telDuplicado = false;
     alerta.style.display='none';
   }
+}
+
+
+
+async function carregarGestoresSelect(gestorAtual){
+  const el = document.getElementById('vGestor');
+  if(!el) return;
+  // Pegar vendedores já carregados ou buscar gestores
+  let gestores = [];
+  if(window._vendedoresList){
+    gestores = window._vendedoresList.filter(v => v.tipo==='gestor');
+  } else {
+    const res = await api({action:'getGestores'});
+    if(res.ok) gestores = res.gestores || [];
+  }
+  el.innerHTML = '<option value="">Sem gestor</option>';
+  gestores.forEach(g => {
+    const op = document.createElement('option');
+    op.value = g.login;
+    op.textContent = g.nome;
+    if(g.login === gestorAtual) op.selected = true;
+    el.appendChild(op);
+  });
+}
+// ===== GESTOR =====
+let gestorDados = null;
+let gestorPropostas = [];
+
+async function loadDashboardGestor(){
+  const tBody = document.getElementById('gTbody');
+  const gTabela = document.getElementById('gTabela');
+  if(tBody) tBody.innerHTML='<tr><td colspan="5" style="text-align:center;padding:20px;color:var(--t2)">⏳ Carregando...</td></tr>';
+
+  const res = await api({action:'getDashboardGestor', login:S.login, role:S.role, nome:S.nomeVend, meta:S.metaVend});
+  const rp  = await api({action:'getPropostas', login:S.login, role:S.role});
+
+  if(!res.ok) return;
+  gestorDados = res;
+  gestorPropostas = rp.ok ? (rp.propostas||[]) : [];
+
+  // Cards do topo
+  const metaTotal = res.metaTotal || 0;
+  const countMes  = res.countMesTotal || 0;
+  const valor     = res.valorTotal || 0;
+  const pct       = metaTotal ? Math.min(100, Math.round(countMes/metaTotal*100)) : 0;
+
+  const elCount = document.getElementById('gCountMes');
+  const elMeta  = document.getElementById('gMetaLabel');
+  const elValor = document.getElementById('gValorTotal');
+  const elPct   = document.getElementById('gPctMeta');
+  const elBar   = document.getElementById('gProgBar');
+
+  if(elCount) elCount.textContent = countMes + ' / ' + metaTotal;
+  if(elMeta)  elMeta.textContent  = 'Meta da equipe: ' + metaTotal;
+  if(elValor) elValor.textContent = 'R$ ' + fmtK(valor);
+  if(elPct)   elPct.textContent   = pct + '%';
+  if(elBar)   elBar.style.width   = pct + '%';
+
+  // Preencher filtro de vendedores
+  const filtroV = document.getElementById('gFiltroVend');
+  if(filtroV){
+    filtroV.innerHTML = '<option value="">Todos os vendedores</option>';
+    (res.equipe||[]).forEach(v=>{
+      const op=document.createElement('option'); op.value=v.login; op.textContent=v.nome; filtroV.appendChild(op);
+    });
+  }
+
+  renderTabelaGestor();
+}
+
+function renderTabelaGestor(){
+  const filtroV = document.getElementById('gFiltroVend')?.value || '';
+  const equipe  = (gestorDados?.equipe || []).filter(v => !filtroV || v.login === filtroV);
+  const tBody   = document.getElementById('gTbody');
+
+  if(!tBody) return;
+
+  let h = '';
+  equipe.sort((a,b) => b.countMes - a.countMes).forEach((v,i) => {
+    const pct = v.meta ? Math.min(100, Math.round(v.countMes/v.meta*100)) : 0;
+    const cor = pct>=100?'#3ecf8e':pct>=70?'var(--orange)':'#e05050';
+    h += '<tr>';
+    h += '<td style="padding:8px 10px;font-weight:600">'+(i+1)+'. '+v.nome+'</td>';
+    h += '<td style="padding:8px 10px;text-align:center;color:var(--orange);font-weight:700">'+v.countMes+'</td>';
+    h += '<td style="padding:8px 10px;text-align:center;color:var(--t2)">'+v.meta+'</td>';
+    h += '<td style="padding:8px 10px;text-align:center"><span style="color:'+cor+';font-weight:700">'+pct+'%</span><div style="background:var(--b2);border-radius:3px;height:4px;margin-top:4px"><div style="background:'+cor+';height:100%;width:'+pct+'%;border-radius:3px"></div></div></td>';
+    h += '<td style="padding:8px 10px;text-align:right">R$ '+fmtK(v.valorTotal||0)+'</td>';
+    h += '</tr>';
+  });
+  tBody.innerHTML = h || '<tr><td colspan="5" style="text-align:center;padding:20px;color:var(--t2)">Nenhum vendedor na equipe</td></tr>';
+
+  // Tabela de propostas
+  const props = filtroV ? gestorPropostas.filter(p=>p['Vendedor']===filtroV) : gestorPropostas;
+  const gTab = document.getElementById('gTabela');
+  if(!gTab) return;
+
+  if(!props.length){ gTab.innerHTML='<p style="color:var(--t2);font-size:13px">Nenhuma proposta encontrada.</p>'; return; }
+
+  let tH='<table class="bk" style="font-size:11px;min-width:700px;width:100%"><thead><tr>';
+  ['Data','Vendedor','Cliente','Telefone','Origem','kWp','Valor (R$)','Inversor'].forEach(c=>tH+='<th>'+c+'</th>');
+  tH+='</tr></thead><tbody>';
+  props.slice(0,50).forEach(p=>{
+    let dataF=p['Data']||'';
+    try{ if(dataF.includes('T')){ const d=new Date(dataF); dataF=d.toLocaleDateString('pt-BR')+' '+d.toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'}); } }catch(e){}
+    tH+='<tr>';
+    tH+='<td style="white-space:nowrap">'+dataF+'</td>';
+    tH+='<td>'+( p['Vendedor']||'')+'</td>';
+    tH+='<td style="font-weight:500">'+( p['Cliente']||'')+'</td>';
+    tH+='<td>'+( p['Telefone']||'')+'</td>';
+    tH+='<td>'+( p['Origem']||'—')+'</td>';
+    tH+='<td style="font-weight:700;color:var(--orange)">'+( p['Potência (kWp)']||'—')+' kWp</td>';
+    tH+='<td style="color:var(--orange);font-weight:700">R$ '+fmtBRL(parseFloat(p['Valor Venda (R$)'])||0)+'</td>';
+    tH+='<td style="color:var(--t2);font-size:11px">'+( p['Inversor']||'')+'</td>';
+    tH+='</tr>';
+  });
+  tH+='</tbody></table>';
+  gTab.innerHTML=tH;
 }
 
 function abrirTrocarSenha(){
