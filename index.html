@@ -1894,16 +1894,17 @@ async function loadMyPropostas(){
   if(!res.ok){ if(el) el.innerHTML='<div style="color:#e05050">Erro: '+res.erro+'</div>'; return; }
   myPropostas=res.propostas||[];
 
-  // Progress
+  // Progress — usar TODAS as propostas para calcular mês atual
   const agora=new Date();
   const mesAtual=agora.getMonth()+1;
   const anoAtual=agora.getFullYear();
   const mesFmt=String(mesAtual).padStart(2,'0')+'/'+anoAtual;
-  const countMes=myPropostas.filter(p=>{
+  const _allProps = _myPropostasAll.length ? _myPropostasAll : myPropostas;
+  const countMes=_allProps.filter(p=>{
     const parts=String(p['Data']||'').split(' ')[0].split('/');
     return parts[1]+'/'+parts[2]===mesFmt;
   }).length;
-  const countTotal=myPropostas.length;
+  const countTotal=_allProps.length;
   const valorTotal=myPropostas.reduce((a,p)=>a+(parseFloat(p['Valor Venda (R$)'])||0),0);
   const pct=Math.min(100,Math.round(countMes/S.metaVend*100));
 
@@ -2081,93 +2082,101 @@ async function loadDashboard(){
   }
   const _vends = window._vendedoresList || [];
 
-  // Adaptar formato novo do GAS para o formato esperado pelo frontend
-  // Calcular totais a partir das propostas retornadas
+  // Adaptar formato novo do GAS — calcular totais a partir das propostas retornadas
   const _props = rp.propostas||[];
   const _agora = new Date();
-  const _mes = _agora.getMonth(), _ano = _agora.getFullYear();
+  const _mesCal = _agora.getMonth(), _anoCal = _agora.getFullYear();
+  const _temFiltroData = !!(ini || fim); // se há filtro de data aplicado
 
-  // Agrupar por vendedor para ranking
-  const _byVend = {};
-  function parseDateProp(dataStr){
-    // Suporta: ISO "2026-05-16T16:14:00.000Z", BR "16/05/2026 13:14", "16/05/2026 13:5"
-    dataStr = String(dataStr||'').trim();
-    if(!dataStr) return null;
-    if(dataStr.includes('T') || /^\d{4}-\d{2}/.test(dataStr)){
-      return new Date(dataStr);
+  // Parse de data robusto — suporta ISO e formato BR
+  function parseDateProp(ds){
+    ds = String(ds||'').trim();
+    if(!ds) return null;
+    // ISO: "2026-05-16T16:14:00.000Z" ou "2026-05-16"
+    if(/^\d{4}-\d{2}/.test(ds)) return new Date(ds);
+    // BR: "16/05/2026 13:14" ou "16/05/2026 13:5"
+    if(ds.includes('/')){
+      const [dPart] = ds.split(' ');
+      const [dd,mm,yyyy] = dPart.split('/');
+      if(dd&&mm&&yyyy) return new Date(parseInt(yyyy), parseInt(mm)-1, parseInt(dd));
     }
-    if(dataStr.includes('/')){
-      const parts = dataStr.split(' ')[0].split('/');
-      if(parts.length===3){
-        const [dd,mm,yyyy] = parts;
-        return new Date(parseInt(yyyy), parseInt(mm)-1, parseInt(dd));
-      }
-    }
-    return new Date(dataStr);
+    return new Date(ds);
   }
 
+  // Agrupar por vendedor
+  const _byVend = {};
   _props.forEach(p=>{
     const v = p['Vendedor']||'';
-    if(!v) return;
-    if(!_byVend[v]) _byVend[v]={login:v,nome:v,mes:0,total:0,valor:0,valorMes:0,meta:60};
-    const valProp = parseFloat(p['Valor Venda (R$)']||0);
-    _byVend[v].total++;
-    _byVend[v].valor += valProp;
+    if(!v || v==='admin') return;
+    if(!_byVend[v]) _byVend[v]={login:v,nome:v,periodo:0,mesAtual:0,historico:0,valor:0,valorPeriodo:0,valorMes:0,meta:60};
+    const val = parseFloat(String(p['Valor Venda (R$)']||'').replace(/[^0-9.]/g,'')||0);
+    _byVend[v].historico++;
+    _byVend[v].valor += val;
+    // Conta no período filtrado
+    _byVend[v].periodo++;
+    _byVend[v].valorPeriodo += val;
+    // Conta no mês atual do calendário
     try{
       const pd = parseDateProp(p['Data']);
-      if(pd && !isNaN(pd.getTime()) && pd.getMonth()===_mes && pd.getFullYear()===_ano){
-        _byVend[v].mes++;
-        _byVend[v].valorMes += valProp;
+      if(pd && !isNaN(pd.getTime()) && pd.getMonth()===_mesCal && pd.getFullYear()===_anoCal){
+        _byVend[v].mesAtual++;
+        _byVend[v].valorMes += val;
       }
-    }catch(e){ console.warn('Data inválida:', p['Data'], e); }
+    }catch(e){}
   });
 
-  // Enriquecer com nomes e metas dos vendedores
-  (_vends||[]).forEach(v=>{ if(_byVend[v.login]){_byVend[v.login].nome=v.nome;_byVend[v.login].meta=v.meta||60;} });
+  // Enriquecer com nomes e metas; adicionar vendedores sem proposta
+  (_vends||[]).forEach(v=>{
+    if(v.login==='admin') return;
+    if(_byVend[v.login]){
+      _byVend[v.login].nome = v.nome;
+      _byVend[v.login].meta = v.meta||60;
+    } else {
+      _byVend[v.login] = {login:v.login,nome:v.nome,periodo:0,mesAtual:0,historico:0,valor:0,valorPeriodo:0,valorMes:0,meta:v.meta||60};
+    }
+  });
 
-  const _vendList = Object.values(_byVend).sort((a,b)=>b.mes-a.mes);
-  const _mesGeral = _vendList.reduce((s,v)=>s+v.mes,0);
+  // Ordenar: se filtro de data aplicado, por período; senão por mês atual
+  const _vendList = Object.values(_byVend)
+    .filter(v=>v.login!=='admin')
+    .sort((a,b)=> _temFiltroData ? b.periodo-a.periodo : b.mesAtual-a.mesAtual);
+
+  // Métricas para os cards e meta
+  const _mesGeral  = _vendList.reduce((s,v)=>s+(_temFiltroData?v.periodo:v.mesAtual),0);
   const _metaTotal = _vendList.reduce((s,v)=>s+v.meta,0);
+  const _valorTotalCalc = _vendList.reduce((s,v)=>s+(_temFiltroData?v.valorPeriodo:v.valorMes),0);
 
-  // Montar objeto d no formato antigo que o frontend espera
-  const d = {
-    ok: true,
-    countMes: res.countMes||0,
-    countTotal: res.countTotal||0,
-    totalValor: res.totalValor||0,
-    totais: {
-      mesGeral: _mesGeral,
-      mesAtual: _mesGeral + ' / ' + _metaTotal + ' meta'
-    },
-    vendedores: _vendList
-  };
+  // Para o ranking: coluna "mês" = período se filtro ativo, senão mês atual
+  _vendList.forEach(v=>{ v.mes = _temFiltroData ? v.periodo : v.mesAtual; v.valorMesShow = _temFiltroData ? v.valorPeriodo : v.valorMes; });
 
   // Preencher filtros
   const sv=document.getElementById('dFiltroVend');
   const so=document.getElementById('dFiltroOrig');
   const sg=document.getElementById('dFiltroGestor');
   const prevV=sv.value, prevO=so.value, prevG=(sg&&sg.value&&sg.value!=='')?sg.value:'todos';
-
   // _vends carregado anteriormente
-
   sv.innerHTML='<option value="todos">Todos</option>';
   _vends.forEach(v=>{ const o=document.createElement('option'); o.value=v.login; o.textContent=v.nome; sv.appendChild(o); });
   sv.value=prevV;
   so.innerHTML='<option value="todas">Todas</option>';
   ORIGENS.forEach(o=>{ const op=document.createElement('option'); op.value=o; op.textContent=o; so.appendChild(op); });
   so.value=prevO;
-  // Preencher gestores
   if(sg){
     sg.innerHTML='<option value="todos">Todos</option>';
-    _vends.filter(v=>v.tipo==='gestor').forEach(v=>{
-      const op=document.createElement('option'); op.value=v.login; op.textContent=v.nome; sg.appendChild(op);
-    });
+    _vends.filter(v=>v.tipo==='gestor').forEach(v=>{ const op=document.createElement('option'); op.value=v.login; op.textContent=v.nome; sg.appendChild(op); });
     sg.value=prevG;
   }
 
+  const d = {
+    ok: true,
+    totais: { mesGeral: _mesGeral, mesAtual: _mesGeral + ' / ' + _metaTotal + ' meta' },
+    vendedores: _vendList
+  };
+
+
   // Cards gerais
   const totalProps=dashPropostas.length;
-  const valorTotal=dashPropostas.reduce((a,p)=>a+(parseFloat(p['Valor Venda (R$)'])||0),0);
+  const valorTotal=_valorTotalCalc||dashPropostas.reduce((a,p)=>a+(parseFloat(String(p['Valor Venda (R$)']||'').replace(/[^0-9.]/g,''))||0),0);
   const placasTotal=dashPropostas.reduce((a,p)=>a+(parseInt(p['Placas'])||0),0);
   const ticketMedio=totalProps?valorTotal/totalProps:0;
 
@@ -2176,7 +2185,7 @@ async function loadDashboard(){
     '<div class="met"><div class="mlabel">Valor total</div><div class="mval">R$ '+fmtK(valorTotal)+'</div></div>'+
     '<div class="met"><div class="mlabel">Ticket médio</div><div class="mval">R$ '+fmtK(ticketMedio)+'</div></div>'+
     '<div class="met"><div class="mlabel">Placas instaladas</div><div class="mval">'+placasTotal+'</div></div>'+
-    '<div class="met"><div class="mlabel">Meta do mês</div><div class="mval">'+d.totais.mesGeral+' / '+d.vendedores.reduce((s,v)=>s+(v.meta||60),0)+'</div><div class="mhint">'+d.totais.mesAtual+'</div></div>';
+    '<div class="met"><div class="mlabel">Meta do mês</div><div class="mval">'+_mesGeral+' / '+_metaTotal+'</div><div class="mhint">'+_mesGeral+' / '+_metaTotal+' meta</div></div>';
 
   // Ranking
   let rkH='<div style="overflow-x:auto"><table class="bk" style="font-size:13px;min-width:580px"><thead><tr>';
@@ -2192,7 +2201,7 @@ async function loadDashboard(){
     rkH+='<td style="color:var(--t2)">'+v.meta+'</td>';
     rkH+='<td><div style="background:var(--bg4);border-radius:4px;height:6px;width:100px;overflow:hidden"><div style="background:'+cor+';height:100%;width:'+pct+'%"></div></div><span style="font-size:10px;color:'+cor+'">'+pct+'%</span></td>';
     rkH+='<td style="color:var(--t2)">'+v.total+'</td>';
-    rkH+='<td style="color:var(--text)">R$ '+fmtK(v.valorMes)+'</td>';
+    rkH+='<td style="color:var(--text)">'+( v.valorMesShow>0 ? 'R$ '+fmtK(v.valorMesShow) : '—')+'</td>';
     rkH+='</tr>';
   });
   rkH+='</tbody></table></div>';
