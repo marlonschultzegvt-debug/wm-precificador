@@ -2089,15 +2089,37 @@ async function loadDashboard(){
 
   // Agrupar por vendedor para ranking
   const _byVend = {};
+  function parseDateProp(dataStr){
+    // Suporta: ISO "2026-05-16T16:14:00.000Z", BR "16/05/2026 13:14", "16/05/2026 13:5"
+    dataStr = String(dataStr||'').trim();
+    if(!dataStr) return null;
+    if(dataStr.includes('T') || /^\d{4}-\d{2}/.test(dataStr)){
+      return new Date(dataStr);
+    }
+    if(dataStr.includes('/')){
+      const parts = dataStr.split(' ')[0].split('/');
+      if(parts.length===3){
+        const [dd,mm,yyyy] = parts;
+        return new Date(parseInt(yyyy), parseInt(mm)-1, parseInt(dd));
+      }
+    }
+    return new Date(dataStr);
+  }
+
   _props.forEach(p=>{
     const v = p['Vendedor']||'';
-    if(!_byVend[v]) _byVend[v]={login:v,nome:v,mes:0,total:0,valor:0,meta:60};
+    if(!v) return;
+    if(!_byVend[v]) _byVend[v]={login:v,nome:v,mes:0,total:0,valor:0,valorMes:0,meta:60};
+    const valProp = parseFloat(p['Valor Venda (R$)']||0);
     _byVend[v].total++;
-    _byVend[v].valor += parseFloat(p['Valor Venda (R$)']||0);
+    _byVend[v].valor += valProp;
     try{
-      const pd = new Date(p['Data']);
-      if(pd.getMonth()===_mes && pd.getFullYear()===_ano) _byVend[v].mes++;
-    }catch(e){}
+      const pd = parseDateProp(p['Data']);
+      if(pd && !isNaN(pd.getTime()) && pd.getMonth()===_mes && pd.getFullYear()===_ano){
+        _byVend[v].mes++;
+        _byVend[v].valorMes += valProp;
+      }
+    }catch(e){ console.warn('Data inválida:', p['Data'], e); }
   });
 
   // Enriquecer com nomes e metas dos vendedores
@@ -2158,7 +2180,7 @@ async function loadDashboard(){
 
   // Ranking
   let rkH='<div style="overflow-x:auto"><table class="bk" style="font-size:13px;min-width:580px"><thead><tr>';
-  ['#','Vendedor','Mês','Meta','Progresso','Total','Valor Mês'].forEach(c=>rkH+='<th>'+c+'</th>');
+  ['#','Vendedor','Mês','Meta','Progresso','Histórico','Valor Mês'].forEach(c=>rkH+='<th>'+c+'</th>');
   rkH+='</tr></thead><tbody>';
   d.vendedores.forEach((v,i)=>{
     const pct=Math.min(100,Math.round(v.mes/v.meta*100));
