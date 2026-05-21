@@ -638,8 +638,19 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:22px;heigh
     </div>
     <div class="card">
       <div class="ctitle"><span class="ic">📋</span>Minhas Propostas</div>
-      <div style="display:flex;gap:8px;margin-bottom:1rem;flex-wrap:wrap">
-        <input type="month" id="myFiltroMes" onchange="loadMyPropostas()" style="flex:1;min-width:140px">
+      <div style="display:flex;gap:8px;margin-bottom:1rem;flex-wrap:wrap;align-items:flex-end">
+        <div class="fg" style="margin-bottom:0;flex:2;min-width:160px">
+          <label>🔍 Buscar</label>
+          <input type="text" id="myBusca" placeholder="Nome, telefone, origem..." oninput="filtrarMyPropostas()" style="width:100%">
+        </div>
+        <div class="fg" style="margin-bottom:0;flex:1;min-width:120px">
+          <label>De</label>
+          <input type="date" id="myFiltroIni" onchange="filtrarMyPropostas()">
+        </div>
+        <div class="fg" style="margin-bottom:0;flex:1;min-width:120px">
+          <label>Até</label>
+          <input type="date" id="myFiltroFim" onchange="filtrarMyPropostas()">
+        </div>
         <button class="ba bot" onclick="loadMyPropostas()">🔄 Atualizar</button>
         <button class="ba bor" onclick="exportMyXls()">📥 Excel</button>
       </div>
@@ -1879,77 +1890,126 @@ async function salvarProposta(){
 // ====== MINHAS PROPOSTAS ======
 let myPropostas=[];
 async function loadMyPropostas(){
-  const mesEl=document.getElementById('myFiltroMes');
-  let dataInicio='', dataFim='';
-  if(mesEl&&mesEl.value){
-    const [y,m]=mesEl.value.split('-');
-    dataInicio=`${String(m).padStart(2,'0')}/${y}`;
-    const lastDay=new Date(y,m,0).getDate();
-    dataFim=`${String(lastDay).padStart(2,'0')}/${String(m).padStart(2,'0')}/${y}`;
-    dataInicio=`01/${String(m).padStart(2,'0')}/${y}`;
+  const el = document.getElementById('myProgress');
+  const tEl = document.getElementById('myTabela');
+  if(el)  el.innerHTML = '<div style="color:var(--t2);font-size:13px">Carregando...</div>';
+  if(tEl) tEl.innerHTML = '';
+
+  const res = await api({action:'getPropostas', login:S.login, role:S.role});
+  if(!res.ok){
+    if(el) el.innerHTML = '<div style="color:#e05050">Erro: '+res.erro+'</div>';
+    return;
   }
-  const el=document.getElementById('myProgress');
-  if(el) el.innerHTML='<div style="color:var(--t2);font-size:13px">Carregando...</div>';
-  const res = await api({action:'getPropostas', login:S.login, role:S.role, dataInicio, dataFim});
-  if(!res.ok){ if(el) el.innerHTML='<div style="color:#e05050">Erro: '+res.erro+'</div>'; return; }
-  myPropostas=res.propostas||[];
 
-  // Progress — usar TODAS as propostas para calcular mês atual
-  const agora=new Date();
-  const mesAtual=agora.getMonth()+1;
-  const anoAtual=agora.getFullYear();
-  const mesFmt=String(mesAtual).padStart(2,'0')+'/'+anoAtual;
-  const _allProps = _myPropostasAll.length ? _myPropostasAll : myPropostas;
-  const countMes=_allProps.filter(p=>{
-    const parts=String(p['Data']||'').split(' ')[0].split('/');
-    return parts[1]+'/'+parts[2]===mesFmt;
+  _myPropostasAll = res.propostas || [];
+  myPropostas     = _myPropostasAll; // começa sem filtro
+
+  // Progress — mês atual do calendário
+  const agora    = new Date();
+  const _mesCal  = agora.getMonth()+1;
+  const _anoCal  = agora.getFullYear();
+  const mesFmt   = String(_mesCal).padStart(2,'0')+'/'+_anoCal;
+
+  const countMes = _myPropostasAll.filter(p=>{
+    const ds = String(p['Data']||'').split(' ')[0]; // "16/05/2026"
+    const parts = ds.split('/');
+    if(parts.length===3) return parts[1]+'/'+parts[2] === mesFmt;
+    // ISO: "2026-05-16"
+    const d = new Date(p['Data']);
+    return !isNaN(d) && d.getMonth()+1===_mesCal && d.getFullYear()===_anoCal;
   }).length;
-  const countTotal=_allProps.length;
-  const valorTotal=myPropostas.reduce((a,p)=>a+(parseFloat(p['Valor Venda (R$)'])||0),0);
-  const pct=Math.min(100,Math.round(countMes/S.metaVend*100));
 
-  if(el) el.innerHTML=
+  const countTotal = _myPropostasAll.length;
+  const valorTotal = _myPropostasAll.reduce((a,p)=>a+(parseFloat(p['Valor Venda (R$)'])||0),0);
+  const pct        = Math.min(100, Math.round(countMes/S.metaVend*100));
+
+  if(el) el.innerHTML =
     '<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:10px;margin-bottom:1rem">' +
     '<div class="met"><div class="mlabel">Propostas este mês</div><div class="mval" style="color:var(--orange)">'+countMes+' / '+S.metaVend+'</div><div class="mhint">Meta mensal</div></div>' +
     '<div class="met"><div class="mlabel">Total histórico</div><div class="mval">'+countTotal+'</div><div class="mhint">Todas as propostas</div></div>' +
     '<div class="met"><div class="mlabel">Valor total gerado</div><div class="mval">R$ '+fmtK(valorTotal)+'</div><div class="mhint">Soma dos valores</div></div>' +
     '</div>' +
-    '<div style="background:var(--bg3);border-radius:8px;height:10px;overflow:hidden;margin-bottom:6px"><div style="background:var(--orange);height:100%;width:'+pct+'%;transition:width .5s;border-radius:8px"></div></div>' +
+    '<div class="prog" style="margin-bottom:6px"><div class="prog-fill" style="width:'+pct+'%"></div></div>' +
     '<div style="font-size:12px;color:var(--t2)">'+pct+'% da meta mensal ('+countMes+' de '+S.metaVend+' propostas)</div>';
 
-  // Tabela
-  const tEl=document.getElementById('myTabela');
-  if(!tEl) return;
-  if(!myPropostas.length){ tEl.innerHTML='<div style="color:var(--t2);font-size:13px;padding:1rem 0">Nenhuma proposta encontrada.</div>'; return; }
-  let h='<table class="bk" style="font-size:11px;min-width:700px;border-collapse:collapse"><thead><tr>';
-  ['Data','Cliente','Telefone','Origem','kWp','Geração','Valor (R$)','Inversor',''].forEach(col=>{
-    h+='<th>'+col+'</th>';
-  });
-  h+='</tr></thead><tbody>';
-  myPropostas.forEach(p=>{
-    // Formatar data: pode vir como ISO ou dd/mm/yyyy hh:mm
-    let dataFmt = p['Data'] || '—';
-    try {
-      if(dataFmt.includes('T') || dataFmt.length > 16){
-        const d = new Date(dataFmt);
-        if(!isNaN(d)) dataFmt = d.toLocaleDateString('pt-BR') + ' ' + d.toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'});
-      }
-    } catch(e){}
-    h+='<tr>';
-    h+='<td style="white-space:nowrap">'+dataFmt+'</td>';
-    h+='<td><strong>'+p['Cliente']+'</strong></td>';
-    h+='<td style="color:var(--t2)">'+p['Telefone']+'</td>';
-    h+='<td>'+(p['Origem']||'—')+'</td>';
-    h+='<td style="font-weight:600">'+p['Potência (kWp)']+' kWp</td>';
-    h+='<td>'+p['Geração (kWh/mês)']+' kWh</td>';
-    h+='<td style="color:var(--orange);font-weight:700;font-family:Syne,sans-serif">R$ '+fmtBRL(parseFloat(p['Valor Venda (R$)'])||0)+'</td>';
-    h+='<td style="color:var(--t2);font-size:11px">'+p['Inversor']+'</td>';
-    h+='<td><button class="ba bot" style="padding:4px 10px;font-size:11px" onclick="reabrirProposta('+myPropostas.indexOf(p)+')">📄 Ver</button></td>';
-    h+='</tr>';
-  });
-  h+='</tbody></table>';
-  tEl.innerHTML=h;
+  filtrarMyPropostas(); // aplicar filtros e renderizar tabela
 }
+
+let _myPropostasAll = [];
+
+function filtrarMyPropostas(){
+  const busca = (document.getElementById('myBusca')?.value||'').toLowerCase().trim();
+  const ini   = document.getElementById('myFiltroIni')?.value||'';
+  const fim   = document.getElementById('myFiltroFim')?.value||'';
+
+  myPropostas = _myPropostasAll.filter(p=>{
+    // Filtro de texto
+    if(busca){
+      const campos = [p['Cliente'],p['Telefone'],p['Endereço'],p['Origem'],p['Inversor']].join(' ').toLowerCase();
+      if(!campos.includes(busca)) return false;
+    }
+    // Filtro de data
+    if(ini || fim){
+      const ds = String(p['Data']||'').trim();
+      let pd;
+      if(/^\d{4}-\d{2}/.test(ds)) pd = new Date(ds);
+      else if(ds.includes('/')){
+        const [dPart] = ds.split(' ');
+        const [dd,mm,yyyy] = dPart.split('/');
+        if(dd&&mm&&yyyy) pd = new Date(parseInt(yyyy), parseInt(mm)-1, parseInt(dd));
+      }
+      if(pd && !isNaN(pd)){
+        if(ini && pd < new Date(ini+'T00:00:00')) return false;
+        if(fim && pd > new Date(fim+'T23:59:59')) return false;
+      }
+    }
+    return true;
+  });
+
+  renderMyTbl();
+}
+
+function renderMyTbl(){
+  const tEl = document.getElementById('myTabela');
+  if(!tEl) return;
+
+  if(!myPropostas.length){
+    tEl.innerHTML = '<p style="color:var(--t2);font-size:13px;padding:12px 0">Nenhuma proposta encontrada.</p>';
+    return;
+  }
+
+  let h = '<table class="bk" style="font-size:12px"><thead><tr>';
+  ['Data','Cliente','Telefone','Origem','kWp','Geração','Valor (R$)','Inversor',''].forEach(c=> h+='<th>'+c+'</th>');
+  h += '</tr></thead><tbody>';
+
+  myPropostas.forEach((p,idx)=>{
+    // Formatar data
+    let dataFmt = p['Data']||'—';
+    try{
+      if(String(dataFmt).includes('T')){
+        const d=new Date(dataFmt);
+        dataFmt = d.toLocaleDateString('pt-BR')+' '+d.toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'});
+      }
+    }catch(e){}
+
+    h += '<tr>';
+    h += '<td style="white-space:nowrap">'+dataFmt+'</td>';
+    h += '<td style="font-weight:500;color:var(--t1)">'+( p['Cliente']||'')+'</td>';
+    h += '<td>'+( p['Telefone']||'')+'</td>';
+    h += '<td>'+( p['Origem']||'—')+'</td>';
+    h += '<td style="font-weight:700;color:var(--orange)">'+( p['Potência (kWp)']||'—')+' kWp</td>';
+    h += '<td style="color:var(--t2)">'+( p['Geração (kWh/mês)']||'—')+' kWh</td>';
+    h += '<td style="color:var(--orange);font-weight:700;font-family:Syne,sans-serif">R$ '+fmtBRL(parseFloat(p['Valor Venda (R$)'])||0)+'</td>';
+    h += '<td style="color:var(--t2);font-size:11px">'+( p['Inversor']||'')+'</td>';
+    h += '<td><button class="ba bot" style="padding:4px 10px;font-size:11px" onclick="reabrirProposta('+myPropostas.indexOf(p)+')">📄 Ver</button></td>';
+    h += '</tr>';
+  });
+
+  h += '</tbody></table>';
+  tEl.innerHTML = h;
+}
+
+
 function reabrirProposta(idx){
   const p = myPropostas[idx];
   const modal = document.getElementById('propostaModal');
