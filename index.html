@@ -509,6 +509,30 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:22px;heigh
         <div class="blkmsg" id="blkMsg">❌ Mesmo com 2 inversores este modelo não atende <span id="blkQtd"></span> placas. Escolha um inversor maior.</div>
       </div>
 
+      <!-- Segundo inversor (aparece quando qi=2) -->
+      <div id="gInv2" style="display:none;margin-top:12px;background:rgba(232,123,30,.06);border:1px solid rgba(232,123,30,.2);border-radius:8px;padding:12px">
+        <div style="font-size:11px;font-weight:700;color:var(--orange);text-transform:uppercase;letter-spacing:.05em;margin-bottom:8px">⚡ Segundo Inversor</div>
+        <div class="fg" id="gMono2" style="display:block"><label>Modelo — Inversor 2</label>
+          <select id="sMono2" onchange="chkOv()">
+            <option value="0">Chint 3kW Mono — Overload: até 8 placas</option>
+            <option value="1">Chint 5kW Mono — Overload: até 14 placas</option>
+            <option value="2">Chint 6kW Mono — Overload: até 17 placas</option>
+            <option value="3">Chint 7,5kW Mono — Overload: até 21 placas</option>
+            <option value="4">Chint 10kW Mono — Overload: até 30 placas</option>
+          </select>
+        </div>
+        <div class="fg" id="gTri2" style="display:none"><label>Modelo Trifásico — Inversor 2</label>
+          <select id="sTri2" onchange="chkOv()">
+            <option value="0">Sofar 25kW Tri — Overload: até 72 placas</option>
+            <option value="1">Chint 25kW Tri — Overload: até 72 placas</option>
+            <option value="2">Sofar 30kW Tri — Overload: até 85 placas</option>
+            <option value="3">Sofar 37,5kW Tri — Overload: até 108 placas</option>
+            <option value="4">Sofar 50kW Tri — Overload: até 170 placas</option>
+            <option value="5">Sofar 75kW Tri — Overload: até 256 placas</option>
+          </select>
+        </div>
+      </div>
+
       <div class="nav">
         <button class="ba bot" onclick="goBack(1)">← Voltar</button>
         <button class="ba bor" id="btn2nxt" onclick="go3()">Próximo: Estrutura →</button>
@@ -595,6 +619,7 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:22px;heigh
         <table class="bk" id="bkTbl"></table>
         <div id="camposAviso" style="display:none;font-size:12px;color:#e05050;margin-top:8px;padding:8px 12px;background:rgba(224,80,80,.08);border:1px solid rgba(224,80,80,.2);border-radius:var(--rs)">Preencha Nome e Telefone para gerar a proposta.</div>
         <div class="brow">
+          <button class="ba bot" onclick="voltarStep3()" style="opacity:.7">← Voltar</button>
           <button class="ba bor" id="btnGerarProposta" onclick="tentarGerarProposta()" style="opacity:.5;cursor:not-allowed">📄 Gerar Proposta para Cliente</button>
           <button class="ba bot" onclick="novoCalc()">🔄 Novo Cálculo</button>
           <button class="ba bor" id="btnXls" style="display:none" onclick="expXls()">📥 Exportar Excel</button>
@@ -660,7 +685,7 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:22px;heigh
           <input type="date" id="myFiltroFim" onchange="filtrarMyPropostas()">
         </div>
         <button class="ba bot" onclick="loadMyPropostas()">🔄 Atualizar</button>
-        <button class="ba bor" onclick="exportMyXls()">📥 Excel</button>
+        
       </div>
       <div id="myTabela" style="overflow-x:auto;-webkit-overflow-scrolling:touch"></div>
     </div>
@@ -917,13 +942,15 @@ function showTab(t,btn){
   document.getElementById('tAdm').style.display=t==='adm'?'block':'none';
   document.getElementById('tMy').style.display=t==='my'?'block':'none';
   document.getElementById('tDash').style.display=t==='dash'?'block':'none';
+  const tGes = document.getElementById('tGestor');
+  if(tGes) tGes.style.display=t==='gestor'?'block':'none';
   if(t==='my')   loadMyPropostas();
   if(t==='dash'){
-    // Resetar filtro de gestor ao abrir dashboard
     const _sg=document.getElementById('dFiltroGestor');
     if(_sg && !_sg._iniciado){ _sg.value='todos'; _sg._iniciado=true; }
     loadDashboard();
   }
+  if(t==='gestor') loadDashboardGestor();
 }
 
 // ====== STEPS ======
@@ -1003,6 +1030,9 @@ function setTipoInv(t,btn){
   document.querySelectorAll('#c2 .tb').forEach(b=>b.classList.remove('on'));btn.classList.add('on');
   document.getElementById('gMono').style.display=t==='mono'?'block':'none';
   document.getElementById('gTri').style.display=t==='tri'?'block':'none';
+  // Sincronizar tipo do segundo inversor
+  const gM2=document.getElementById('gMono2'); if(gM2) gM2.style.display=t==='mono'?'block':'none';
+  const gT2=document.getElementById('gTri2');  if(gT2) gT2.style.display=t==='tri'?'block':'none';
   document.getElementById('gMicro').style.display=t==='micro'?'block':'none';
   document.getElementById('ovAl').style.display='none';
   const nxt=document.getElementById('btn2nxt');
@@ -1097,14 +1127,17 @@ function calcRes(){
   const qtd=S.qtd;
   // microinversor: qty calculada automaticamente
   const qi=S.tipoInv==='micro' ? getMicroQtd() : S.qi;
+  // Segundo inversor (pode ser modelo diferente)
+  const inv2 = (qi===2 && S.tipoInv!=='micro') ? getInv2() : null;
+  const duplosMesmo = !inv2 || inv2===inv || inv2.nome===inv.nome;
   // custos
   const cPl=qtd*pl.preco;
-  const cInv=inv.preco*qi;
+  const cInv = duplosMesmo ? inv.preco*qi : inv.preco + inv2.preco;
   let cEst=0,kits=0;
   if(est.passo>0){const qA=Math.ceil(qtd/est.passo)*est.passo;kits=qA/est.passo;cEst=kits*est.preco}
   const metros=Math.max(20,qtd*2.5);
   const cCabo=Math.ceil(metros)*DB.cabo;
-  const mc4=inv.mc4*qi;
+  const mc4 = duplosMesmo ? inv.mc4*qi : inv.mc4+inv2.mc4;
   const cMC4=mc4*DB.mc4;
   const custo=cPl+cInv+cEst+cCabo+cMC4+(S.isRural?450:0);
   const custoLiq=custo*1.00; // sem desconto de custo
@@ -1112,7 +1145,7 @@ function calcRes(){
   const kwp=(pl.pot*qtd)/1000;
   const gen=kwp*f*30*(1-S.oLoss);
   const isMicro=S.tipoInv==='micro';
-  S.R={qtd,pl,inv,qi,est,kits,metros,mc4,cPl,cInv,cEst,cCabo,cMC4,custo,custoLiq,precoBase,kwp,gen,cPct:0,isMicro,isRural:S.isRural};
+  S.R={qtd,pl,inv,inv2:inv2||null,duplosMesmo,qi,est,kits,metros,mc4,cPl,cInv,cEst,cCabo,cMC4,custo,custoLiq,precoBase,kwp,gen,cPct:0,isMicro,isRural:S.isRural};
   renderRes();
   document.getElementById('c3').style.display='none';
   document.getElementById('rSec').style.display='block';
@@ -1162,7 +1195,10 @@ function renderBk(){
   let h='<thead><tr><th>Item</th><th>Detalhe</th>'+(isAdm?'<th style="text-align:right">Custo</th>':'')+'</tr></thead><tbody>';
   const rows=[
     {item:`Painéis ${r.pl.nome}`,det:`${r.qtd} un.`,val:r.cPl},
-    {item:`Inversor ${r.inv.nome}`+(r.qi>1?' ×'+r.qi:''),det:`${r.mc4} pares MC4`,val:r.cInv},
+    ...(r.duplosMesmo || !r.inv2
+      ? [{item:`Inversor ${r.inv.nome}`+(r.qi>1?' ×'+r.qi:''),det:`${r.mc4} pares MC4`,val:r.cInv}]
+      : [{item:`Inversor 1 — ${r.inv.nome}`,det:`${r.inv.mc4} pares MC4`,val:r.inv.preco},
+         {item:`Inversor 2 — ${r.inv2.nome}`,det:`${r.inv2.mc4} pares MC4`,val:r.inv2.preco}]),
     {item:`Estrutura ${r.est.nome}`,det:r.est.passo>0?`${r.kits} kit(s)`:'Não incluída',val:r.cEst},
     {item:'Cabo Solar',det:`${Math.ceil(r.metros)}m × R$ ${DB.cabo}`,val:r.cCabo},
     {item:`Conectores MC4 Odex`,det:`${r.mc4} pares × R$ ${DB.mc4}`,val:r.cMC4},
@@ -1200,6 +1236,12 @@ function jmpC(p){document.getElementById('slC').value=p;updC()}
 
 function novoCalc(){
   document.getElementById('rSec').style.display='none';
+  // Limpar campos do cliente
+  ['cliNome','cliTel','cliEnd','cliCpf'].forEach(id=>{ const el=document.getElementById(id); if(el) el.value=''; });
+  const _orig=document.getElementById('cliOrigem'); if(_orig) _orig.value='';
+  const _alertaTel=document.getElementById('alertaTel'); if(_alertaTel) _alertaTel.style.display='none';
+  const _saveStatus=document.getElementById('savePropostaStatus'); if(_saveStatus) _saveStatus.style.display='none';
+  telDuplicado=false;
   const _b=document.getElementById('btnGerarProposta');if(_b){_b.style.opacity='0.5';_b.style.cursor='not-allowed';}
   document.getElementById('c1').style.display='block';
   document.getElementById('c2').style.display='none';
@@ -1416,6 +1458,23 @@ async function gerarPDF(){
     if(btn){ btn.textContent='📄 Baixar PDF'; btn.disabled=false; }
   }
 }
+
+function voltarStep3(){
+  // Voltar para a step 3 sem perder os dados
+  document.getElementById('rSec').style.display='none';
+  document.getElementById('c3').style.display='block';
+  setStep(3);
+}
+
+function editarProposta(){
+  // Fechar modal e voltar para resultado (step4) para poder editar dados
+  fecharProposta();
+  document.getElementById('rSec').style.display='block';
+  document.getElementById('savePropostaStatus').style.display='none';
+  document.getElementById('savePropostaStatus').style.background='';
+  document.getElementById('savePropostaStatus').textContent='';
+}
+
 function fecharProposta(){
   document.getElementById('propostaModal').style.display='none';
   document.body.style.overflow='';
@@ -1666,7 +1725,7 @@ function abrirProposta(){
   h+='<div style="font-size:10px;color:#888;margin-top:1px">'+r.qtd+' un. &middot; '+r.kwp.toFixed(2)+' kWp</div></div></div>';
   h+='<div style="display:flex;align-items:center;gap:8px;background:#f8fafc;border:1px solid #e8edf3;border-radius:8px;padding:8px 10px">';
   h+='<div style="width:30px;height:30px;background:#f0f7ff;border:1px solid #dbeafe;border-radius:6px;display:flex;align-items:center;justify-content:center;font-size:14px;flex-shrink:0">⚡</div>';
-  h+='<div><div style="font-size:11px;font-weight:600;color:#1a2332">'+r.inv.nome+(r.qi>1?' &times;'+r.qi:'')+'</div>';
+  h+='<div><div style="font-size:11px;font-weight:600;color:#1a2332">'+(r.duplosMesmo!==false ? r.inv.nome+(r.qi>1?' &times;'+r.qi:'') : r.inv.nome+' + '+( r.inv2?r.inv2.nome:''))+'  </div>';
   h+='<div style="font-size:10px;color:#888;margin-top:1px">'+(r.isMicro?r.qi+' un. (4 pl/un)':r.qi>1?r.qi+' unidades':'1 unidade')+'</div></div></div>';
   if(r.est.passo>0){
     const qtdA=Math.ceil(r.qtd/r.est.passo)*r.est.passo;
@@ -1801,7 +1860,7 @@ function expXls(){
     ['WM Energia Solar — Orçamento'],['Data:',new Date().toLocaleDateString('pt-BR')],[''],
     ['Item','Detalhe','Custo (R$)'],
     [`Painéis ${r.pl.nome}`,`${r.qtd} unidades`,r.cPl],
-    [`Inversor ${r.inv.nome}`+(r.qi>1?' ×'+r.qi:''),`${r.mc4} pares MC4`,r.cInv],
+    ...(r.duplosMesmo!==false ? [[`Inversor ${r.inv.nome}`+(r.qi>1?' ×'+r.qi:''),`${r.mc4} pares MC4`,r.cInv]] : [[`Inversor 1 — ${r.inv.nome}`,`${r.inv.mc4} pares MC4`,r.inv.preco],[`Inversor 2 — ${r.inv2?r.inv2.nome:''}`,`${r.inv2?r.inv2.mc4:0} pares MC4`,r.inv2?r.inv2.preco:0]]),
     [`Estrutura ${r.est.nome}`,`${r.kits} kit(s)`,r.cEst],
     ['Cabo Solar',`${Math.ceil(r.metros)}m`,r.cCabo],
     ['Conectores MC4',`${r.mc4} pares`,r.cMC4],[''],
@@ -1888,7 +1947,7 @@ async function salvarProposta(){
     placas:r.qtd, kwp:r.kwp.toFixed(2),
     geracao:Math.round(r.gen),
     valor:Math.round(preco),
-    inversor:r.inv.nome+(r.qi>1?' x'+r.qi:''),
+    inversor:(r.duplosMesmo ? r.inv.nome+(r.qi>1?' x'+r.qi:'') : r.inv.nome+' + '+r.inv2.nome),
     estrutura:r.est.nome
   };
   const statusEl = document.getElementById('savePropostaStatus');
@@ -2035,7 +2094,7 @@ function renderMyTbl(){
           <span style="font-size:11px;color:var(--t3)">${dataFmt}</span>
           <span style="font-size:11px;background:rgba(232,123,30,.12);color:var(--orange);border-radius:20px;padding:2px 10px;font-weight:600">${orig}</span>
         </div>
-        <button class="ba bot" style="padding:5px 14px;font-size:12px;flex-shrink:0" onclick="reabrirProposta(${idx})">📄 Ver proposta</button>
+        <button class="ba bor" style="padding:6px 16px;font-size:12px;flex-shrink:0;white-space:nowrap" onclick="reabrirProposta(${idx})">📄 Ver proposta</button>
       </div>
       <!-- Linha 2: Nome + Telefone -->
       <div style="font-size:16px;font-weight:700;color:var(--t1);margin-bottom:4px">${cli}</div>
@@ -2203,7 +2262,7 @@ async function loadDashboard(){
   const _props = rp.propostas||[];
   const _agora = new Date();
   const _mesCal = _agora.getMonth(), _anoCal = _agora.getFullYear();
-  const _temFiltroData = !!(ini || fim); // se há filtro de data aplicado
+  const _temFiltroData = !!(ini || fim || (gestor&&gestor!=='todos') || (vend&&vend!=='todos') || (orig&&orig!=='todas')); // filtro ativo
 
   // Parse de data robusto — suporta ISO e formato BR
   function parseDateProp(ds){
@@ -2922,6 +2981,7 @@ async function salvarNovaSenha(){
     <div class="modal-bar">
       <span class="modal-bar-title">WM Energia Solar — Proposta</span>
       <div class="modal-bar-btns">
+        <button class="mpbtn" onclick="editarProposta()" style="background:rgba(232,123,30,.15);color:var(--orange);border:1px solid rgba(232,123,30,.3)">✏️ Editar</button>
         <button class="mpbtn mpbtn-print" id="btnGerarPDF" onclick="gerarPDF()">📄 Baixar PDF</button>
         <button class="mpbtn mpbtn-close" onclick="fecharProposta()">✕ Fechar</button>
       </div>
