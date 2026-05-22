@@ -1120,6 +1120,21 @@ function goBack(to){
 // preco_venda(pct) = preco_base ÷ (1 - pct/100)
 function pv(base,pct){return pct>=100?Infinity:base/(1-pct/100)}
 
+
+function getInv2(){
+  const tipo = S.tipoInv;
+  if(tipo==='mono'){
+    const el2=document.getElementById('sMono2');
+    if(!el2) return DB.mono[parseInt(document.getElementById('sMono').value)];
+    return DB.mono[parseInt(el2.value)];
+  }
+  if(tipo==='tri'){
+    const el2=document.getElementById('sTri2');
+    if(!el2) return DB.tri[parseInt(document.getElementById('sTri').value)];
+    return DB.tri[parseInt(el2.value)];
+  }
+  return getInv();
+}
 function calcRes(){
   const pl=getPlaca();const inv=getInv();
   const est=DB.est[S.estKey];
@@ -1467,12 +1482,51 @@ function voltarStep3(){
 }
 
 function editarProposta(){
-  // Fechar modal e voltar para resultado (step4) para poder editar dados
+  // Pegar dados da proposta aberta (pode vir de reabrirProposta ou de S.R)
   fecharProposta();
-  document.getElementById('rSec').style.display='block';
-  document.getElementById('savePropostaStatus').style.display='none';
-  document.getElementById('savePropostaStatus').style.background='';
-  document.getElementById('savePropostaStatus').textContent='';
+
+  // Se tem S.R (proposta recém gerada), vai para resultado
+  if(S.R){
+    document.getElementById('rSec').style.display='block';
+    const st=document.getElementById('savePropostaStatus');
+    if(st){st.style.display='none';st.textContent='';}
+    return;
+  }
+
+  // Se veio do histórico (reabrirProposta), preencher campos e ir para step 1
+  const p = window._propEditando || null;
+  if(p){
+    // Preencher dados do cliente
+    const fn = (id,val)=>{ const el=document.getElementById(id); if(el&&val) el.value=val; };
+    fn('cliNome',   p['Cliente']   || p['cliente']);
+    fn('cliTel',    p['Telefone']  || p['telefone']);
+    fn('cliEnd',    p['Endereço']  || p['endereco']);
+    fn('cliCpf',    p['CPF']       || p['cpf']);
+    // Origem: selecionar no dropdown
+    const orig = p['Origem'] || p['origem'] || '';
+    const selOrig = document.getElementById('cliOrigem');
+    if(selOrig && orig){
+      for(let o of selOrig.options){ if(o.value===orig||o.text===orig){ selOrig.value=o.value; break; } }
+    }
+    window._propEditando = null;
+  }
+
+  // Ir para step 1 (novo cálculo)
+  document.getElementById('rSec').style.display='none';
+  document.getElementById('c1').style.display='block';
+  document.getElementById('c2').style.display='none';
+  document.getElementById('c3').style.display='none';
+  setStep(1);
+  S.R=null;
+  checkCamposObrig();
+
+  // Scroll para o topo
+  window.scrollTo(0,0);
+  document.querySelector('.tabs')?.scrollIntoView({behavior:'smooth'});
+
+  // Trocar para aba Precificador
+  const tabCalc = document.querySelector('.tab[onclick*="calc"]');
+  if(tabCalc) tabCalc.click();
 }
 
 function fecharProposta(){
@@ -2128,6 +2182,7 @@ function renderMyTbl(){
 
 function reabrirProposta(idx){
   const p = myPropostas[idx];
+  window._propEditando = p; // salvar para editarProposta
   const modal = document.getElementById('propostaModal');
   const conteudo = document.getElementById('propConteudo');
 
