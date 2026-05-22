@@ -1526,7 +1526,16 @@ function editarProposta(){
 
   // Trocar para aba Precificador
   const tabCalc = document.querySelector('.tab[onclick*="calc"]');
-  if(tabCalc) tabCalc.click();
+  if(tabCalc){
+    document.querySelectorAll('.tab').forEach(b=>b.classList.remove('on'));
+    tabCalc.classList.add('on');
+    ['tCalc','tAdm','tMy','tDash'].forEach(id=>{
+      const el=document.getElementById(id);
+      if(el) el.style.display=id==='tCalc'?'block':'none';
+    });
+    const tGes=document.getElementById('tGestor');
+    if(tGes) tGes.style.display='none';
+  }
 }
 
 function fecharProposta(){
@@ -2304,14 +2313,25 @@ async function loadDashboard(){
     filtroOrigem:orig==='todas'?'':orig,
     filtroGestor:gestor==='todos'?'':gestor});
   if(!res.ok||!rp.ok) return;
-  dashPropostas=rp.propostas||[];
-
   // Buscar vendedores para os dropdowns (se não tiver cache)
   if(!window._vendedoresList || window._vendedoresList.length===0){
     const rv = await api({action:'getVendedores', login:S.login, role:S.role});
     if(rv.ok) window._vendedoresList = rv.vendedores || [];
   }
   const _vends = window._vendedoresList || [];
+
+  let _todasProps = rp.propostas||[];
+
+  // Filtro client-side por gestor (para garantir mesmo se GAS não filtra)
+  if(gestor && gestor!=='todos' && _vends.length){
+    const _equipGestor = new Set(_vends.filter(v=>v.gestor===gestor||v.login===gestor).map(v=>v.login));
+    _equipGestor.add(gestor); // incluir o próprio gestor
+    _todasProps = _todasProps.filter(p=>_equipGestor.has(p['Vendedor']||''));
+  }
+
+  dashPropostas = _todasProps;
+
+  // _vends carregado acima
 
   // Adaptar formato novo do GAS — calcular totais a partir das propostas retornadas
   const _props = rp.propostas||[];
