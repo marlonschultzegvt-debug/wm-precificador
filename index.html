@@ -2322,11 +2322,25 @@ async function loadDashboard(){
 
   let _todasProps = rp.propostas||[];
 
-  // Filtro client-side por gestor (para garantir mesmo se GAS não filtra)
-  if(gestor && gestor!=='todos' && _vends.length){
-    const _equipGestor = new Set(_vends.filter(v=>v.gestor===gestor||v.login===gestor).map(v=>v.login));
-    _equipGestor.add(gestor); // incluir o próprio gestor
-    _todasProps = _todasProps.filter(p=>_equipGestor.has(p['Vendedor']||''));
+  // Filtro client-side por gestor
+  if(gestor && gestor!=='todos'){
+    console.log('GESTOR FILTRADO:', gestor);
+    console.log('_vends total:', _vends.length);
+    console.log('_vends gestores:', _vends.map(v=>v.login+'→'+v.gestor).join(', '));
+    console.log('Propostas antes:', _todasProps.length);
+    const _equipGestor = new Set();
+    _vends.forEach(v=>{
+      // Comparar de forma flexível: login, nome parcial, etc
+      const gestorV = String(v.gestor||'').trim().toLowerCase();
+      const gestorF = String(gestor||'').trim().toLowerCase();
+      if(gestorV === gestorF || v.login === gestor) _equipGestor.add(v.login);
+    });
+    _equipGestor.add(gestor); // incluir próprias propostas do gestor
+    console.log('Equipe do gestor:', [..._equipGestor]);
+    if(_equipGestor.size > 1){
+      _todasProps = _todasProps.filter(p=>_equipGestor.has(String(p['Vendedor']||'').trim()));
+    }
+    console.log('Propostas após filtro:', _todasProps.length);
   }
 
   dashPropostas = _todasProps;
