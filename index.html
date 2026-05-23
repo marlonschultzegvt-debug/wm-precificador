@@ -2311,7 +2311,7 @@ async function loadDashboard(){
     dataInicio:ini, dataFim:fim,
     filtroVendedor:vend==='todos'?'':vend,
     filtroOrigem:orig==='todas'?'':orig,
-    filtroGestor:gestor==='todos'?'':gestor});
+    filtroGestor:''});  // filtro gestor feito client-side
   if(!res.ok||!rp.ok) return;
   // Buscar vendedores para os dropdowns (se não tiver cache)
   if(!window._vendedoresList || window._vendedoresList.length===0){
@@ -2322,25 +2322,31 @@ async function loadDashboard(){
 
   let _todasProps = rp.propostas||[];
 
-  // Filtro client-side por gestor
+  // Filtro client-side por gestor — compara login E nome do gestor
   if(gestor && gestor!=='todos'){
-    console.log('GESTOR FILTRADO:', gestor);
-    console.log('_vends total:', _vends.length);
-    console.log('_vends gestores:', _vends.map(v=>v.login+'→'+v.gestor).join(', '));
-    console.log('Propostas antes:', _todasProps.length);
+    // Achar o nome do gestor pelo login
+    const _gestorVend = _vends.find(v=>v.login===gestor);
+    const _gestorNome = _gestorVend ? _gestorVend.nome : gestor;
+    
     const _equipGestor = new Set();
     _vends.forEach(v=>{
-      // Comparar de forma flexível: login, nome parcial, etc
-      const gestorV = String(v.gestor||'').trim().toLowerCase();
-      const gestorF = String(gestor||'').trim().toLowerCase();
-      if(gestorV === gestorF || v.login === gestor) _equipGestor.add(v.login);
+      const gestorSalvo = String(v.gestor||'').trim();
+      // Comparar com login E com nome completo E com nome parcial
+      if( gestorSalvo === gestor ||                    // ex: "william" === "william"
+          gestorSalvo === _gestorNome ||               // ex: "William Boccaleti" === "William Boccaleti"
+          gestorSalvo.toLowerCase() === _gestorNome.toLowerCase() ||
+          v.login === gestor
+      ){
+        _equipGestor.add(v.login);
+      }
     });
     _equipGestor.add(gestor); // incluir próprias propostas do gestor
-    console.log('Equipe do gestor:', [..._equipGestor]);
-    if(_equipGestor.size > 1){
-      _todasProps = _todasProps.filter(p=>_equipGestor.has(String(p['Vendedor']||'').trim()));
-    }
-    console.log('Propostas após filtro:', _todasProps.length);
+
+    // Só filtrar se encontrou membros na equipe (além do próprio gestor)
+    _todasProps = _todasProps.filter(p=>{
+      const vend = String(p['Vendedor']||'').trim();
+      return _equipGestor.has(vend);
+    });
   }
 
   dashPropostas = _todasProps;
