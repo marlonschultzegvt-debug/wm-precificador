@@ -2469,7 +2469,7 @@ async function loadDashboard(){
     '<div class="met"><div class="mlabel">💰 Valor Total</div><div class="mval">R$ '+fmtK(valorTotal)+'</div><div class="mhint">soma das propostas</div></div>'+
     '<div class="met"><div class="mlabel">🎯 Ticket Médio</div><div class="mval">R$ '+fmtK(ticketMedio)+'</div><div class="mhint">por proposta</div></div>'+
     '<div class="met"><div class="mlabel">☀️ Placas Instaladas</div><div class="mval">'+placasTotal+'</div><div class="mhint">unidades no período</div></div>'+
-    '<div class="met"><div class="mlabel">📈 Meta do Mês</div><div class="mval" style="color:'+(_mesAtualReal>=_metaTotal?\"#3ecf8e\":_mesAtualReal>=_metaTotal*0.7?\"var(--orange)\":\"#e05050\")+'">'+_mesAtualReal+' / '+_metaTotal+'</div><div class="mhint">'+Math.round(_mesAtualReal/_metaTotal*100)+'% atingido</div></div>';
+    '<div class="met"><div class="mlabel">📈 Meta do Mês</div><div class="mval" style="color:'+(_mesAtualReal>=_metaTotal?"#3ecf8e":_mesAtualReal>=_metaTotal*0.7?"var(--orange)":"#e05050")+'">'+_mesAtualReal+' / '+_metaTotal+'</div><div class="mhint">'+Math.round(_mesAtualReal/_metaTotal*100)+'% atingido (mês atual)</div></div>';
 
   // Ranking
   let rkH='<div style="overflow-x:auto"><table class="bk" style="font-size:13px;min-width:580px"><thead><tr>';
