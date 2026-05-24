@@ -2335,18 +2335,19 @@ async function loadDashboard(){
     
     const _equipGestor = new Set();
     _vends.forEach(v=>{
+      // ✅ NUNCA adicionar o próprio gestor ao set da equipe
+      if(v.login === gestor) return;
       const gestorSalvo = String(v.gestor||'').trim();
-      // Comparar com login E com nome completo E com nome parcial
-      if( gestorSalvo === gestor ||                    // ex: "william" === "william"
-          gestorSalvo === _gestorNome ||               // ex: "William Boccaleti" === "William Boccaleti"
-          gestorSalvo.toLowerCase() === _gestorNome.toLowerCase() ||
-          v.login === gestor
+      // Comparar por login E por nome completo do gestor
+      if( gestorSalvo === gestor ||
+          gestorSalvo === _gestorNome ||
+          gestorSalvo.toLowerCase() === _gestorNome.toLowerCase()
       ){
         _equipGestor.add(v.login);
       }
     });
-    // ✅ NÃO incluir as propostas do próprio gestor na contagem da equipe
-    // As propostas do gestor aparecem exclusivamente em 'Minhas Propostas'
+    // Garantia extra: remover o próprio gestor do set (caso tenha entrado)
+    _equipGestor.delete(gestor);
 
     // Só filtrar se encontrou membros na equipe (além do próprio gestor)
     _todasProps = _todasProps.filter(p=>{
