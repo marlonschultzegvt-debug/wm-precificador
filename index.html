@@ -746,10 +746,10 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:22px;heigh
   <div id="tGestor" style="display:none">
     <div class="card" style="margin-bottom:1rem">
       <div style="font-family:Syne,sans-serif;font-size:13px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:var(--t2);margin-bottom:1rem">📊 PAINEL DO GESTOR</div>
-      <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:1.5rem">
-        <div class="dcard"><div class="dlbl">PROPOSTAS EQUIPE/MÊS</div><div class="dval" id="gCountMes" style="color:var(--orange)">—</div><div class="dlbl" id="gMetaLabel">Meta: —</div></div>
-        <div class="dcard"><div class="dlbl">VALOR GERADO EQUIPE</div><div class="dval" id="gValorTotal">—</div></div>
-        <div class="dcard"><div class="dlbl">% DA META</div><div class="dval" id="gPctMeta">—</div><div class="prog" style="margin-top:6px"><div id="gProgBar" class="prog-fill" style="width:0%"></div></div></div>
+      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:14px;margin-bottom:1.5rem">
+        <div class="met"><div class="mlabel">⚡ Propostas Equipe/Mês</div><div class="mval" id="gCountMes" style="color:var(--orange)">—</div><div class="mhint" id="gMetaLabel">Meta: —</div></div>
+        <div class="met"><div class="mlabel">💰 Valor Gerado Equipe</div><div class="mval" id="gValorTotal">—</div></div>
+        <div class="met"><div class="mlabel">📈 % da Meta</div><div class="mval" id="gPctMeta">—</div><div class="prog" style="margin-top:6px"><div id="gProgBar" class="prog-fill" style="width:0%"></div></div></div>
       </div>
       <!-- Filtro por vendedor -->
       <div style="margin-bottom:1rem;display:flex;gap:10px;flex-wrap:wrap;align-items:center">
@@ -759,14 +759,14 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:22px;heigh
         <button onclick="loadDashboardGestor()" style="background:var(--orange);color:#fff;border:none;border-radius:8px;padding:8px 16px;font-size:13px;cursor:pointer;font-family:inherit">🔄 Atualizar</button>
       </div>
       <!-- Tabela da equipe -->
-      <div style="overflow-x:auto">
-        <table style="width:100%;border-collapse:collapse;font-size:13px" id="gTabelaEquipe">
+      <div style="overflow-x:auto;border-radius:10px;border:1px solid var(--b2)">
+        <table class="bk" style="width:100%;font-size:13px" id="gTabelaEquipe">
           <thead><tr>
-            <th style="text-align:left;padding:8px 10px;border-bottom:2px solid var(--b2);color:var(--t2);font-size:11px;letter-spacing:.05em">VENDEDOR</th>
-            <th style="text-align:center;padding:8px 10px;border-bottom:2px solid var(--b2);color:var(--t2);font-size:11px">PROPOSTAS/MÊS</th>
-            <th style="text-align:center;padding:8px 10px;border-bottom:2px solid var(--b2);color:var(--t2);font-size:11px">META</th>
-            <th style="text-align:center;padding:8px 10px;border-bottom:2px solid var(--b2);color:var(--t2);font-size:11px">%</th>
-            <th style="text-align:right;padding:8px 10px;border-bottom:2px solid var(--b2);color:var(--t2);font-size:11px">VALOR GERADO</th>
+            <th style="text-align:left">#  Vendedor</th>
+            <th style="text-align:center">Propostas/Mês</th>
+            <th style="text-align:center">Meta</th>
+            <th style="text-align:center">Progresso</th>
+            <th style="text-align:right">Valor Gerado</th>
           </tr></thead>
           <tbody id="gTbody"></tbody>
         </table>
@@ -774,7 +774,12 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:22px;heigh
     </div>
     <!-- Propostas da equipe -->
     <div class="card">
-      <div style="font-family:Syne,sans-serif;font-size:13px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:var(--t2);margin-bottom:1rem">📋 PROPOSTAS DA EQUIPE</div>
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:1rem;flex-wrap:wrap;gap:8px">
+        <div class="ctitle" style="margin-bottom:0"><span class="ic">📋</span>Propostas da Equipe</div>
+        <select id="gFiltroVendProp" onchange="renderTabelaGestor()" style="background:var(--bg2);border:1px solid var(--b2);border-radius:8px;padding:7px 12px;color:var(--t1);font-size:13px;font-family:inherit">
+          <option value="">Todos os vendedores</option>
+        </select>
+      </div>
       <div id="gTabela" style="overflow-x:auto"></div>
     </div>
   </div>
@@ -2963,20 +2968,23 @@ async function loadDashboardGestor(){
   if(elPct)   elPct.textContent   = pct + '%';
   if(elBar)   elBar.style.width   = pct + '%';
 
-  // Preencher filtro de vendedores
-  const filtroV = document.getElementById('gFiltroVend');
-  if(filtroV){
-    filtroV.innerHTML = '<option value="">Todos os vendedores</option>';
+  // Preencher filtros de vendedores
+  const filtroVEl = document.getElementById('gFiltroVend');
+  const filtroVPropEl = document.getElementById('gFiltroVendProp');
+  [filtroVEl, filtroVPropEl].forEach(el=>{
+    if(!el) return;
+    el.innerHTML = '<option value="">Todos os vendedores</option>';
     (res.equipe||[]).forEach(v=>{
-      const op=document.createElement('option'); op.value=v.login; op.textContent=v.nome; filtroV.appendChild(op);
+      const op=document.createElement('option'); op.value=v.login; op.textContent=v.nome; el.appendChild(op);
     });
-  }
+  });
 
   renderTabelaGestor();
 }
 
 function renderTabelaGestor(){
   const filtroV = document.getElementById('gFiltroVend')?.value || '';
+  const filtroVProp = document.getElementById('gFiltroVendProp')?.value || filtroV;
   const equipe  = (gestorDados?.equipe || []).filter(v => !filtroV || v.login === filtroV);
   const tBody   = document.getElementById('gTbody');
 
@@ -2997,7 +3005,7 @@ function renderTabelaGestor(){
   tBody.innerHTML = h || '<tr><td colspan="5" style="text-align:center;padding:20px;color:var(--t2)">Nenhum vendedor na equipe</td></tr>';
 
   // Tabela de propostas
-  const props = filtroV ? gestorPropostas.filter(p=>p['Vendedor']===filtroV) : gestorPropostas;
+  const props = filtroVProp ? gestorPropostas.filter(p=>p['Vendedor']===filtroVProp) : gestorPropostas;
   const gTab = document.getElementById('gTabela');
   if(!gTab) return;
 
