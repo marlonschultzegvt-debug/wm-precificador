@@ -2345,7 +2345,8 @@ async function loadDashboard(){
         _equipGestor.add(v.login);
       }
     });
-    _equipGestor.add(gestor); // incluir próprias propostas do gestor
+    // ✅ NÃO incluir as propostas do próprio gestor na contagem da equipe
+    // As propostas do gestor aparecem exclusivamente em 'Minhas Propostas'
 
     // Só filtrar se encontrou membros na equipe (além do próprio gestor)
     _todasProps = _todasProps.filter(p=>{
@@ -2359,7 +2360,7 @@ async function loadDashboard(){
   // _vends carregado acima
 
   // Adaptar formato novo do GAS — calcular totais a partir das propostas retornadas
-  const _props = rp.propostas||[];
+  const _props = _todasProps; // ✅ usa propostas já filtradas pelo gestor client-side
   const _agora = new Date();
   const _mesCal = _agora.getMonth(), _anoCal = _agora.getFullYear();
   const _temFiltroData = !!(ini || fim || (gestor&&gestor!=='todos') || (vend&&vend!=='todos') || (orig&&orig!=='todas')); // filtro ativo
@@ -2407,7 +2408,17 @@ async function loadDashboard(){
   (_vends||[]).forEach(v=>{
     if(v.login==='admin') return;
     // Se gestor filtrado, só incluir vendedores desse gestor
-    if(_gestorFiltrado && _gestorFiltrado!=='todos' && v.gestor!==_gestorFiltrado && v.login!==_gestorFiltrado) return;
+    if(_gestorFiltrado && _gestorFiltrado!=='todos'){
+      // ✅ Comparar por login E por nome completo do gestor
+      const _gfVend = (_vends||[]).find(gv=>gv.login===_gestorFiltrado);
+      const _gfNome = _gfVend ? _gfVend.nome : _gestorFiltrado;
+      const _vGestor = String(v.gestor||'').trim();
+      const _pertence = _vGestor===_gestorFiltrado ||
+                        _vGestor===_gfNome ||
+                        _vGestor.toLowerCase()===_gfNome.toLowerCase();
+      // Excluir o próprio gestor da lista da equipe (suas propostas vão só em Minhas Propostas)
+      if(!_pertence || v.login===_gestorFiltrado) return;
+    }
     if(_byVend[v.login]){
       _byVend[v.login].nome = v.nome;
       _byVend[v.login].meta = v.meta||60;
