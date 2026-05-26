@@ -371,7 +371,8 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:22px;heigh
   </div>
   <div class="tabs">
     <button class="tab on" onclick="showTab('calc',this)">🧮 Precificador</button>
-    <button class="tab" id="tabMyBtn" onclick="showTab('my',this)" style="display:none">📋 Minhas Propostas</button>
+    <button class="tab" id="tabGestorBtn" onclick="showTab('gestor',this)" style="display:none">📊 Painel Gestor</button>
+    <button class="tab" id="tabMyBtn" onclick="showTab('my',this)" style="display:none">📊 Minhas Propostas</button>
     <button class="tab" id="tabDashBtn" onclick="showTab('dash',this)" style="display:none">📈 Dashboard</button>
     <button class="tab" id="atab" onclick="showTab('adm',this)" style="display:none">⚙️ Admin</button>
   </div>
@@ -498,19 +499,25 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:22px;heigh
       <div class="ov-alert" id="ovAl">
         <strong>⚠ Overload excedido!</strong> <span id="ovTxt"></span><br>
         Selecione a quantidade de inversores:
-        <div class="qrow">
-          <label>Qtd inversores:</label>
-          <div class="qbtns">
-            <button class="qb on" id="qb1" onclick="setQI(1)">1</button>
-            <button class="qb" id="qb2" onclick="setQI(2)">2</button>
-          </div>
+        <div style="margin-top:8px;font-size:13px;color:var(--orange)">
+          👆 Escolha um inversor maior ou adicione um 2º inversor abaixo.
         </div>
         <div class="blkmsg" id="blkMsg">❌ Mesmo com 2 inversores este modelo não atende <span id="blkQtd"></span> placas. Escolha um inversor maior.</div>
       </div>
 
+      <!-- Botão adicionar 2º inversor -->
+      <div style="margin-top:12px">
+        <button id="btnAddInv2" onclick="addInv2()" class="ba bor" style="width:100%;padding:10px;font-size:13px;border-style:dashed">
+          ➕ Adicionar 2º Inversor
+        </button>
+      </div>
+
       <!-- Segundo inversor (aparece quando qi=2) -->
       <div id="gInv2" style="display:none;margin-top:12px;background:rgba(232,123,30,.06);border:1px solid rgba(232,123,30,.2);border-radius:8px;padding:12px">
-        <div style="font-size:11px;font-weight:700;color:var(--orange);text-transform:uppercase;letter-spacing:.05em;margin-bottom:8px">⚡ Segundo Inversor</div>
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
+          <div style="font-size:11px;font-weight:700;color:var(--orange);text-transform:uppercase;letter-spacing:.05em">⚡ Segundo Inversor</div>
+          <button onclick="removerInv2()" style="background:none;border:1px solid rgba(229,57,53,.3);color:#e05050;border-radius:6px;padding:3px 10px;font-size:11px;cursor:pointer;font-family:inherit">✕ Remover</button>
+        </div>
         <div class="fg" id="gMono2" style="display:block"><label>Modelo — Inversor 2</label>
           <select id="sMono2" onchange="chkOv()">
             <option value="0">Chint 3kW Mono — Overload: até 8 placas</option>
@@ -669,7 +676,7 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:22px;heigh
       <div id="myProgress"></div>
     </div>
     <div class="card">
-      <div class="ctitle"><span class="ic">📋</span>Minhas Propostas <span style="font-size:11px;color:var(--t3);font-weight:400;text-transform:none;letter-spacing:0" id="myTitleUser"></span></div>
+      <div class="ctitle"><span class="ic">📋</span>Minhas Propostas</div>
       <div style="display:flex;gap:8px;margin-bottom:1rem;flex-wrap:wrap;align-items:flex-end">
         <div class="fg" style="margin-bottom:0;flex:2;min-width:160px">
           <label>🔍 Buscar</label>
@@ -693,7 +700,7 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:22px;heigh
   <!-- DASHBOARD (admin) -->
   <div id="tDash" class="wrap" style="display:none">
     <div class="card">
-      <div class="ctitle"><span class="ic">📈</span><span id="dashTitleTxt">Dashboard de Propostas</span></div>
+      <div class="ctitle"><span class="ic">📈</span>Dashboard de Propostas</div>
       <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:1rem;align-items:flex-end">
         <div class="fg" style="margin-bottom:0;flex:1;min-width:130px"><label>De</label><input type="date" id="dFiltroIni"></div>
         <div class="fg" style="margin-bottom:0;flex:1;min-width:130px"><label>Até</label><input type="date" id="dFiltroFim"></div>
@@ -703,7 +710,7 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:22px;heigh
         <div class="fg" style="margin-bottom:0;flex:1;min-width:140px"><label>Origem</label>
           <select id="dFiltroOrig"><option value="todas">Todas</option></select>
         </div>
-        <div class="fg" id="dFiltroGestorWrap" style="margin-bottom:0;flex:1;min-width:140px"><label>Gestor</label>
+        <div class="fg" style="margin-bottom:0;flex:1;min-width:140px"><label>Gestor</label>
           <select id="dFiltroGestor"><option value="todos">Todos</option></select>
         </div>
         <button class="ba bor" onclick="loadDashboard()" style="align-self:flex-end">🔍 Filtrar</button>
@@ -741,7 +748,49 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:22px;heigh
   </div>
 
   
-  <!-- Modal Vendedor -->
+  <!-- TAB GESTOR -->
+  <div id="tGestor" style="display:none">
+    <div class="card" style="margin-bottom:1rem">
+      <div style="font-family:Syne,sans-serif;font-size:13px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:var(--t2);margin-bottom:1rem">📊 PAINEL DO GESTOR</div>
+      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:14px;margin-bottom:1.5rem">
+        <div class="met"><div class="mlabel">⚡ Propostas Equipe/Mês</div><div class="mval" id="gCountMes" style="color:var(--orange)">—</div><div class="mhint" id="gMetaLabel">Meta: —</div></div>
+        <div class="met"><div class="mlabel">💰 Valor Gerado Equipe</div><div class="mval" id="gValorTotal">—</div></div>
+        <div class="met"><div class="mlabel">📈 % da Meta</div><div class="mval" id="gPctMeta">—</div><div class="prog" style="margin-top:6px"><div id="gProgBar" class="prog-fill" style="width:0%"></div></div></div>
+      </div>
+      <!-- Filtro por vendedor -->
+      <div style="margin-bottom:1rem;display:flex;gap:10px;flex-wrap:wrap;align-items:center">
+        <select id="gFiltroVend" onchange="renderTabelaGestor()" style="background:var(--bg2);border:1px solid var(--b2);border-radius:8px;padding:8px 12px;color:var(--t1);font-size:13px;font-family:inherit">
+          <option value="">Todos os vendedores</option>
+        </select>
+        <button onclick="loadDashboardGestor()" style="background:var(--orange);color:#fff;border:none;border-radius:8px;padding:8px 16px;font-size:13px;cursor:pointer;font-family:inherit">🔄 Atualizar</button>
+      </div>
+      <!-- Tabela da equipe -->
+      <div style="overflow-x:auto;border-radius:10px;border:1px solid var(--b2)">
+        <table class="bk" style="width:100%;font-size:13px" id="gTabelaEquipe">
+          <thead><tr>
+            <th style="text-align:left">#  Vendedor</th>
+            <th style="text-align:center">Propostas/Mês</th>
+            <th style="text-align:center">Meta</th>
+            <th style="text-align:center">Progresso</th>
+            <th style="text-align:right">Valor Gerado</th>
+          </tr></thead>
+          <tbody id="gTbody"></tbody>
+        </table>
+      </div>
+    </div>
+    <!-- Propostas da equipe -->
+    <div class="card">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:1rem;flex-wrap:wrap;gap:8px">
+        <div class="ctitle" style="margin-bottom:0"><span class="ic">📋</span>Propostas da Equipe</div>
+        <select id="gFiltroVendProp" onchange="renderTabelaGestor()" style="background:var(--bg2);border:1px solid var(--b2);border-radius:8px;padding:7px 12px;color:var(--t1);font-size:13px;font-family:inherit">
+          <option value="">Todos os vendedores</option>
+        </select>
+      </div>
+      <div id="gTabela" style="overflow-x:auto"></div>
+    </div>
+  </div>
+
+<!-- Modal Vendedor -->
   <div id="modalVend" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.8);z-index:999;display:none;align-items:center;justify-content:center">
     <div style="background:var(--bg2);border:1px solid var(--b2);border-radius:16px;padding:1.5rem;width:100%;max-width:460px;margin:1rem;max-height:90vh;overflow-y:auto">
       <div style="font-family:Syne,sans-serif;font-size:15px;font-weight:700;margin-bottom:1.25rem" id="modalVendTitulo">Novo Vendedor</div>
@@ -873,7 +922,9 @@ async function doLogin(){
       renderAdmTbl(); loadVendedoresTbl(); loadOrigensTbl();
     }
     if(S.role==='gestor'){
-      document.getElementById('tabDashBtn').style.display='flex';
+      document.getElementById('tabGestorBtn').style.display='flex';
+      document.getElementById('tabMyBtn').style.display='flex';
+      loadDashboardGestor();
     }
     refreshGen(); buildPlacaSel(); loadOrigens();
   } else {
@@ -902,12 +953,15 @@ function showTab(t,btn){
   document.getElementById('tAdm').style.display=t==='adm'?'block':'none';
   document.getElementById('tMy').style.display=t==='my'?'block':'none';
   document.getElementById('tDash').style.display=t==='dash'?'block':'none';
+  const tGes = document.getElementById('tGestor');
+  if(tGes) tGes.style.display=t==='gestor'?'block':'none';
   if(t==='my')   loadMyPropostas();
   if(t==='dash'){
     const _sg=document.getElementById('dFiltroGestor');
     if(_sg && !_sg._iniciado){ _sg.value='todos'; _sg._iniciado=true; }
     loadDashboard();
   }
+  if(t==='gestor') loadDashboardGestor();
 }
 
 // ====== STEPS ======
@@ -1036,8 +1090,7 @@ function setQI(n){
   }
 }
 function setQIui(n){
-  document.getElementById('qb1').className='qb'+(n===1?' on':'');
-  document.getElementById('qb2').className='qb'+(n===2?' on':'');
+  // qb1/qb2 removidos — controlado por addInv2/removerInv2
 }
 function go3(){
   if(document.getElementById('btn2nxt').disabled)return;
@@ -2003,9 +2056,7 @@ async function loadMyPropostas(){
   if(el)  el.innerHTML = '<div style="color:var(--t2);font-size:13px">Carregando...</div>';
   if(tEl) tEl.innerHTML = '';
 
-  // ✅ Minhas Propostas: SEMPRE busca pelo próprio login com role='vendedor'
-  // Assim admin e gestor veem APENAS as propostas que eles mesmos geraram
-  const res = await api({action:'getPropostas', login:S.login, role:'vendedor'});
+  const res = await api({action:'getPropostas', login:S.login, role:S.role});
   if(!res.ok){
     if(el) el.innerHTML = '<div style="color:#e05050">Erro: '+res.erro+'</div>';
     return;
@@ -2041,10 +2092,6 @@ async function loadMyPropostas(){
     '</div>' +
     '<div class="prog" style="margin-bottom:6px"><div class="prog-fill" style="width:'+pct+'%"></div></div>' +
     '<div style="font-size:12px;color:var(--t2)">'+pct+'% da meta mensal ('+countMes+' de '+S.metaVend+' propostas)</div>';
-
-  // Mostrar nome no título
-  const _tu = document.getElementById('myTitleUser');
-  if(_tu) _tu.textContent = '— ' + (S.nomeVend||S.login);
 
   filtrarMyPropostas(); // aplicar filtros e renderizar tabela
 }
@@ -2267,11 +2314,7 @@ async function loadDashboard(){
   const orig=document.getElementById('dFiltroOrig').value;
   // Formatar datas para dd/MM/yyyy
   function fmtDate(d){ if(!d)return''; const [y,m,dd]=d.split('-'); return dd+'/'+m+'/'+y; }
-  // Ajustar título do dashboard por role
-  const _dt = document.getElementById('dashTitleTxt');
-  if(_dt) _dt.textContent = S.role==='gestor' ? 'Dashboard — Minha Equipe' : 'Dashboard de Propostas';
-  // Se gestor: forçar filtro para a própria equipe automaticamente
-  const gestor = S.role==='gestor' ? S.login : (document.getElementById('dFiltroGestor')?.value||'todos');
+  const gestor=document.getElementById('dFiltroGestor')?.value||'todos';
   const res=await api({action:'getDashboard', login:S.login, role:S.role});
   const actionProp = S.role==='admin' ? 'getPropostasAdmin' : 'getPropostas';
   const rp=await api({action:actionProp, login:S.login, role:S.role,
@@ -2297,19 +2340,17 @@ async function loadDashboard(){
     
     const _equipGestor = new Set();
     _vends.forEach(v=>{
-      // ✅ NUNCA adicionar o próprio gestor ao set da equipe
-      if(v.login === gestor) return;
       const gestorSalvo = String(v.gestor||'').trim();
-      // Comparar por login E por nome completo do gestor
-      if( gestorSalvo === gestor ||
-          gestorSalvo === _gestorNome ||
-          gestorSalvo.toLowerCase() === _gestorNome.toLowerCase()
+      // Comparar com login E com nome completo E com nome parcial
+      if( gestorSalvo === gestor ||                    // ex: "william" === "william"
+          gestorSalvo === _gestorNome ||               // ex: "William Boccaleti" === "William Boccaleti"
+          gestorSalvo.toLowerCase() === _gestorNome.toLowerCase() ||
+          v.login === gestor
       ){
         _equipGestor.add(v.login);
       }
     });
-    // Garantia extra: remover o próprio gestor do set (caso tenha entrado)
-    _equipGestor.delete(gestor);
+    _equipGestor.add(gestor); // incluir próprias propostas do gestor
 
     // Só filtrar se encontrou membros na equipe (além do próprio gestor)
     _todasProps = _todasProps.filter(p=>{
@@ -2323,7 +2364,7 @@ async function loadDashboard(){
   // _vends carregado acima
 
   // Adaptar formato novo do GAS — calcular totais a partir das propostas retornadas
-  const _props = _todasProps; // ✅ usa propostas já filtradas pelo gestor client-side
+  const _props = rp.propostas||[];
   const _agora = new Date();
   const _mesCal = _agora.getMonth(), _anoCal = _agora.getFullYear();
   const _temFiltroData = !!(ini || fim || (gestor&&gestor!=='todos') || (vend&&vend!=='todos') || (orig&&orig!=='todas')); // filtro ativo
@@ -2371,17 +2412,7 @@ async function loadDashboard(){
   (_vends||[]).forEach(v=>{
     if(v.login==='admin') return;
     // Se gestor filtrado, só incluir vendedores desse gestor
-    if(_gestorFiltrado && _gestorFiltrado!=='todos'){
-      // ✅ Comparar por login E por nome completo do gestor
-      const _gfVend = (_vends||[]).find(gv=>gv.login===_gestorFiltrado);
-      const _gfNome = _gfVend ? _gfVend.nome : _gestorFiltrado;
-      const _vGestor = String(v.gestor||'').trim();
-      const _pertence = _vGestor===_gestorFiltrado ||
-                        _vGestor===_gfNome ||
-                        _vGestor.toLowerCase()===_gfNome.toLowerCase();
-      // Excluir o próprio gestor da lista da equipe (suas propostas vão só em Minhas Propostas)
-      if(!_pertence || v.login===_gestorFiltrado) return;
-    }
+    if(_gestorFiltrado && _gestorFiltrado!=='todos' && v.gestor!==_gestorFiltrado && v.login!==_gestorFiltrado) return;
     if(_byVend[v.login]){
       _byVend[v.login].nome = v.nome;
       _byVend[v.login].meta = v.meta||60;
@@ -2403,10 +2434,6 @@ async function loadDashboard(){
   // Para o ranking: coluna "mês" = período se filtro ativo, senão mês atual
   _vendList.forEach(v=>{ v.mes = _temFiltroData ? v.periodo : v.mesAtual; v.valorMesShow = _temFiltroData ? v.valorPeriodo : v.valorMes; });
 
-  // META DO MES: SEMPRE usa mes calendario atual (independente de filtros de data/gestor)
-  // Corrige divergencia: Admin filtrado por Gestor mostrava historico, Painel Gestor mostrava mes atual
-  const _mesAtualReal = _vendList.reduce((s,v)=>s+v.mesAtual, 0);
-
   // Preencher filtros
   const sv=document.getElementById('dFiltroVend');
   const so=document.getElementById('dFiltroOrig');
@@ -2423,21 +2450,6 @@ async function loadDashboard(){
     sg.innerHTML='<option value="todos">Todos</option>';
     _vends.filter(v=>v.tipo==='gestor').forEach(v=>{ const op=document.createElement('option'); op.value=v.login; op.textContent=v.nome; sg.appendChild(op); });
     sg.value=prevG;
-  }
-  // Gestor vê só sua equipe — esconder filtros de gestor e ajustar vendedores
-  const _wrapGestor = document.getElementById('dFiltroGestorWrap');
-  if(S.role==='gestor'){
-    if(_wrapGestor) _wrapGestor.style.display='none';
-    // Repovoar dropdown de vendedores só com a equipe do gestor
-    sv.innerHTML='<option value="todos">Todos</option>';
-    (_vends||[]).filter(v=>{ 
-      const _gv=(_vends||[]).find(gv=>gv.login===S.login);
-      const _gn=_gv?_gv.nome:S.login;
-      const gs=String(v.gestor||'').trim();
-      return (gs===S.login||gs===_gn||gs.toLowerCase()===_gn.toLowerCase()) && v.login!==S.login;
-    }).forEach(v=>{ const o=document.createElement('option'); o.value=v.login; o.textContent=v.nome; sv.appendChild(o); });
-  } else {
-    if(_wrapGestor) _wrapGestor.style.display='';
   }
 
   const d = {
@@ -2458,7 +2470,7 @@ async function loadDashboard(){
     '<div class="met"><div class="mlabel">💰 Valor Total</div><div class="mval">R$ '+fmtK(valorTotal)+'</div><div class="mhint">soma das propostas</div></div>'+
     '<div class="met"><div class="mlabel">🎯 Ticket Médio</div><div class="mval">R$ '+fmtK(ticketMedio)+'</div><div class="mhint">por proposta</div></div>'+
     '<div class="met"><div class="mlabel">☀️ Placas Instaladas</div><div class="mval">'+placasTotal+'</div><div class="mhint">unidades no período</div></div>'+
-    '<div class="met"><div class="mlabel">📈 Meta do Mês</div><div class="mval" style="color:'+(_mesAtualReal>=_metaTotal?"#3ecf8e":_mesAtualReal>=_metaTotal*0.7?"var(--orange)":"#e05050")+'">'+_mesAtualReal+' / '+_metaTotal+'</div><div class="mhint">'+Math.round(_mesAtualReal/_metaTotal*100)+'% atingido (mês atual)</div></div>';
+    '<div class="met"><div class="mlabel">📈 Meta do Mês</div><div class="mval" style="color:'+(_mesGeral>=_metaTotal?"#3ecf8e":_mesGeral>=_metaTotal*0.7?"var(--orange)":"#e05050")+'">'+_mesGeral+' / '+_metaTotal+'</div><div class="mhint">'+Math.round(_mesGeral/_metaTotal*100)+'% atingido</div></div>';
 
   // Ranking
   let rkH='<div style="overflow-x:auto"><table class="bk" style="font-size:13px;min-width:580px"><thead><tr>';
@@ -2927,6 +2939,26 @@ function renderGraficos(vendedores, propostas){
   }
 }
 
+
+function addInv2(){
+  S.qi = 2;
+  // Mostrar gInv2 e esconder botão add
+  document.getElementById('gInv2').style.display = 'block';
+  document.getElementById('btnAddInv2').style.display = 'none';
+  // Sincronizar tipo com o primeiro inversor
+  const gM2 = document.getElementById('gMono2');
+  const gT2 = document.getElementById('gTri2');
+  if(gM2) gM2.style.display = S.tipoInv==='mono' ? 'block' : 'none';
+  if(gT2) gT2.style.display = S.tipoInv==='tri'  ? 'block' : 'none';
+  chkOv();
+}
+
+function removerInv2(){
+  S.qi = 1;
+  document.getElementById('gInv2').style.display = 'none';
+  document.getElementById('btnAddInv2').style.display = 'block';
+  chkOv();
+}
 // ===== GESTOR =====
 let gestorDados = null;
 let gestorPropostas = [];
@@ -2977,7 +3009,7 @@ async function loadDashboardGestor(){
 
 function renderTabelaGestor(){
   const filtroV = document.getElementById('gFiltroVend')?.value || '';
-  const filtroVProp = document.getElementById('gFiltroVendProp')?.value || '';
+  const filtroVProp = document.getElementById('gFiltroVendProp')?.value || filtroV;
   const equipe  = (gestorDados?.equipe || []).filter(v => !filtroV || v.login === filtroV);
   const tBody   = document.getElementById('gTbody');
 
@@ -3007,7 +3039,7 @@ function renderTabelaGestor(){
   let tH='<table class="bk" style="font-size:11px;min-width:700px;width:100%"><thead><tr>';
   ['Data','Vendedor','Cliente','Telefone','Origem','kWp','Valor (R$)','Inversor'].forEach(c=>tH+='<th>'+c+'</th>');
   tH+='</tr></thead><tbody>';
-  props.slice(0,200).forEach(p=>{
+  props.slice(0,50).forEach(p=>{
     let dataF=p['Data']||'';
     try{ if(dataF.includes('T')){ const d=new Date(dataF); dataF=d.toLocaleDateString('pt-BR')+' '+d.toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'}); } }catch(e){}
     tH+='<tr>';
