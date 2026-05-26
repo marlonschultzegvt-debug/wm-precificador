@@ -1194,13 +1194,14 @@ function calcRes(){
   const cCabo=Math.ceil(metros)*DB.cabo;
   const mc4 = duplosMesmo ? inv.mc4*qi : inv.mc4+inv2.mc4;
   const cMC4=mc4*DB.mc4;
-  const custo=cPl+cInv+cEst+cCabo+cMC4+(S.isRural?450:0);
+  const _totalCustosExtras = (typeof custosExtras!=='undefined') ? custosExtras.reduce((s,c)=>s+(parseFloat(c.valor)||0),0) : 0;
+  const custo=cPl+cInv+cEst+cCabo+cMC4+(S.isRural?450:0)+_totalCustosExtras;
   const custoLiq=custo*1.00; // sem desconto de custo
   const precoBase=custoLiq*1.70;
   const kwp=(pl.pot*qtd)/1000;
   const gen=kwp*f*30*(1-S.oLoss);
   const isMicro=S.tipoInv==='micro';
-  S.R={qtd,pl,inv,inv2:inv2||null,duplosMesmo,qi,est,kits,metros,mc4,cPl,cInv,cEst,cCabo,cMC4,custo,custoLiq,precoBase,kwp,gen,cPct:0,isMicro,isRural:S.isRural};
+  S.R={qtd,pl,inv,inv2:inv2||null,duplosMesmo,qi,est,kits,metros,mc4,cPl,cInv,cEst,cCabo,cMC4,custo,custoLiq,precoBase,kwp,gen,cPct:0,isMicro,isRural:S.isRural,custosExtras:[...(typeof custosExtras!=='undefined'?custosExtras:[])],totalCustosExtras:_totalCustosExtras};
   renderRes();
   document.getElementById('c3').style.display='none';
   document.getElementById('c4').style.display='none';
