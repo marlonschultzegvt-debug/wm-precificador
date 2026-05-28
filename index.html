@@ -371,7 +371,6 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:22px;heigh
   </div>
   <div class="tabs">
     <button class="tab on" onclick="showTab('calc',this)">🧮 Precificador</button>
-    <button class="tab" id="tabGestorBtn" onclick="showTab('gestor',this)" style="display:none">📊 Painel Gestor</button>
     <button class="tab" id="tabMyBtn" onclick="showTab('my',this)" style="display:none">📊 Minhas Propostas</button>
     <button class="tab" id="tabDashBtn" onclick="showTab('dash',this)" style="display:none">📈 Dashboard</button>
     <button class="tab" id="atab" onclick="showTab('adm',this)" style="display:none">⚙️ Admin</button>
@@ -946,9 +945,12 @@ async function doLogin(){
       renderAdmTbl(); loadVendedoresTbl(); loadOrigensTbl();
     }
     if(S.role==='gestor'){
-      document.getElementById('tabGestorBtn').style.display='flex';
+      document.getElementById('tabDashBtn').style.display='flex';
       document.getElementById('tabMyBtn').style.display='flex';
-      loadDashboardGestor();
+      // Resetar _iniciado para pré-selecionar o gestor ao abrir o dashboard
+      const _sgEl = document.getElementById('dFiltroGestor');
+      if(_sgEl) _sgEl._iniciado = false;
+      loadDashboard();
     }
     refreshGen(); buildPlacaSel(); loadOrigens();
   } else {
@@ -982,10 +984,14 @@ function showTab(t,btn){
   if(t==='my')   loadMyPropostas();
   if(t==='dash'){
     const _sg=document.getElementById('dFiltroGestor');
-    if(_sg && !_sg._iniciado){ _sg.value='todos'; _sg._iniciado=true; }
+    if(_sg && !_sg._iniciado){
+      // Se for gestor, pré-selecionar o próprio gestor
+      if(S.role==='gestor') _sg.value = S.login;
+      else _sg.value = 'todos';
+      _sg._iniciado = true;
+    }
     loadDashboard();
   }
-  if(t==='gestor') loadDashboardGestor();
 }
 
 // ====== STEPS ======
@@ -1532,27 +1538,26 @@ function voltarStep3(){
 }
 
 function editarProposta(){
-  // Pegar dados da proposta aberta (pode vir de reabrirProposta ou de S.R)
   fecharProposta();
 
-  // Se tem S.R (proposta recém gerada), vai para resultado
+  // Se tem S.R (proposta recém gerada), apenas voltar para o resultado
   if(S.R){
     document.getElementById('rSec').style.display='block';
     const st=document.getElementById('savePropostaStatus');
     if(st){st.style.display='none';st.textContent='';}
+    // Garantir que está na aba Precificador
+    _ativarTabCalc();
     return;
   }
 
-  // Se veio do histórico (reabrirProposta), preencher campos e ir para step 1
+  // Veio do histórico — preencher dados do cliente
   const p = window._propEditando || null;
   if(p){
-    // Preencher dados do cliente
-    const fn = (id,val)=>{ const el=document.getElementById(id); if(el&&val) el.value=val; };
-    fn('cliNome',   p['Cliente']   || p['cliente']);
-    fn('cliTel',    p['Telefone']  || p['telefone']);
-    fn('cliEnd',    p['Endereço']  || p['endereco']);
-    fn('cliCpf',    p['CPF']       || p['cpf']);
-    // Origem: selecionar no dropdown
+    const fn = (id,val)=>{ const el=document.getElementById(id); if(el&&val!==undefined) el.value=val||''; };
+    fn('cliNome', p['Cliente']  || p['cliente']  || '');
+    fn('cliTel',  p['Telefone'] || p['telefone'] || '');
+    fn('cliEnd',  p['Endereço'] || p['endereco'] || '');
+    fn('cliCpf',  p['CPF']      || p['cpf']      || '');
     const orig = p['Origem'] || p['origem'] || '';
     const selOrig = document.getElementById('cliOrigem');
     if(selOrig && orig){
@@ -1561,31 +1566,29 @@ function editarProposta(){
     window._propEditando = null;
   }
 
-  // Ir para step 1 (novo cálculo)
-  document.getElementById('rSec').style.display='none';
+  // Ir para step 1 — esconder tudo e mostrar c1
+  ['rSec','c2','c3','c4'].forEach(id=>{
+    const el=document.getElementById(id); if(el) el.style.display='none';
+  });
   document.getElementById('c1').style.display='block';
-  document.getElementById('c2').style.display='none';
-  document.getElementById('c3').style.display='none';
   setStep(1);
-  S.R=null;
+  S.R = null;
+  custosExtras = [];
   checkCamposObrig();
 
-  // Scroll para o topo
-  window.scrollTo(0,0);
-  document.querySelector('.tabs')?.scrollIntoView({behavior:'smooth'});
+  // Ativar aba Precificador
+  _ativarTabCalc();
+  window.scrollTo({top:0, behavior:'smooth'});
+}
 
-  // Trocar para aba Precificador
+function _ativarTabCalc(){
+  document.querySelectorAll('.tab').forEach(b=>b.classList.remove('on'));
   const tabCalc = document.querySelector('.tab[onclick*="calc"]');
-  if(tabCalc){
-    document.querySelectorAll('.tab').forEach(b=>b.classList.remove('on'));
-    tabCalc.classList.add('on');
-    ['tCalc','tAdm','tMy','tDash'].forEach(id=>{
-      const el=document.getElementById(id);
-      if(el) el.style.display=id==='tCalc'?'block':'none';
-    });
-    const tGes=document.getElementById('tGestor');
-    if(tGes) tGes.style.display='none';
-  }
+  if(tabCalc) tabCalc.classList.add('on');
+  ['tCalc','tAdm','tMy','tDash','tGestor'].forEach(id=>{
+    const el=document.getElementById(id);
+    if(el) el.style.display = id==='tCalc' ? 'block' : 'none';
+  });
 }
 
 function fecharProposta(){
@@ -2489,9 +2492,17 @@ async function loadDashboard(){
   ORIGENS.forEach(o=>{ const op=document.createElement('option'); op.value=o; op.textContent=o; so.appendChild(op); });
   so.value=prevO;
   if(sg){
-    sg.innerHTML='<option value="todos">Todos</option>';
-    _vends.filter(v=>v.tipo==='gestor').forEach(v=>{ const op=document.createElement('option'); op.value=v.login; op.textContent=v.nome; sg.appendChild(op); });
-    sg.value=prevG;
+    if(S.role==='gestor'){
+      // Gestor só vê a própria equipe — fixar o filtro
+      sg.innerHTML='<option value="'+S.login+'">'+S.nomeVend+'</option>';
+      sg.value = S.login;
+      sg.disabled = true;
+    } else {
+      sg.innerHTML='<option value="todos">Todos</option>';
+      _vends.filter(v=>v.tipo==='gestor').forEach(v=>{ const op=document.createElement('option'); op.value=v.login; op.textContent=v.nome; sg.appendChild(op); });
+      sg.value=prevG;
+      sg.disabled = false;
+    }
   }
 
   const d = {
