@@ -346,6 +346,11 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:22px;heigh
 .pp-inv-compact-val{font-family:"Syne",sans-serif;font-size:26px;font-weight:700;color:#0f3460;line-height:1}
 .pp-inv-compact-sub{font-size:11px;color:#aaa;margin-top:3px}
 .pp-inv-compact-right{text-align:right}
+
+@keyframes pulseAlerta{
+  from{opacity:.7;transform:translateX(0)}
+  to{opacity:1;transform:translateX(3px)}
+}
 </style>
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
 </head>
@@ -616,6 +621,9 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:22px;heigh
             </div>
           </div>
           <input type="range" min="0" max="15" step="1" value="0" id="slC" oninput="updC()">
+          <div id="alertaComissao" style="display:none;margin-top:10px;padding:10px 14px;border-radius:8px;font-size:13px;font-weight:600;background:rgba(229,57,53,.12);color:#ff5252;border-left:3px solid #ff5252;animation:pulseAlerta .8s ease infinite alternate">
+            ⚠️ Comissão acima de 7% — risco de perder a venda! O preço fica menos competitivo.
+          </div>
           <div class="cticks"><span>0%</span><span>3%</span><span>6%</span><span>9%</span><span>12%</span><span>15%</span></div>
         </div>
       </div>
@@ -1224,6 +1232,19 @@ function updC(){
   document.getElementById('cPctLbl').textContent=pct+'%';
   document.getElementById('cPrecoLbl').textContent='R$ '+fmtBRL(preco);
   document.getElementById('cValLbl').textContent=pct>0?'Comissão: R$ '+fmtBRL(comv):'Sem comissão';
+
+  // Alerta acima de 7%
+  const alertaEl = document.getElementById('alertaComissao');
+  if(alertaEl){
+    if(pct > 7){
+      alertaEl.style.display = 'block';
+      // Gradiente do slider fica vermelho
+      document.getElementById('slC').style.accentColor = '#e05050';
+    } else {
+      alertaEl.style.display = 'none';
+      document.getElementById('slC').style.accentColor = '';
+    }
+  }
   document.getElementById('rPrice').textContent='R$ '+fmtBRL(preco);
   document.getElementById('rSub').textContent=`${pct}% comissão · ${r.qtd} placas ${r.pl.pot}W · ${r.kwp.toFixed(2)} kWp`+
     (r.isMicro?` · ${r.qi}× Microinversor`:(r.qi>1?` · ${r.qi}× ${r.inv.nome}`:''));
