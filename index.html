@@ -694,7 +694,10 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:22px;heigh
         <strong style="color:var(--orange)">Fórmula atual:</strong>
         <span id="cfgFormula" style="color:var(--t2)">custo × 1.00 (sem desconto) × 1.70 = Preço Base</span>
       </div>
-      <button onclick="salvarConfigs()" class="ba bor" style="margin-bottom:1.5rem">💾 Salvar Configurações</button>
+      <div style="display:flex;gap:10px;margin-bottom:1.5rem;flex-wrap:wrap">
+        <button onclick="salvarConfigs()" class="ba bor">💾 Salvar Configurações</button>
+        <button onclick="restaurarConfigs()" class="ba bot" style="background:rgba(229,57,53,.12);color:#ff5252;border:1px solid rgba(229,57,53,.3)">🔄 Restaurar Padrões (1.70 / 0%)</button>
+      </div>
       <div id="cfgMsg" style="display:none;margin-bottom:1rem"></div>
 
       <div class="sep"><span>Tabela de Preços Atual</span></div>
@@ -922,6 +925,9 @@ let DB={
     'sem':          {nome:'Sem Estrutura',         preco:0,    passo:0}
   }
 };
+
+// Carregar preços salvos pelo admin
+carregarDBSalvo();
 
 // ====== CONFIG API ======
 const API_URL = 'https://script.google.com/macros/s/AKfycbzK0aNb_uIzgyMgTYaLc1Cz5uhrU4fL6r6mRrigCCg5Rn_hqQpFnHmtRTeqOWAd58cR0g/exec'; // ← substituir após publicar
@@ -1378,16 +1384,110 @@ function novoCalc(){
 
 // ====== ADMIN ======
 function renderAdmTbl(){
-  let h='<table class="bk" style="font-size:12px"><thead><tr><th>Tipo</th><th>Item</th><th style="text-align:right">Preço</th><th style="text-align:right">Overload</th><th style="text-align:right">MC4</th></tr></thead><tbody>';
-  DB.placas.forEach(p=>h+=`<tr><td style="color:var(--t3)">Placa</td><td>${p.nome}</td><td>R$ ${p.preco}/un</td><td>—</td><td>—</td></tr>`);
-  DB.mono.forEach(i=>h+=`<tr><td style="color:var(--t3)">Mono</td><td>${i.nome}</td><td>R$ ${fmtBRL(i.preco)}</td><td>${i.ov} pl.</td><td>${i.mc4} pares</td></tr>`);
-  DB.tri.forEach(i=>h+=`<tr><td style="color:var(--t3)">Tri</td><td>${i.nome}</td><td>R$ ${fmtBRL(i.preco)}</td><td>${i.ov} pl.</td><td>${i.mc4} pares</td></tr>`);
-  DB.micro.forEach(i=>h+=`<tr><td style="color:var(--t3)">Micro</td><td>${i.nome}</td><td>R$ ${fmtBRL(i.preco)}</td><td>${i.ov} pl./un</td><td>${i.mc4} pares</td></tr>`);
-  h+=`<tr><td style="color:var(--t3)">Acessório</td><td>Cabo Solar</td><td>R$ ${DB.cabo}/m</td><td>—</td><td>—</td></tr>`;
-  h+=`<tr><td style="color:var(--t3)">Acessório</td><td>Conector MC4 Odex</td><td>R$ ${DB.mc4}/par</td><td>—</td><td>—</td></tr>`;
-  h+='</tbody></table>';
-  document.getElementById('admTbl').innerHTML=h;
+  const inp = (tipo, idx, campo, val, extra='') =>
+    `<input type="number" min="0" step="1" value="${val}"
+      style="width:80px;background:var(--bg);border:1px solid var(--b2);border-radius:6px;padding:4px 8px;color:var(--t1);font-size:12px;text-align:right;font-family:inherit"
+      onchange="editarDB('${tipo}',${idx},'${campo}',this.value)" ${extra}>`;
+
+  let h = `<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;flex-wrap:wrap;gap:8px">
+    <div style="font-size:12px;color:var(--t2)">✏️ Clique nos valores para editar. Os preços são atualizados em tempo real.</div>
+    <div style="display:flex;gap:8px">
+      <button onclick="salvarDB()" class="ba bor" style="font-size:12px;padding:6px 14px">💾 Salvar Preços</button>
+      <button onclick="restaurarDB()" class="ba bot" style="font-size:12px;padding:6px 14px;background:rgba(229,57,53,.1);color:#e05050;border:1px solid rgba(229,57,53,.3)">🔄 Restaurar</button>
+    </div>
+  </div>`;
+
+  h += '<div style="overflow-x:auto"><table class="bk" style="font-size:12px;width:100%"><thead><tr><th>Tipo</th><th>Item</th><th style="text-align:right">Preço (R$)</th><th style="text-align:right">Overload (pl.)</th><th style="text-align:right">MC4 (pares)</th></tr></thead><tbody>';
+
+  // Placas
+  DB.placas.forEach((p,i)=>{
+    h+=`<tr>
+      <td style="color:var(--t3);white-space:nowrap">☀️ Placa</td>
+      <td><input type="text" value="${p.nome}"
+        style="width:100%;background:var(--bg);border:1px solid var(--b2);border-radius:6px;padding:4px 8px;color:var(--t1);font-size:12px;font-family:inherit"
+        onchange="editarDB('placas',${i},'nome',this.value)"></td>
+      <td style="text-align:right">${inp('placas',i,'preco',p.preco)}</td>
+      <td style="text-align:right;color:var(--t3)">—</td>
+      <td style="text-align:right;color:var(--t3)">—</td>
+    </tr>`;
+  });
+
+  // Mono
+  DB.mono.forEach((inv,i)=>{
+    h+=`<tr>
+      <td style="color:var(--t3);white-space:nowrap">⚡ Mono</td>
+      <td><input type="text" value="${inv.nome}"
+        style="width:100%;background:var(--bg);border:1px solid var(--b2);border-radius:6px;padding:4px 8px;color:var(--t1);font-size:12px;font-family:inherit"
+        onchange="editarDB('mono',${i},'nome',this.value)"></td>
+      <td style="text-align:right">${inp('mono',i,'preco',inv.preco)}</td>
+      <td style="text-align:right">${inp('mono',i,'ov',inv.ov)}</td>
+      <td style="text-align:right">${inp('mono',i,'mc4',inv.mc4)}</td>
+    </tr>`;
+  });
+
+  // Micro
+  DB.micro.forEach((inv,i)=>{
+    h+=`<tr>
+      <td style="color:var(--t3);white-space:nowrap">🔆 Micro</td>
+      <td><input type="text" value="${inv.nome}"
+        style="width:100%;background:var(--bg);border:1px solid var(--b2);border-radius:6px;padding:4px 8px;color:var(--t1);font-size:12px;font-family:inherit"
+        onchange="editarDB('micro',${i},'nome',this.value)"></td>
+      <td style="text-align:right">${inp('micro',i,'preco',inv.preco)}</td>
+      <td style="text-align:right">${inp('micro',i,'ov',inv.ov)}</td>
+      <td style="text-align:right">${inp('micro',i,'mc4',inv.mc4)}</td>
+    </tr>`;
+  });
+
+  // Tri
+  DB.tri.forEach((inv,i)=>{
+    h+=`<tr>
+      <td style="color:var(--t3);white-space:nowrap">⚡⚡ Tri</td>
+      <td><input type="text" value="${inv.nome}"
+        style="width:100%;background:var(--bg);border:1px solid var(--b2);border-radius:6px;padding:4px 8px;color:var(--t1);font-size:12px;font-family:inherit"
+        onchange="editarDB('tri',${i},'nome',this.value)"></td>
+      <td style="text-align:right">${inp('tri',i,'preco',inv.preco)}</td>
+      <td style="text-align:right">${inp('tri',i,'ov',inv.ov)}</td>
+      <td style="text-align:right">${inp('tri',i,'mc4',inv.mc4)}</td>
+    </tr>`;
+  });
+
+  // Estruturas
+  Object.entries(DB.est).forEach(([key,est])=>{
+    if(key==='sem') return;
+    h+=`<tr>
+      <td style="color:var(--t3);white-space:nowrap">🏗️ Estrutura</td>
+      <td style="color:var(--t2)">${est.nome}</td>
+      <td style="text-align:right"><input type="number" min="0" step="1" value="${est.preco}"
+        style="width:80px;background:var(--bg);border:1px solid var(--b2);border-radius:6px;padding:4px 8px;color:var(--t1);font-size:12px;text-align:right;font-family:inherit"
+        onchange="editarDB('est','${key}','preco',this.value)"></td>
+      <td style="text-align:right;color:var(--t3)">—</td>
+      <td style="text-align:right;color:var(--t3)">—</td>
+    </tr>`;
+  });
+
+  // Cabo e MC4
+  h+=`<tr>
+    <td style="color:var(--t3)">🔌 Cabo</td>
+    <td style="color:var(--t2)">Cabo Solar (por metro)</td>
+    <td style="text-align:right"><input type="number" min="0" step="1" value="${DB.cabo}"
+      style="width:80px;background:var(--bg);border:1px solid var(--b2);border-radius:6px;padding:4px 8px;color:var(--t1);font-size:12px;text-align:right;font-family:inherit"
+      onchange="DB.cabo=parseFloat(this.value)||DB.cabo"></td>
+    <td colspan="2" style="text-align:right;color:var(--t3)">R$/m</td>
+  </tr>
+  <tr>
+    <td style="color:var(--t3)">🔌 MC4</td>
+    <td style="color:var(--t2)">Conector MC4 (por par)</td>
+    <td style="text-align:right"><input type="number" min="0" step="1" value="${DB.mc4}"
+      style="width:80px;background:var(--bg);border:1px solid var(--b2);border-radius:6px;padding:4px 8px;color:var(--t1);font-size:12px;text-align:right;font-family:inherit"
+      onchange="DB.mc4=parseFloat(this.value)||DB.mc4"></td>
+    <td colspan="2" style="text-align:right;color:var(--t3)">R$/par</td>
+  </tr>`;
+
+  h += '</tbody></table></div>';
+  h += '<div id="dbMsg" style="display:none;margin-top:10px"></div>';
+  document.getElementById('admTbl').innerHTML = h;
 }
+
 
 function handleUp(input){
   const file=input.files[0]; if(!file) return;
@@ -3178,6 +3278,103 @@ function carregarConfigs(){
   if(mEl) mEl.value = CFG_MARGEM.toFixed(2);
   if(dEl) dEl.value = CFG_DESCONTO;
   atualizarConfigLabel();
+}
+
+function restaurarConfigs(){
+  if(!confirm('Restaurar padrões? Margem: 1.70 (70%) e Desconto: 0%')) return;
+  localStorage.removeItem('wmCfgMargem');
+  localStorage.removeItem('wmCfgDesconto');
+  CFG_MARGEM   = 1.70;
+  CFG_DESCONTO = 0;
+  carregarConfigs();
+  const msg = document.getElementById('cfgMsg');
+  if(msg){
+    msg.style.display='block';
+    msg.style.background='rgba(0,200,100,.12)';
+    msg.style.color='#3ecf8e';
+    msg.style.padding='10px 14px';
+    msg.style.borderRadius='8px';
+    msg.style.fontSize='13px';
+    msg.textContent='✅ Padrões restaurados! Margem: 70% | Desconto: 0%';
+    setTimeout(()=>msg.style.display='none', 3000);
+  }
+}
+
+
+// ===== EDIÇÃO DA TABELA DE PREÇOS =====
+const DB_BACKUP = JSON.parse(JSON.stringify({
+  placas: DB.placas,
+  mono:   DB.mono,
+  micro:  DB.micro,
+  tri:    DB.tri,
+  est:    DB.est,
+  cabo:   DB.cabo,
+  mc4:    DB.mc4
+}));
+
+function editarDB(tipo, idx, campo, val){
+  const v = campo==='nome' ? val : (parseFloat(val)||0);
+  if(tipo==='est'){
+    DB.est[idx][campo] = v;
+  } else if(tipo==='placas'||tipo==='mono'||tipo==='micro'||tipo==='tri'){
+    DB[tipo][idx][campo] = v;
+  }
+  // Atualizar selects do precificador
+  if(typeof buildPlacaSel==='function') buildPlacaSel();
+  if(typeof buildInvSel==='function') buildInvSel();
+}
+
+function salvarDB(){
+  try{
+    const snapshot = {
+      placas: DB.placas,
+      mono:   DB.mono,
+      micro:  DB.micro,
+      tri:    DB.tri,
+      est:    DB.est,
+      cabo:   DB.cabo,
+      mc4:    DB.mc4,
+      savedAt: new Date().toISOString()
+    };
+    localStorage.setItem('wmDB', JSON.stringify(snapshot));
+    const el=document.getElementById('dbMsg');
+    if(el){
+      el.style.display='block';
+      el.style.cssText='display:block;background:rgba(0,200,100,.12);color:#3ecf8e;padding:10px 14px;border-radius:8px;font-size:13px;margin-top:10px';
+      el.textContent='✅ Preços salvos! Aplicados em todos os cálculos.';
+      setTimeout(()=>el.style.display='none', 3000);
+    }
+  } catch(e){ alert('Erro ao salvar: '+e.message); }
+}
+
+function restaurarDB(){
+  if(!confirm('Restaurar preços originais do código?')) return;
+  localStorage.removeItem('wmDB');
+  // Restaurar do backup
+  DB.placas = JSON.parse(JSON.stringify(DB_BACKUP.placas));
+  DB.mono   = JSON.parse(JSON.stringify(DB_BACKUP.mono));
+  DB.micro  = JSON.parse(JSON.stringify(DB_BACKUP.micro));
+  DB.tri    = JSON.parse(JSON.stringify(DB_BACKUP.tri));
+  DB.est    = JSON.parse(JSON.stringify(DB_BACKUP.est));
+  DB.cabo   = DB_BACKUP.cabo;
+  DB.mc4    = DB_BACKUP.mc4;
+  renderAdmTbl();
+  buildPlacaSel(); buildInvSel();
+}
+
+function carregarDBSalvo(){
+  try{
+    const saved = localStorage.getItem('wmDB');
+    if(!saved) return;
+    const s = JSON.parse(saved);
+    if(s.placas) DB.placas = s.placas;
+    if(s.mono)   DB.mono   = s.mono;
+    if(s.micro)  DB.micro  = s.micro;
+    if(s.tri)    DB.tri    = s.tri;
+    if(s.est)    DB.est    = s.est;
+    if(s.cabo)   DB.cabo   = s.cabo;
+    if(s.mc4)    DB.mc4    = s.mc4;
+  } catch(e){ console.warn('DB salvo inválido, usando padrão'); }
 }
 
 // ===== GESTOR =====
