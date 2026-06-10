@@ -946,6 +946,57 @@ async function api(payload){
 
 // ====== AUTH ======
 let telDuplicado=false;
+
+// ===== FAIXAS DE MARGEM =====
+function atualizarFaixasUI(){
+  const lim = parseFloat(document.getElementById('fxLimite')?.value||5);
+  const mB  = parseFloat(document.getElementById('fxMargemBaixa')?.value||1.65);
+  const mA  = parseFloat(document.getElementById('fxMargemAlta')?.value||1.60);
+  const el  = document.getElementById('fxLimiteLabel');
+  if(el) el.textContent = lim+'%';
+  const pB = document.getElementById('fxMargemBaixaPct');
+  const pA = document.getElementById('fxMargemAltaPct');
+  if(pB) pB.textContent = '= '+Math.round((mB-1)*100)+'%';
+  if(pA) pA.textContent = '= '+Math.round((mA-1)*100)+'%';
+  const prev = document.getElementById('fxPreview');
+  if(prev) prev.textContent =
+    'Comissão 0–'+lim+'%: Preço = custo × '+mB.toFixed(2)+' ÷ (1–comissão%)  |  '+
+    'Comissão '+(lim+1)+'–15%: Preço = custo × '+mA.toFixed(2)+' ÷ (1–comissão%)';
+}
+
+function salvarFaixas(){
+  const lim  = parseFloat(document.getElementById('fxLimite')?.value||5);
+  const mB   = parseFloat(document.getElementById('fxMargemBaixa')?.value||1.65);
+  const mA   = parseFloat(document.getElementById('fxMargemAlta')?.value||1.60);
+  const ativ = document.getElementById('fxAtivo')?.checked ?? true;
+  CFG_FX_ATIVO        = ativ;
+  CFG_FX_LIMITE       = lim;
+  CFG_FX_MARGEM_BAIXA = mB;
+  CFG_FX_MARGEM_ALTA  = mA;
+  localStorage.setItem('wmFxAtivo',       String(ativ));
+  localStorage.setItem('wmFxLimite',      String(lim));
+  localStorage.setItem('wmFxMargemBaixa', String(mB));
+  localStorage.setItem('wmFxMargemAlta',  String(mA));
+  const msg = document.getElementById('fxMsg');
+  if(msg){
+    msg.style.cssText='display:block;background:rgba(0,200,100,.12);color:#3ecf8e;padding:8px 12px;border-radius:8px;font-size:13px;margin-top:8px';
+    msg.textContent='✅ Faixas salvas! Comissão ≤'+lim+'% → '+Math.round((mB-1)*100)+'% margem | >'+lim+'% → '+Math.round((mA-1)*100)+'% margem';
+    setTimeout(()=>msg.style.display='none',3000);
+  }
+}
+
+function carregarFaixasUI(){
+  const lEl = document.getElementById('fxLimite');
+  const bEl = document.getElementById('fxMargemBaixa');
+  const aEl = document.getElementById('fxMargemAlta');
+  const cEl = document.getElementById('fxAtivo');
+  if(lEl) lEl.value = CFG_FX_LIMITE;
+  if(bEl) bEl.value = CFG_FX_MARGEM_BAIXA.toFixed(2);
+  if(aEl) aEl.value = CFG_FX_MARGEM_ALTA.toFixed(2);
+  if(cEl) cEl.checked = CFG_FX_ATIVO;
+  atualizarFaixasUI();
+}
+
 // ===== CONFIGURAÇÕES DE PRECIFICAÇÃO =====
 let CFG_MARGEM   = parseFloat(localStorage.getItem('wmCfgMargem')   || '1.70');
 let CFG_DESCONTO = parseFloat(localStorage.getItem('wmCfgDesconto') || '0');
@@ -1210,7 +1261,18 @@ function goBack(to){
 // custo_liq = custo × 0.95
 // preco_base = custo_liq × 1.70
 // preco_venda(pct) = preco_base ÷ (1 - pct/100)
-function pv(base,pct){return pct>=100?Infinity:base/(1-pct/100)}
+function getMargemAtual(pct){
+  // Retorna a margem correta baseada na faixa de comissão
+  if(!CFG_FX_ATIVO) return CFG_MARGEM;
+  return pct <= CFG_FX_LIMITE ? CFG_FX_MARGEM_BAIXA : CFG_FX_MARGEM_ALTA;
+}
+function pv(base,pct){
+  // base aqui é o custoLiq (sem margem aplicada ainda)
+  // Recalcular com a margem da faixa correta
+  const margem = getMargemAtual(pct);
+  const precoComMargem = base * margem;
+  return pct>=100 ? Infinity : precoComMargem/(1-pct/100);
+}
 
 
 function getInv2(){
@@ -1266,7 +1328,7 @@ function calcRes(){
 function updC(){
   const pct=parseInt(document.getElementById('slC').value);
   const r=S.R;if(!r)return;
-  const preco=pv(r.precoBase,pct);
+  const preco=pv(r.custoLiq,pct);
   const comv=preco*(pct/100);
   document.getElementById('cPctLbl').textContent=pct+'%';
   document.getElementById('cPrecoLbl').textContent='R$ '+fmtBRL(preco);
@@ -1292,7 +1354,7 @@ function updC(){
 }
 
 function renderRes(){
-  const r=S.R;const preco=pv(r.precoBase,0);
+  const r=S.R;const preco=pv(r.custoLiq,0);
   document.getElementById('rPrice').textContent='R$ '+fmtBRL(preco);
   document.getElementById('rSub').textContent=`0% comissão · ${r.qtd} placas ${r.pl.pot}W · ${r.kwp.toFixed(2)} kWp`;
   renderMets(preco,0,0);renderBk();
@@ -1352,7 +1414,7 @@ function renderPC(){
   const cur=S.R.cPct;
   let h='';
   for(let p=0;p<=15;p++){
-    const preco=pv(r.precoBase,p);
+    const preco=pv(r.custoLiq,p);
     const comv=preco*(p/100);
     h+=`<div class="pci${p===cur?' on':''}" onclick="jmpC(${p})">
       <div class="pp">${p}%</div>
@@ -1753,7 +1815,7 @@ function fecharProposta(){
 function abrirProposta(){
   const r=S.R; if(!r) return;
   const pct=isNegociador()?parseInt(document.getElementById('slD')?.value||0):r.cPct;
-  const preco=isNegociador()?precoComDesc(precoCheioNeg(r.precoBase),pct):pv(r.precoBase,pct);
+  const preco=isNegociador()?precoComDesc(precoCheioNeg(r.precoBase),pct):pv(r.custoLiq,pct);
   const hoje=new Date().toLocaleDateString('pt-BR',{day:'2-digit',month:'long',year:'numeric'});
   const _slv2=document.getElementById('sLocal').value;
   const _slRegiao=_slv2.split('|')[1]||'maringa';
@@ -2124,7 +2186,7 @@ function abrirProposta(){
 
 function expXls(){
   const r=S.R;if(!r)return;
-  const pct=S.R.cPct;const preco=pv(r.precoBase,pct);
+  const pct=S.R.cPct;const preco=pv(r.custoLiq,pct);
   const wb=XLSX.utils.book_new();
   const data=[
     ['WM Energia Solar — Orçamento'],['Data:',new Date().toLocaleDateString('pt-BR')],[''],
@@ -2207,7 +2269,7 @@ async function salvarProposta(){
   const orig=document.getElementById('cliOrigem').value;
   if(!nome || !tel || !orig) return; // precisa nome e telefone para registrar
   const pct=r.cPct;
-  const preco=pv(r.precoBase,pct);
+  const preco=pv(r.custoLiq,pct);
   const payload={
     action:'salvarProposta', vendedor:S.login,
     cliente:nome, telefone:tel,
@@ -3278,6 +3340,7 @@ function carregarConfigs(){
   if(mEl) mEl.value = CFG_MARGEM.toFixed(2);
   if(dEl) dEl.value = CFG_DESCONTO;
   atualizarConfigLabel();
+  carregarFaixasUI();
 }
 
 function restaurarConfigs(){
