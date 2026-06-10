@@ -670,37 +670,91 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:22px;heigh
     <div class="card">
       <div class="ctitle"><span class="ic" style="color:var(--blue)">🔑</span>Painel Administrativo</div>
       <div class="sep"><span>⚙️ Configurações de Precificação</span></div>
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:1.5rem">
-        <div class="fg">
-          <label>Margem sobre o custo</label>
-          <div style="display:flex;align-items:center;gap:8px">
-            <input type="number" id="cfgMargemPct" value="70" min="1" max="200" step="1"
-              style="flex:1;font-size:18px;font-weight:700;color:var(--orange)" oninput="atualizarConfigLabel()">
-            <span style="color:var(--orange);font-weight:800;font-size:18px">%</span>
-          </div>
-          <small style="color:var(--t2)">Padrão: 70% → multiplicador 1.70</small>
-          <input type="hidden" id="cfgMargem" value="1.70">
-        </div>
-        <div class="fg">
-          <label>Desconto sobre o custo do kit</label>
-          <div style="display:flex;align-items:center;gap:8px">
-            <input type="number" id="cfgDesconto" value="0" min="0" max="30" step="0.5"
-              style="flex:1;font-size:18px;font-weight:700;color:#1A6FA8" oninput="atualizarConfigLabel()">
-            <span style="color:#1A6FA8;font-weight:800;font-size:18px">%</span>
-          </div>
-          <small style="color:var(--t2)">Padrão: 0% (sem desconto no custo)</small>
-        </div>
-      </div>
-      <div style="background:rgba(232,123,30,.08);border:1px solid rgba(232,123,30,.2);border-radius:8px;padding:12px;margin-bottom:1rem;font-size:13px">
-        <strong style="color:var(--orange)">Fórmula atual:</strong>
-        <span id="cfgFormula" style="color:var(--t2)">custo × 1.00 (sem desconto) × 1.70 = Preço Base</span>
-      </div>
-      <div style="display:flex;gap:10px;margin-bottom:1.5rem;flex-wrap:wrap">
-        <button onclick="salvarConfigs()" class="ba bor">💾 Salvar Configurações</button>
-        <button onclick="restaurarConfigs()" class="ba bot" style="background:rgba(229,57,53,.12);color:#ff5252;border:1px solid rgba(229,57,53,.3)">🔄 Restaurar Padrões (1.70 / 0%)</button>
-      </div>
-      <div id="cfgMsg" style="display:none;margin-bottom:1rem"></div>
 
+      <!-- FAIXAS DE MARGEM -->
+      <div style="margin-bottom:1.5rem">
+        <div style="font-size:12px;font-weight:700;color:var(--t2);text-transform:uppercase;letter-spacing:.05em;margin-bottom:12px">📊 Margem por Faixa de Comissão do Vendedor</div>
+
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:12px">
+          <!-- Faixa Baixa -->
+          <div style="background:rgba(0,200,100,.06);border:1px solid rgba(0,200,100,.2);border-radius:10px;padding:16px">
+            <div style="font-size:11px;font-weight:700;color:#3ecf8e;text-transform:uppercase;letter-spacing:.05em;margin-bottom:10px">✅ Comissão baixa</div>
+            <div class="fg" style="margin-bottom:8px">
+              <label>Comissão de 0% até</label>
+              <div style="display:flex;align-items:center;gap:6px">
+                <input type="number" id="fxLimite" min="1" max="14" step="1" value="5"
+                  oninput="atualizarFaixasUI()"
+                  style="width:70px;background:var(--bg);border:1px solid var(--b2);border-radius:8px;padding:8px;color:var(--t1);font-size:18px;font-weight:800;text-align:center;font-family:inherit">
+                <span style="font-size:16px;font-weight:700;color:var(--t2)">%</span>
+              </div>
+            </div>
+            <div class="fg">
+              <label>Margem da empresa</label>
+              <div style="display:flex;align-items:center;gap:6px">
+                <input type="number" id="fxMargemBaixa" min="1" max="200" step="1" value="65"
+                  oninput="atualizarFaixasUI()"
+                  style="width:70px;background:var(--bg);border:1px solid var(--b2);border-radius:8px;padding:8px;color:#3ecf8e;font-size:18px;font-weight:800;text-align:center;font-family:inherit">
+                <span style="font-size:16px;font-weight:700;color:#3ecf8e">%</span>
+              </div>
+              <small style="color:var(--t2)" id="fxMargemBaixaPct">= multiplicador 1.65</small>
+            </div>
+          </div>
+
+          <!-- Faixa Alta -->
+          <div style="background:rgba(232,123,30,.06);border:1px solid rgba(232,123,30,.2);border-radius:10px;padding:16px">
+            <div style="font-size:11px;font-weight:700;color:var(--orange);text-transform:uppercase;letter-spacing:.05em;margin-bottom:10px">⚠️ Comissão alta</div>
+            <div class="fg" style="margin-bottom:8px">
+              <label>Comissão acima de</label>
+              <div style="display:flex;align-items:center;gap:6px">
+                <span id="fxLimiteLabel" style="width:70px;background:var(--bg2);border:1px solid var(--b2);border-radius:8px;padding:8px;color:var(--t2);font-size:18px;font-weight:800;text-align:center;display:inline-block">5</span>
+                <span style="font-size:16px;font-weight:700;color:var(--t2)">%</span>
+              </div>
+            </div>
+            <div class="fg">
+              <label>Margem da empresa</label>
+              <div style="display:flex;align-items:center;gap:6px">
+                <input type="number" id="fxMargemAlta" min="1" max="200" step="1" value="70"
+                  oninput="atualizarFaixasUI()"
+                  style="width:70px;background:var(--bg);border:1px solid var(--b2);border-radius:8px;padding:8px;color:var(--orange);font-size:18px;font-weight:800;text-align:center;font-family:inherit">
+                <span style="font-size:16px;font-weight:700;color:var(--orange)">%</span>
+              </div>
+              <small style="color:var(--t2)" id="fxMargemAltaPct">= multiplicador 1.70</small>
+            </div>
+          </div>
+        </div>
+
+        <!-- Preview fórmula -->
+        <div style="background:var(--bg2);border:1px solid var(--b2);border-radius:8px;padding:12px;font-size:13px;color:var(--t2);margin-bottom:10px" id="fxPreview">
+          Comissão 0–5%: custo × 1.65 ÷ (1–comissão%)  |  Acima: custo × 1.70 ÷ (1–comissão%)
+        </div>
+
+        <label style="display:flex;align-items:center;gap:8px;font-size:13px;cursor:pointer;margin-bottom:12px">
+          <input type="checkbox" id="fxAtivo" checked style="width:16px;height:16px;accent-color:var(--orange)">
+          <span>Ativar margem variável por faixa</span>
+        </label>
+
+        <button onclick="salvarFaixas()" class="ba bor" style="font-size:13px;padding:8px 18px">💾 Salvar Faixas</button>
+        <div id="fxMsg" style="display:none;margin-top:8px"></div>
+      </div>
+
+      <!-- DESCONTO NO CUSTO -->
+      <div style="margin-bottom:1.5rem">
+        <div style="font-size:12px;font-weight:700;color:var(--t2);text-transform:uppercase;letter-spacing:.05em;margin-bottom:10px">🏷️ Desconto sobre o Custo do Kit</div>
+        <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
+          <div class="fg" style="margin-bottom:0">
+            <label>Desconto</label>
+            <div style="display:flex;align-items:center;gap:6px">
+              <input type="number" id="cfgDesconto" value="0" min="0" max="30" step="0.5"
+                style="width:80px;background:var(--bg);border:1px solid var(--b2);border-radius:8px;padding:8px;color:#1A6FA8;font-size:18px;font-weight:800;text-align:center;font-family:inherit">
+              <span style="font-size:16px;font-weight:700;color:#1A6FA8">%</span>
+            </div>
+            <small style="color:var(--t2)">Padrão: 0% (sem desconto)</small>
+          </div>
+          <button onclick="salvarDesconto()" class="ba bor" style="font-size:13px;padding:8px 18px;margin-top:18px">💾 Salvar Desconto</button>
+        </div>
+        <input type="hidden" id="cfgMargem" value="1.70">
+        <div id="cfgMsg" style="display:none;margin-top:8px"></div>
+      </div>
       <div class="sep"><span>Tabela de Preços Atual</span></div>
       <div id="admTbl" style="overflow-x:auto;margin-bottom:1rem"></div>
       <div class="sep"><span>Upload de Nova Tabela</span></div>
@@ -949,27 +1003,44 @@ async function api(payload){
 let telDuplicado=false;
 
 // ===== FAIXAS DE MARGEM =====
+
+function salvarDesconto(){
+  const d = parseFloat(document.getElementById('cfgDesconto')?.value);
+  if(isNaN(d) || d < 0 || d > 30){ alert('Desconto inválido — entre 0% e 30%'); return; }
+  CFG_DESCONTO = d;
+  localStorage.setItem('wmCfgDesconto', d.toString());
+  const msg = document.getElementById('cfgMsg');
+  if(msg){
+    msg.style.cssText='display:block;background:rgba(0,200,100,.12);color:#3ecf8e;padding:8px 12px;border-radius:8px;font-size:13px;margin-top:8px';
+    msg.textContent = '✅ Desconto salvo: ' + d + '%';
+    setTimeout(()=>msg.style.display='none', 2500);
+  }
+}
 function atualizarFaixasUI(){
-  const lim = parseFloat(document.getElementById('fxLimite')?.value||5);
-  const mB  = parseFloat(document.getElementById('fxMargemBaixa')?.value||1.65);
-  const mA  = parseFloat(document.getElementById('fxMargemAlta')?.value||1.60);
-  const el  = document.getElementById('fxLimiteLabel');
-  if(el) el.textContent = lim+'%';
+  const lim   = parseFloat(document.getElementById('fxLimite')?.value||5);
+  const pctB  = parseFloat(document.getElementById('fxMargemBaixa')?.value||65);
+  const pctA  = parseFloat(document.getElementById('fxMargemAlta')?.value||70);
+  const multB = (1 + pctB/100);
+  const multA = (1 + pctA/100);
+  const limEl = document.getElementById('fxLimiteLabel');
+  if(limEl) limEl.textContent = lim;
   const pB = document.getElementById('fxMargemBaixaPct');
   const pA = document.getElementById('fxMargemAltaPct');
-  if(pB) pB.textContent = '= '+Math.round((mB-1)*100)+'%';
-  if(pA) pA.textContent = '= '+Math.round((mA-1)*100)+'%';
+  if(pB) pB.textContent = '= multiplicador '+multB.toFixed(2);
+  if(pA) pA.textContent = '= multiplicador '+multA.toFixed(2);
   const prev = document.getElementById('fxPreview');
   if(prev) prev.textContent =
-    'Comissão 0–'+lim+'%: Preço = custo × '+mB.toFixed(2)+' ÷ (1–comissão%)  |  '+
-    'Comissão '+(lim+1)+'–15%: Preço = custo × '+mA.toFixed(2)+' ÷ (1–comissão%)';
+    'Comissão 0–'+lim+'%: custo × '+multB.toFixed(2)+' ÷ (1–comissão%)  |  '+
+    'Comissão >'+(lim)+'%: custo × '+multA.toFixed(2)+' ÷ (1–comissão%)';
 }
 
 function salvarFaixas(){
-  const lim  = parseFloat(document.getElementById('fxLimite')?.value||5);
-  const mB   = parseFloat(document.getElementById('fxMargemBaixa')?.value||1.65);
-  const mA   = parseFloat(document.getElementById('fxMargemAlta')?.value||1.60);
-  const ativ = document.getElementById('fxAtivo')?.checked ?? true;
+  const lim   = parseFloat(document.getElementById('fxLimite')?.value||5);
+  const pctB  = parseFloat(document.getElementById('fxMargemBaixa')?.value||65);
+  const pctA  = parseFloat(document.getElementById('fxMargemAlta')?.value||70);
+  const mB    = 1 + pctB/100;
+  const mA    = 1 + pctA/100;
+  const ativ  = document.getElementById('fxAtivo')?.checked ?? true;
   CFG_FX_ATIVO        = ativ;
   CFG_FX_LIMITE       = lim;
   CFG_FX_MARGEM_BAIXA = mB;
@@ -992,8 +1063,8 @@ function carregarFaixasUI(){
   const aEl = document.getElementById('fxMargemAlta');
   const cEl = document.getElementById('fxAtivo');
   if(lEl) lEl.value = CFG_FX_LIMITE;
-  if(bEl) bEl.value = CFG_FX_MARGEM_BAIXA.toFixed(2);
-  if(aEl) aEl.value = CFG_FX_MARGEM_ALTA.toFixed(2);
+  if(bEl) bEl.value = Math.round((CFG_FX_MARGEM_BAIXA - 1) * 100);
+  if(aEl) aEl.value = Math.round((CFG_FX_MARGEM_ALTA  - 1) * 100);
   if(cEl) cEl.checked = CFG_FX_ATIVO;
   atualizarFaixasUI();
 }
