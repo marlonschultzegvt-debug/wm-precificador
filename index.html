@@ -984,38 +984,15 @@ let DB={
 // Carregar preços salvos pelo admin
 carregarDBSalvo();
 
-// ====== CONFIG API ======
-const API_URL = 'https://script.google.com/macros/s/AKfycbzK0aNb_uIzgyMgTYaLc1Cz5uhrU4fL6r6mRrigCCg5Rn_hqQpFnHmtRTeqOWAd58cR0g/exec'; // ← substituir após publicar
+// ===== CONFIGURAÇÕES GLOBAIS =====
+let CFG_MARGEM          = parseFloat(localStorage.getItem('wmCfgMargem')      || '1.70');
+let CFG_DESCONTO        = parseFloat(localStorage.getItem('wmCfgDesconto')     || '0');
+let CFG_FX_ATIVO        = localStorage.getItem('wmFxAtivo') !== 'false';
+let CFG_FX_LIMITE       = parseFloat(localStorage.getItem('wmFxLimite')        || '5');
+let CFG_FX_MARGEM_BAIXA = parseFloat(localStorage.getItem('wmFxMargemBaixa')   || '1.65');
+let CFG_FX_MARGEM_ALTA  = parseFloat(localStorage.getItem('wmFxMargemAlta')    || '1.70');
 
-async function api(payload){
-  try{
-    // Google Apps Script requer GET para evitar CORS preflight
-    const params = encodeURIComponent(JSON.stringify(payload));
-    const url = API_URL + '?payload=' + params;
-    const r = await fetch(url, {method:'GET', redirect:'follow'});
-    return await r.json();
-  } catch(e) {
-    return {ok:false, erro:'Sem conexão com o servidor: '+e.message};
-  }
-}
-
-// ====== AUTH ======
-let telDuplicado=false;
-
-// ===== FAIXAS DE MARGEM =====
-
-function salvarDesconto(){
-  const d = parseFloat(document.getElementById('cfgDesconto')?.value);
-  if(isNaN(d) || d < 0 || d > 30){ alert('Desconto inválido — entre 0% e 30%'); return; }
-  CFG_DESCONTO = d;
-  localStorage.setItem('wmCfgDesconto', d.toString());
-  const msg = document.getElementById('cfgMsg');
-  if(msg){
-    msg.style.cssText='display:block;background:rgba(0,200,100,.12);color:#3ecf8e;padding:8px 12px;border-radius:8px;font-size:13px;margin-top:8px';
-    msg.textContent = '✅ Desconto salvo: ' + d + '%';
-    setTimeout(()=>msg.style.display='none', 2500);
-  }
-}
+// ===== FUNÇÕES DE FAIXAS DE MARGEM =====
 function atualizarFaixasUI(){
   const lim   = parseFloat(document.getElementById('fxLimite')?.value||5);
   const pctB  = parseFloat(document.getElementById('fxMargemBaixa')?.value||65);
@@ -1031,7 +1008,7 @@ function atualizarFaixasUI(){
   const prev = document.getElementById('fxPreview');
   if(prev) prev.textContent =
     'Comissão 0–'+lim+'%: custo × '+multB.toFixed(2)+' ÷ (1–comissão%)  |  '+
-    'Comissão >'+(lim)+'%: custo × '+multA.toFixed(2)+' ÷ (1–comissão%)';
+    'Comissão >'+lim+'%: custo × '+multA.toFixed(2)+' ÷ (1–comissão%)';
 }
 
 function salvarFaixas(){
@@ -1052,7 +1029,7 @@ function salvarFaixas(){
   const msg = document.getElementById('fxMsg');
   if(msg){
     msg.style.cssText='display:block;background:rgba(0,200,100,.12);color:#3ecf8e;padding:8px 12px;border-radius:8px;font-size:13px;margin-top:8px';
-    msg.textContent='✅ Faixas salvas! Comissão ≤'+lim+'% → '+Math.round((mB-1)*100)+'% margem | >'+lim+'% → '+Math.round((mA-1)*100)+'% margem';
+    msg.textContent='✅ Faixas salvas! Comissão ≤'+lim+'% → '+pctB+'% margem | >'+lim+'% → '+pctA+'% margem';
     setTimeout(()=>msg.style.display='none',3000);
   }
 }
@@ -1069,65 +1046,35 @@ function carregarFaixasUI(){
   atualizarFaixasUI();
 }
 
-// ===== CONFIGURAÇÕES DE PRECIFICAÇÃO =====
-let CFG_MARGEM   = parseFloat(localStorage.getItem('wmCfgMargem')   || '1.70');
-let CFG_DESCONTO = parseFloat(localStorage.getItem('wmCfgDesconto') || '0');
 
-let S={role:null,login:null,nomeVend:null,metaVend:60,mode:'qtd',tipoInv:'mono',oLoss:0,estKey:'2p_colonial',qtd:10,qi:1,isRural:false,R:null};
+// ====== CONFIG API ======
+const API_URL = 'https://script.google.com/macros/s/AKfycbzK0aNb_uIzgyMgTYaLc1Cz5uhrU4fL6r6mRrigCCg5Rn_hqQpFnHmtRTeqOWAd58cR0g/exec'; // ← substituir após publicar
 
-async function doLogin(){
-  const u=document.getElementById('lu').value.trim().toLowerCase();
-  const p=document.getElementById('lp').value;
-  const btn=document.querySelector('.btn-login');
-  btn.textContent='Entrando...'; btn.disabled=true;
-  const res = await api({action:'login', login:u, senha:p});
-  btn.textContent='Entrar'; btn.disabled=false;
-  if(res.ok){
-    S.role=res.role; S.login=res.login; S.nomeVend=res.nome; S.metaVend=res.meta||60;
-    // descMax: pegar da API ou do cache local
-    let _descMax=res.descMax||0;
-    if(!_descMax){
-      try{
-        const cache=JSON.parse(localStorage.getItem('wmTipos')||'{}');
-        if(cache[res.login]) _descMax=cache[res.login].descMax||10;
-      }catch(e){}
-    }
-    S.descMax=_descMax||10;
-    // role negociador: verificar cache se API não retornar
-    if(res.role==='vendedor'){
-      try{
-        const cache=JSON.parse(localStorage.getItem('wmTipos')||'{}');
-        if(cache[res.login]&&cache[res.login].tipo==='negociador') S.role='negociador';
-      }catch(e){}
-    }
-    document.getElementById('ls').style.display='none';
-    document.getElementById('app').style.display='block';
-    const b=document.getElementById('rbadge');
-    b.textContent=(S.role==='admin'?'🔑 Admin':S.role==='gestor'?'📊 '+S.nomeVend:S.role==='negociador'?'🏷️ '+S.nomeVend:'👤 '+S.nomeVend);
-    b.className='brole '+(S.role==='admin'?'badm':S.role==='gestor'?'bges':S.role==='negociador'?'bneg':'bvnd');
-    // Tabs visíveis
-    document.getElementById('tabMyBtn').style.display='flex';
-    if(S.role==='admin'){
-      document.getElementById('atab').style.display='flex';
-      document.getElementById('tabDashBtn').style.display='flex';
-      document.getElementById('btnXls').style.display='inline-flex';
-      renderAdmTbl(); loadVendedoresTbl(); loadOrigensTbl(); carregarConfigs();
-    }
-    if(S.role==='gestor'){
-      document.getElementById('tabDashBtn').style.display='flex';
-      document.getElementById('tabMyBtn').style.display='flex';
-      // Resetar _iniciado para pré-selecionar o gestor ao abrir o dashboard
-      const _sgEl = document.getElementById('dFiltroGestor');
-      if(_sgEl) _sgEl._iniciado = false;
-      loadDashboard();
-    }
-    refreshGen(); buildPlacaSel(); loadOrigens();
-  } else {
-    const e=document.getElementById('lerr'); e.style.display='block';
-    e.textContent=res.erro||'Usuário ou senha incorretos';
-    setTimeout(()=>e.style.display='none',3000);
+async function api(payload){
+  try{
+    // Google Apps Script requer GET para evitar CORS preflight
+    const params = encodeURIComponent(JSON.stringify(payload));
+    const url = API_URL + '?payload=' + params;
+    const r = await fetch(url, {method:'GET', redirect:'follow'});
+    return await r.json();
+  } catch(e) {
+    return {ok:false, erro:'Sem conexão com o servidor: '+e.message};
   }
 }
+
+// ====== AUTH ======
+let telDuplicado=false;
+
+// ===== FAIXAS DE MARGEM =====
+
+
+
+
+
+
+
+
+
 document.getElementById('lp').addEventListener('keydown',e=>{if(e.key==='Enter')doLogin()});
 document.getElementById('lu').addEventListener('keydown',e=>{if(e.key==='Enter')document.getElementById('lp').focus()});
 function doLogout(){
@@ -3369,7 +3316,7 @@ function renderCustosExtras(){
 }
 
 
-// CFG movido para o início
+
 
 function atualizarConfigLabel(){
   const pct = parseFloat(document.getElementById('cfgMargemPct')?.value || 70);
@@ -3417,6 +3364,7 @@ function carregarConfigs(){
   if(mEl) mEl.value = CFG_MARGEM.toFixed(2);
   if(dEl) dEl.value = CFG_DESCONTO;
   atualizarConfigLabel();
+  carregarFaixasUI();
   carregarFaixasUI();
 }
 
@@ -3704,3 +3652,72 @@ async function salvarNovaSenha(){
 </div>
 </body>
 </html>
+
+function salvarDesconto(){
+  const d = parseFloat(document.getElementById('cfgDesconto')?.value);
+  if(isNaN(d) || d < 0 || d > 30){ alert('Desconto inválido — entre 0% e 30%'); return; }
+  CFG_DESCONTO = d;
+  localStorage.setItem('wmCfgDesconto', d.toString());
+  const msg = document.getElementById('cfgMsg');
+  if(msg){
+    msg.style.cssText='display:block;background:rgba(0,200,100,.12);color:#3ecf8e;padding:8px 12px;border-radius:8px;font-size:13px;margin-top:8px';
+    msg.textContent = '✅ Desconto salvo: ' + d + '%';
+    setTimeout(()=>msg.style.display='none', 2500);
+  }
+}
+
+let S={role:null,login:null,nomeVend:null,metaVend:60,mode:'qtd',tipoInv:'mono',oLoss:0,estKey:'2p_colonial',qtd:10,qi:1,isRural:false,R:null};
+
+async function doLogin(){
+  const u=document.getElementById('lu').value.trim().toLowerCase();
+  const p=document.getElementById('lp').value;
+  const btn=document.querySelector('.btn-login');
+  btn.textContent='Entrando...'; btn.disabled=true;
+  const res = await api({action:'login', login:u, senha:p});
+  btn.textContent='Entrar'; btn.disabled=false;
+  if(res.ok){
+    S.role=res.role; S.login=res.login; S.nomeVend=res.nome; S.metaVend=res.meta||60;
+    // descMax: pegar da API ou do cache local
+    let _descMax=res.descMax||0;
+    if(!_descMax){
+      try{
+        const cache=JSON.parse(localStorage.getItem('wmTipos')||'{}');
+        if(cache[res.login]) _descMax=cache[res.login].descMax||10;
+      }catch(e){}
+    }
+    S.descMax=_descMax||10;
+    // role negociador: verificar cache se API não retornar
+    if(res.role==='vendedor'){
+      try{
+        const cache=JSON.parse(localStorage.getItem('wmTipos')||'{}');
+        if(cache[res.login]&&cache[res.login].tipo==='negociador') S.role='negociador';
+      }catch(e){}
+    }
+    document.getElementById('ls').style.display='none';
+    document.getElementById('app').style.display='block';
+    const b=document.getElementById('rbadge');
+    b.textContent=(S.role==='admin'?'🔑 Admin':S.role==='gestor'?'📊 '+S.nomeVend:S.role==='negociador'?'🏷️ '+S.nomeVend:'👤 '+S.nomeVend);
+    b.className='brole '+(S.role==='admin'?'badm':S.role==='gestor'?'bges':S.role==='negociador'?'bneg':'bvnd');
+    // Tabs visíveis
+    document.getElementById('tabMyBtn').style.display='flex';
+    if(S.role==='admin'){
+      document.getElementById('atab').style.display='flex';
+      document.getElementById('tabDashBtn').style.display='flex';
+      document.getElementById('btnXls').style.display='inline-flex';
+      renderAdmTbl(); loadVendedoresTbl(); loadOrigensTbl(); carregarConfigs();
+    }
+    if(S.role==='gestor'){
+      document.getElementById('tabDashBtn').style.display='flex';
+      document.getElementById('tabMyBtn').style.display='flex';
+      // Resetar _iniciado para pré-selecionar o gestor ao abrir o dashboard
+      const _sgEl = document.getElementById('dFiltroGestor');
+      if(_sgEl) _sgEl._iniciado = false;
+      loadDashboard();
+    }
+    refreshGen(); buildPlacaSel(); loadOrigens();
+  } else {
+    const e=document.getElementById('lerr'); e.style.display='block';
+    e.textContent=res.erro||'Usuário ou senha incorretos';
+    setTimeout(()=>e.style.display='none',3000);
+  }
+}
