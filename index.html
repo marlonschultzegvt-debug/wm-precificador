@@ -3609,49 +3609,6 @@ async function salvarNovaSenha(){
     showMsg(res.erro || 'Erro ao alterar senha.', false);
   }
 }
-</script>
-
-<!-- MODAL PROPOSTA -->
-<div id="propostaModal" onclick="if(event.target===this)fecharProposta()">
-  <div class="modal-box">
-    <div class="modal-bar">
-      <span class="modal-bar-title">WM Energia Solar — Proposta</span>
-      <div class="modal-bar-btns">
-        <button class="mpbtn" onclick="editarProposta()" style="background:rgba(232,123,30,.15);color:var(--orange);border:1px solid rgba(232,123,30,.3)">✏️ Editar</button>
-        <button class="mpbtn mpbtn-print" id="btnGerarPDF" onclick="gerarPDF()">📄 Baixar PDF</button>
-        <button class="mpbtn mpbtn-close" onclick="fecharProposta()">✕ Fechar</button>
-      </div>
-    </div>
-    <div class="prop-page" id="propConteudo"></div>
-  </div>
-</div>
-
-<!-- MODAL TROCAR SENHA -->
-<div id="modalSenha" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:999;align-items:center;justify-content:center">
-  <div style="background:#1a1a1a;border-radius:14px;padding:36px;width:360px;box-shadow:0 20px 60px rgba(0,0,0,.5)">
-    <div style="font-size:18px;font-weight:800;color:#fff;margin-bottom:6px">🔑 Alterar Senha</div>
-    <div style="font-size:13px;color:#888;margin-bottom:24px">Usuário: <span id="senhaUser" style="color:#E87B1E;font-weight:700"></span></div>
-    <div style="margin-bottom:14px">
-      <label style="font-size:11px;font-weight:700;letter-spacing:.8px;text-transform:uppercase;color:#888;display:block;margin-bottom:6px">Senha Atual</label>
-      <input type="password" id="senhaAtual" placeholder="••••••" style="width:100%;background:#0d0d0d;border:2px solid #333;border-radius:8px;padding:10px 13px;font-size:14px;color:#fff;outline:none;font-family:inherit">
-    </div>
-    <div style="margin-bottom:14px">
-      <label style="font-size:11px;font-weight:700;letter-spacing:.8px;text-transform:uppercase;color:#888;display:block;margin-bottom:6px">Nova Senha</label>
-      <input type="password" id="senhaNova" placeholder="••••••" style="width:100%;background:#0d0d0d;border:2px solid #333;border-radius:8px;padding:10px 13px;font-size:14px;color:#fff;outline:none;font-family:inherit">
-    </div>
-    <div style="margin-bottom:20px">
-      <label style="font-size:11px;font-weight:700;letter-spacing:.8px;text-transform:uppercase;color:#888;display:block;margin-bottom:6px">Confirmar Nova Senha</label>
-      <input type="password" id="senhaConfirm" placeholder="••••••" style="width:100%;background:#0d0d0d;border:2px solid #333;border-radius:8px;padding:10px 13px;font-size:14px;color:#fff;outline:none;font-family:inherit">
-    </div>
-    <div id="senhaMsg" style="display:none;border-radius:6px;padding:10px 13px;font-size:13px;margin-bottom:14px"></div>
-    <div style="display:flex;gap:10px">
-      <button onclick="salvarNovaSenha()" style="flex:1;background:#E87B1E;color:#fff;border:none;border-radius:8px;padding:12px;font-size:14px;font-weight:700;cursor:pointer;font-family:inherit">Salvar</button>
-      <button onclick="fecharTrocarSenha()" style="flex:1;background:#333;color:#fff;border:none;border-radius:8px;padding:12px;font-size:14px;font-weight:700;cursor:pointer;font-family:inherit">Cancelar</button>
-    </div>
-  </div>
-</div>
-</body>
-</html>
 
 function salvarDesconto(){
   const d = parseFloat(document.getElementById('cfgDesconto')?.value);
@@ -3721,3 +3678,47 @@ async function doLogin(){
     setTimeout(()=>e.style.display='none',3000);
   }
 }
+</script>
+
+<!-- MODAL PROPOSTA -->
+<div id="propostaModal" onclick="if(event.target===this)fecharProposta()">
+  <div class="modal-box">
+    <div class="modal-bar">
+      <span class="modal-bar-title">WM Energia Solar — Proposta</span>
+      <div class="modal-bar-btns">
+        <button class="mpbtn" onclick="editarProposta()" style="background:rgba(232,123,30,.15);color:var(--orange);border:1px solid rgba(232,123,30,.3)">✏️ Editar</button>
+        <button class="mpbtn mpbtn-print" id="btnGerarPDF" onclick="gerarPDF()">📄 Baixar PDF</button>
+        <button class="mpbtn mpbtn-close" onclick="fecharProposta()">✕ Fechar</button>
+      </div>
+    </div>
+    <div class="prop-page" id="propConteudo"></div>
+  </div>
+</div>
+
+<!-- MODAL TROCAR SENHA -->
+<div id="modalSenha" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:999;align-items:center;justify-content:center">
+  <div style="background:#1a1a1a;border-radius:14px;padding:36px;width:360px;box-shadow:0 20px 60px rgba(0,0,0,.5)">
+    <div style="font-size:18px;font-weight:800;color:#fff;margin-bottom:6px">🔑 Alterar Senha</div>
+    <div style="font-size:13px;color:#888;margin-bottom:24px">Usuário: <span id="senhaUser" style="color:#E87B1E;font-weight:700"></span></div>
+    <div style="margin-bottom:14px">
+      <label style="font-size:11px;font-weight:700;letter-spacing:.8px;text-transform:uppercase;color:#888;display:block;margin-bottom:6px">Senha Atual</label>
+      <input type="password" id="senhaAtual" placeholder="••••••" style="width:100%;background:#0d0d0d;border:2px solid #333;border-radius:8px;padding:10px 13px;font-size:14px;color:#fff;outline:none;font-family:inherit">
+    </div>
+    <div style="margin-bottom:14px">
+      <label style="font-size:11px;font-weight:700;letter-spacing:.8px;text-transform:uppercase;color:#888;display:block;margin-bottom:6px">Nova Senha</label>
+      <input type="password" id="senhaNova" placeholder="••••••" style="width:100%;background:#0d0d0d;border:2px solid #333;border-radius:8px;padding:10px 13px;font-size:14px;color:#fff;outline:none;font-family:inherit">
+    </div>
+    <div style="margin-bottom:20px">
+      <label style="font-size:11px;font-weight:700;letter-spacing:.8px;text-transform:uppercase;color:#888;display:block;margin-bottom:6px">Confirmar Nova Senha</label>
+      <input type="password" id="senhaConfirm" placeholder="••••••" style="width:100%;background:#0d0d0d;border:2px solid #333;border-radius:8px;padding:10px 13px;font-size:14px;color:#fff;outline:none;font-family:inherit">
+    </div>
+    <div id="senhaMsg" style="display:none;border-radius:6px;padding:10px 13px;font-size:13px;margin-bottom:14px"></div>
+    <div style="display:flex;gap:10px">
+      <button onclick="salvarNovaSenha()" style="flex:1;background:#E87B1E;color:#fff;border:none;border-radius:8px;padding:12px;font-size:14px;font-weight:700;cursor:pointer;font-family:inherit">Salvar</button>
+      <button onclick="fecharTrocarSenha()" style="flex:1;background:#333;color:#fff;border:none;border-radius:8px;padding:12px;font-size:14px;font-weight:700;cursor:pointer;font-family:inherit">Cancelar</button>
+    </div>
+  </div>
+</div>
+</body>
+
+</html>
