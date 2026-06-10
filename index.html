@@ -672,20 +672,21 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:22px;heigh
       <div class="sep"><span>⚙️ Configurações de Precificação</span></div>
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:1.5rem">
         <div class="fg">
-          <label>Margem sobre o custo (multiplicador)</label>
+          <label>Margem sobre o custo</label>
           <div style="display:flex;align-items:center;gap:8px">
-            <input type="number" id="cfgMargem" value="1.70" min="1.00" max="3.00" step="0.01"
-              style="flex:1" oninput="atualizarConfigLabel()">
-            <span id="cfgMargemPct" style="color:var(--orange);font-weight:700;white-space:nowrap">= 70% margem</span>
+            <input type="number" id="cfgMargemPct" value="70" min="1" max="200" step="1"
+              style="flex:1;font-size:18px;font-weight:700;color:var(--orange)" oninput="atualizarConfigLabel()">
+            <span style="color:var(--orange);font-weight:800;font-size:18px">%</span>
           </div>
-          <small style="color:var(--t2)">Padrão: 1.70 (70% de margem sobre o custo)</small>
+          <small style="color:var(--t2)">Padrão: 70% → multiplicador 1.70</small>
+          <input type="hidden" id="cfgMargem" value="1.70">
         </div>
         <div class="fg">
-          <label>Desconto sobre o custo do kit (%)</label>
+          <label>Desconto sobre o custo do kit</label>
           <div style="display:flex;align-items:center;gap:8px">
             <input type="number" id="cfgDesconto" value="0" min="0" max="30" step="0.5"
-              style="flex:1" oninput="atualizarConfigLabel()">
-            <span style="color:var(--t2);font-weight:700">%</span>
+              style="flex:1;font-size:18px;font-weight:700;color:#1A6FA8" oninput="atualizarConfigLabel()">
+            <span style="color:#1A6FA8;font-weight:800;font-size:18px">%</span>
           </div>
           <small style="color:var(--t2)">Padrão: 0% (sem desconto no custo)</small>
         </div>
@@ -3300,22 +3301,24 @@ function renderCustosExtras(){
 // CFG movido para o início
 
 function atualizarConfigLabel(){
-  const m = parseFloat(document.getElementById('cfgMargem')?.value  || 1.70);
-  const d = parseFloat(document.getElementById('cfgDesconto')?.value || 0);
-  const pctMargem = Math.round((m - 1) * 100);
-  const el = document.getElementById('cfgMargemPct');
-  if(el) el.textContent = '= ' + pctMargem + '% margem';
+  const pct = parseFloat(document.getElementById('cfgMargemPct')?.value || 70);
+  const m   = 1 + pct/100;
+  const d   = parseFloat(document.getElementById('cfgDesconto')?.value || 0);
+  // Atualizar hidden field
+  const hid = document.getElementById('cfgMargem');
+  if(hid) hid.value = m.toFixed(2);
   const formula = document.getElementById('cfgFormula');
   if(formula){
-    const descStr = d > 0 ? 'custo × ' + (1-d/100).toFixed(3) + ' (' + d + '% desc.) × ' + m.toFixed(2) : 'custo × ' + m.toFixed(2);
+    const descStr = d > 0 ? 'custo × '+(1-d/100).toFixed(2)+' ('+d+'% desc.) × '+m.toFixed(2) : 'custo × '+m.toFixed(2);
     formula.textContent = descStr + ' = Preço Base';
   }
 }
 
 function salvarConfigs(){
-  const m = parseFloat(document.getElementById('cfgMargem')?.value);
-  const d = parseFloat(document.getElementById('cfgDesconto')?.value);
-  if(isNaN(m) || m < 1){ alert('Margem inválida — mínimo 1.00'); return; }
+  const pct = parseFloat(document.getElementById('cfgMargemPct')?.value);
+  const m   = 1 + pct/100;
+  const d   = parseFloat(document.getElementById('cfgDesconto')?.value);
+  if(isNaN(pct) || pct < 1){ alert('Margem inválida — mínimo 1%'); return; }
   if(isNaN(d) || d < 0 || d > 30){ alert('Desconto inválido — entre 0% e 30%'); return; }
   CFG_MARGEM   = m;
   CFG_DESCONTO = d;
@@ -3329,7 +3332,7 @@ function salvarConfigs(){
     msg.style.padding='10px 14px';
     msg.style.borderRadius='8px';
     msg.style.fontSize='13px';
-    msg.textContent='✅ Configurações salvas! Margem: ' + Math.round((m-1)*100) + '% | Desconto no custo: ' + d + '%';
+    msg.textContent='✅ Salvo! Margem: ' + pct + '% | Desconto no custo: ' + d + '%';
     setTimeout(()=>msg.style.display='none', 3000);
   }
 }
@@ -3337,6 +3340,9 @@ function salvarConfigs(){
 function carregarConfigs(){
   const mEl = document.getElementById('cfgMargem');
   const dEl = document.getElementById('cfgDesconto');
+  // Converter multiplicador para % (ex: 1.70 → 70)
+  const pctEl = document.getElementById('cfgMargemPct');
+  if(pctEl) pctEl.value = Math.round((CFG_MARGEM - 1) * 100);
   if(mEl) mEl.value = CFG_MARGEM.toFixed(2);
   if(dEl) dEl.value = CFG_DESCONTO;
   atualizarConfigLabel();
@@ -3349,6 +3355,8 @@ function restaurarConfigs(){
   localStorage.removeItem('wmCfgDesconto');
   CFG_MARGEM   = 1.70;
   CFG_DESCONTO = 0;
+  const pctElR = document.getElementById('cfgMargemPct');
+  if(pctElR) pctElR.value = 70;
   carregarConfigs();
   const msg = document.getElementById('cfgMsg');
   if(msg){
