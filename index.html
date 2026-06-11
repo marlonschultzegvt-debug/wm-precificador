@@ -1010,11 +1010,11 @@ async function carregarConfigsServidor(){
     const res = await api({action:'getConfigs'});
     if(res.ok && res.configs){
       const c = res.configs;
-      if(c.fxAtivo       !== undefined) CFG_FX_ATIVO        = c.fxAtivo === 'true';
+      if(c.fxAtivo       !== undefined) CFG_FX_ATIVO        = c.fxAtivo.toLowerCase() === 'true';
       if(c.fxLimite      !== undefined) CFG_FX_LIMITE       = parseFloat(c.fxLimite)      || 5;
       if(c.fxMargemBaixa !== undefined) CFG_FX_MARGEM_BAIXA = parseFloat(c.fxMargemBaixa) || 1.65;
       if(c.fxMargemAlta  !== undefined) CFG_FX_MARGEM_ALTA  = parseFloat(c.fxMargemAlta)  || 1.70;
-      if(c.margem        !== undefined) CFG_MARGEM          = parseFloat(c.margem)        || 1.70;
+      // 'margem' legado — não sobrescreve, sistema usa fxMargemBaixa/fxMargemAlta
       if(c.desconto      !== undefined) CFG_DESCONTO        = parseFloat(c.desconto)      || 0;
       // Atualizar cache local
       localStorage.setItem('wmFxAtivo',       String(CFG_FX_ATIVO));
@@ -1053,8 +1053,8 @@ async function enviarConfigsServidor(){
     fxLimite:      String(CFG_FX_LIMITE),
     fxMargemBaixa: String(CFG_FX_MARGEM_BAIXA),
     fxMargemAlta:  String(CFG_FX_MARGEM_ALTA),
-    margem:        String(CFG_MARGEM),
     desconto:      String(CFG_DESCONTO)
+    // "margem" legado não é enviado — sistema usa fxMargemBaixa/fxMargemAlta
   };
   const res = await api({action:'salvarConfigs', role:S.role, login:S.login, configs});
   return res.ok;
