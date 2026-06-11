@@ -945,6 +945,18 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:22px;heigh
 </div>
 
 <script>
+
+// ===== RESET DE CACHE POR VERSÃO =====
+(function(){
+  const CACHE_VER = '2.1'; // ← incrementar aqui para forçar reset em todos
+  if(localStorage.getItem('wmCacheVer') !== CACHE_VER){
+    ['wmCfgMargem','wmCfgDesconto','wmFxAtivo','wmFxLimite',
+     'wmFxMargemBaixa','wmFxMargemAlta','wmDB','wmTipos'].forEach(k=>localStorage.removeItem(k));
+    localStorage.setItem('wmCacheVer', CACHE_VER);
+    console.log('🔄 Cache WM resetado para versão', CACHE_VER);
+  }
+})();
+
 // ====== DB ======
 let DB={
   placas:[
