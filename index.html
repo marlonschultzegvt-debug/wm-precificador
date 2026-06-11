@@ -1004,6 +1004,63 @@ let CFG_FX_LIMITE       = parseFloat(localStorage.getItem('wmFxLimite')        |
 let CFG_FX_MARGEM_BAIXA = parseFloat(localStorage.getItem('wmFxMargemBaixa')   || '1.65');
 let CFG_FX_MARGEM_ALTA  = parseFloat(localStorage.getItem('wmFxMargemAlta')    || '1.70');
 
+// ===== SYNC DE CONFIGS COM O SERVIDOR =====
+async function carregarConfigsServidor(){
+  try{
+    const res = await api({action:'getConfigs'});
+    if(res.ok && res.configs){
+      const c = res.configs;
+      if(c.fxAtivo       !== undefined) CFG_FX_ATIVO        = c.fxAtivo === 'true';
+      if(c.fxLimite      !== undefined) CFG_FX_LIMITE       = parseFloat(c.fxLimite)      || 5;
+      if(c.fxMargemBaixa !== undefined) CFG_FX_MARGEM_BAIXA = parseFloat(c.fxMargemBaixa) || 1.65;
+      if(c.fxMargemAlta  !== undefined) CFG_FX_MARGEM_ALTA  = parseFloat(c.fxMargemAlta)  || 1.70;
+      if(c.margem        !== undefined) CFG_MARGEM          = parseFloat(c.margem)        || 1.70;
+      if(c.desconto      !== undefined) CFG_DESCONTO        = parseFloat(c.desconto)      || 0;
+      // Atualizar cache local
+      localStorage.setItem('wmFxAtivo',       String(CFG_FX_ATIVO));
+      localStorage.setItem('wmFxLimite',      String(CFG_FX_LIMITE));
+      localStorage.setItem('wmFxMargemBaixa', String(CFG_FX_MARGEM_BAIXA));
+      localStorage.setItem('wmFxMargemAlta',  String(CFG_FX_MARGEM_ALTA));
+      localStorage.setItem('wmCfgMargem',     String(CFG_MARGEM));
+      localStorage.setItem('wmCfgDesconto',   String(CFG_DESCONTO));
+      // Sincronizar DB de preços do servidor
+      if(c.dbJson){
+        try{
+          const sdb = JSON.parse(c.dbJson);
+          if(sdb.placas) DB.placas = sdb.placas;
+          if(sdb.mono)   DB.mono   = sdb.mono;
+          if(sdb.micro)  DB.micro  = sdb.micro;
+          if(sdb.tri)    DB.tri    = sdb.tri;
+          if(sdb.est)    DB.est    = sdb.est;
+          if(sdb.cabo)   DB.cabo   = sdb.cabo;
+          if(sdb.mc4)    DB.mc4    = sdb.mc4;
+          localStorage.setItem('wmDB', c.dbJson);
+          if(typeof buildPlacaSel==='function') buildPlacaSel();
+          if(typeof rebuildSels==='function') rebuildSels();
+          console.log('✅ Tabela de preços sincronizada do servidor');
+        }catch(e){ console.warn('dbJson inválido no servidor'); }
+      }
+      console.log('✅ Configs sincronizadas do servidor:', c);
+      // Se já tem resultado calculado, recalcular com novos valores
+      if(S.R) { updC && document.getElementById('slC') && updC(); }
+    }
+  }catch(e){ console.warn('Configs do servidor indisponíveis, usando cache local'); }
+}
+
+async function enviarConfigsServidor(){
+  const configs = {
+    fxAtivo:       String(CFG_FX_ATIVO),
+    fxLimite:      String(CFG_FX_LIMITE),
+    fxMargemBaixa: String(CFG_FX_MARGEM_BAIXA),
+    fxMargemAlta:  String(CFG_FX_MARGEM_ALTA),
+    margem:        String(CFG_MARGEM),
+    desconto:      String(CFG_DESCONTO)
+  };
+  const res = await api({action:'salvarConfigs', role:S.role, login:S.login, configs});
+  return res.ok;
+}
+
+
 // ===== FUNÇÕES DE FAIXAS DE MARGEM =====
 function atualizarFaixasUI(){
   const lim   = parseFloat(document.getElementById('fxLimite')?.value||5);
@@ -1040,10 +1097,21 @@ function salvarFaixas(){
   localStorage.setItem('wmFxMargemAlta',  String(mA));
   const msg = document.getElementById('fxMsg');
   if(msg){
-    msg.style.cssText='display:block;background:rgba(0,200,100,.12);color:#3ecf8e;padding:8px 12px;border-radius:8px;font-size:13px;margin-top:8px';
-    msg.textContent='✅ Faixas salvas! Comissão ≤'+lim+'% → '+pctB+'% margem | >'+lim+'% → '+pctA+'% margem';
-    setTimeout(()=>msg.style.display='none',3000);
+    msg.style.cssText='display:block;background:rgba(26,111,168,.12);color:#4fa3d8;padding:8px 12px;border-radius:8px;font-size:13px;margin-top:8px';
+    msg.textContent='⏳ Salvando no servidor...';
   }
+  enviarConfigsServidor().then(okSrv=>{
+    if(msg){
+      if(okSrv){
+        msg.style.cssText='display:block;background:rgba(0,200,100,.12);color:#3ecf8e;padding:8px 12px;border-radius:8px;font-size:13px;margin-top:8px';
+        msg.textContent='✅ Faixas salvas para TODOS os usuários! Comissão ≤'+lim+'% → '+pctB+'% | >'+lim+'% → '+pctA+'%';
+      } else {
+        msg.style.cssText='display:block;background:rgba(229,57,53,.12);color:#ff5252;padding:8px 12px;border-radius:8px;font-size:13px;margin-top:8px';
+        msg.textContent='⚠️ Salvo localmente, mas falhou no servidor. Vendedores podem ver preço antigo.';
+      }
+      setTimeout(()=>msg.style.display='none',4000);
+    }
+  });
 }
 
 function carregarFaixasUI(){
@@ -1343,7 +1411,7 @@ function calcRes(){
   const custo=cPl+cInv+cEst+cCabo+cMC4+(S.isRural?450:0)+_totalCustosExtras;
   const _descKit = 1 - (CFG_DESCONTO/100);
   const custoLiq=custo*_descKit;
-  const precoBase=custoLiq*CFG_MARGEM;
+  const precoBase=custoLiq*getMargemAtual(0);
   const kwp=(pl.pot*qtd)/1000;
   const gen=kwp*f*30*(1-S.oLoss);
   const isMicro=S.tipoInv==='micro';
@@ -3441,11 +3509,21 @@ function salvarDB(){
     localStorage.setItem('wmDB', JSON.stringify(snapshot));
     const el=document.getElementById('dbMsg');
     if(el){
-      el.style.display='block';
-      el.style.cssText='display:block;background:rgba(0,200,100,.12);color:#3ecf8e;padding:10px 14px;border-radius:8px;font-size:13px;margin-top:10px';
-      el.textContent='✅ Preços salvos! Aplicados em todos os cálculos.';
-      setTimeout(()=>el.style.display='none', 3000);
+      el.style.cssText='display:block;background:rgba(26,111,168,.12);color:#4fa3d8;padding:10px 14px;border-radius:8px;font-size:13px;margin-top:10px';
+      el.textContent='⏳ Salvando preços no servidor...';
     }
+    api({action:'salvarConfigs', role:S.role, login:S.login, configs:{dbJson: JSON.stringify(snapshot)}}).then(res=>{
+      if(el){
+        if(res.ok){
+          el.style.cssText='display:block;background:rgba(0,200,100,.12);color:#3ecf8e;padding:10px 14px;border-radius:8px;font-size:13px;margin-top:10px';
+          el.textContent='✅ Preços salvos para TODOS os usuários!';
+        } else {
+          el.style.cssText='display:block;background:rgba(229,57,53,.12);color:#ff5252;padding:10px 14px;border-radius:8px;font-size:13px;margin-top:10px';
+          el.textContent='⚠️ Salvo localmente, mas falhou no servidor.';
+        }
+        setTimeout(()=>el.style.display='none', 4000);
+      }
+    });
   } catch(e){ alert('Erro ao salvar: '+e.message); }
 }
 
@@ -3629,10 +3707,21 @@ function salvarDesconto(){
   localStorage.setItem('wmCfgDesconto', d.toString());
   const msg = document.getElementById('cfgMsg');
   if(msg){
-    msg.style.cssText='display:block;background:rgba(0,200,100,.12);color:#3ecf8e;padding:8px 12px;border-radius:8px;font-size:13px;margin-top:8px';
-    msg.textContent = '✅ Desconto salvo: ' + d + '%';
-    setTimeout(()=>msg.style.display='none', 2500);
+    msg.style.cssText='display:block;background:rgba(26,111,168,.12);color:#4fa3d8;padding:8px 12px;border-radius:8px;font-size:13px;margin-top:8px';
+    msg.textContent = '⏳ Salvando no servidor...';
   }
+  enviarConfigsServidor().then(okSrv=>{
+    if(msg){
+      if(okSrv){
+        msg.style.cssText='display:block;background:rgba(0,200,100,.12);color:#3ecf8e;padding:8px 12px;border-radius:8px;font-size:13px;margin-top:8px';
+        msg.textContent = '✅ Desconto de '+d+'% salvo para TODOS os usuários!';
+      } else {
+        msg.style.cssText='display:block;background:rgba(229,57,53,.12);color:#ff5252;padding:8px 12px;border-radius:8px;font-size:13px;margin-top:8px';
+        msg.textContent = '⚠️ Salvo localmente, mas falhou no servidor.';
+      }
+      setTimeout(()=>msg.style.display='none', 4000);
+    }
+  });
 }
 
 let S={role:null,login:null,nomeVend:null,metaVend:60,mode:'qtd',tipoInv:'mono',oLoss:0,estKey:'2p_colonial',qtd:10,qi:1,isRural:false,R:null};
