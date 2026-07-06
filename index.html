@@ -316,6 +316,7 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:22px;heigh
 @media(max-width:600px){.prop-hero{flex-direction:column}.prop-stats{grid-template-columns:1fr 1fr}.prop-price{font-size:36px}.prop-info-grid{grid-template-columns:1fr}.prop-page{padding:1.25rem}}
 
 .bneg{background:rgba(79,163,216,.12);color:#4fa3d8;border:1px solid rgba(79,163,216,.3)}
+.bint{background:rgba(62,207,142,.12);color:#3ecf8e;border:1px solid rgba(62,207,142,.3)}
 .bges{background:rgba(26,111,168,.15);color:#1A6FA8;border:1px solid rgba(26,111,168,.3)}
 /* ===== DASHBOARD PREMIUM ===== */
 .met{background:var(--bg2);border-radius:10px;padding:18px;border:1px solid var(--b2);position:relative;overflow:hidden;transition:.2s}
@@ -346,11 +347,6 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:22px;heigh
 .pp-inv-compact-val{font-family:"Syne",sans-serif;font-size:26px;font-weight:700;color:#0f3460;line-height:1}
 .pp-inv-compact-sub{font-size:11px;color:#aaa;margin-top:3px}
 .pp-inv-compact-right{text-align:right}
-
-@keyframes pulseAlerta{
-  from{opacity:.7;transform:translateX(0)}
-  to{opacity:1;transform:translateX(3px)}
-}
 </style>
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
 </head>
@@ -376,7 +372,7 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:22px;heigh
   </div>
   <div class="tabs">
     <button class="tab on" onclick="showTab('calc',this)">🧮 Precificador</button>
-    <button class="tab" id="tabMyBtn" onclick="showTab('my',this)" style="display:none">📊 Minhas Propostas</button>
+    <button class="tab" id="tabMyBtn" onclick="showTab('my',this)" style="display:none">📋 Minhas Propostas</button>
     <button class="tab" id="tabDashBtn" onclick="showTab('dash',this)" style="display:none">📈 Dashboard</button>
     <button class="tab" id="atab" onclick="showTab('adm',this)" style="display:none">⚙️ Admin</button>
   </div>
@@ -387,8 +383,7 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:22px;heigh
       <div class="step on" id="s1"><span class="snum">1</span>Placa & Local</div><span class="sarr">›</span>
       <div class="step" id="s2"><span class="snum">2</span>Inversor</div><span class="sarr">›</span>
       <div class="step" id="s3"><span class="snum">3</span>Estrutura</div><span class="sarr">›</span>
-      <div class="step" id="s4"><span class="snum">4</span>Custos Extras</div><span class="sarr">›</span>
-      <div class="step" id="s5"><span class="snum">5</span>Resultado</div>
+      <div class="step" id="s4"><span class="snum">4</span>Resultado</div>
     </div>
 
     <!-- PASSO 1 -->
@@ -504,25 +499,19 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:22px;heigh
       <div class="ov-alert" id="ovAl">
         <strong>⚠ Overload excedido!</strong> <span id="ovTxt"></span><br>
         Selecione a quantidade de inversores:
-        <div style="margin-top:8px;font-size:13px;color:var(--orange)">
-          👆 Escolha um inversor maior ou adicione um 2º inversor abaixo.
+        <div class="qrow">
+          <label>Qtd inversores:</label>
+          <div class="qbtns">
+            <button class="qb on" id="qb1" onclick="setQI(1)">1</button>
+            <button class="qb" id="qb2" onclick="setQI(2)">2</button>
+          </div>
         </div>
         <div class="blkmsg" id="blkMsg">❌ Mesmo com 2 inversores este modelo não atende <span id="blkQtd"></span> placas. Escolha um inversor maior.</div>
       </div>
 
-      <!-- Botão adicionar 2º inversor -->
-      <div style="margin-top:12px">
-        <button id="btnAddInv2" onclick="addInv2()" class="ba bor" style="width:100%;padding:10px;font-size:13px;border-style:dashed">
-          ➕ Adicionar 2º Inversor
-        </button>
-      </div>
-
       <!-- Segundo inversor (aparece quando qi=2) -->
       <div id="gInv2" style="display:none;margin-top:12px;background:rgba(232,123,30,.06);border:1px solid rgba(232,123,30,.2);border-radius:8px;padding:12px">
-        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
-          <div style="font-size:11px;font-weight:700;color:var(--orange);text-transform:uppercase;letter-spacing:.05em">⚡ Segundo Inversor</div>
-          <button onclick="removerInv2()" style="background:none;border:1px solid rgba(229,57,53,.3);color:#e05050;border-radius:6px;padding:3px 10px;font-size:11px;cursor:pointer;font-family:inherit">✕ Remover</button>
-        </div>
+        <div style="font-size:11px;font-weight:700;color:var(--orange);text-transform:uppercase;letter-spacing:.05em;margin-bottom:8px">⚡ Segundo Inversor</div>
         <div class="fg" id="gMono2" style="display:block"><label>Modelo — Inversor 2</label>
           <select id="sMono2" onchange="chkOv()">
             <option value="0">Chint 3kW Mono — Overload: até 8 placas</option>
@@ -569,30 +558,7 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:22px;heigh
       </div>
       <div class="nav">
         <button class="ba bot" onclick="goBack(2)">← Voltar</button>
-        <button class="ba bor" onclick="irCustosExtras()">Próximo: Custos Extras →</button>
-      </div>
-    </div>
-
-
-    <!-- PASSO 4: CUSTOS EXTRAS -->
-    <div id="c4" style="display:none">
-      <div class="ctitle"><span class="ic">④</span>Custos Extras</div>
-      <div style="font-size:13px;color:var(--t2);margin-bottom:1rem">Adicione custos adicionais ao kit (não aparecem na proposta do cliente).</div>
-
-      <div id="custosExtrasLista" style="display:flex;flex-direction:column;gap:10px;margin-bottom:1rem"></div>
-
-      <button onclick="addCustoExtra()" class="ba bor" style="width:100%;padding:10px;font-size:13px;border-style:dashed;margin-bottom:1.5rem">
-        ➕ Adicionar Custo Extra
-      </button>
-
-      <div style="background:var(--bg2);border:1px solid var(--b2);border-radius:10px;padding:14px;margin-bottom:1.5rem">
-        <div style="font-size:11px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;color:var(--t2);margin-bottom:6px">Total de Custos Extras</div>
-        <div style="font-size:24px;font-weight:800;color:var(--orange)" id="totalCustosExtras">R$ 0</div>
-      </div>
-
-      <div class="nav">
-        <button class="ba bot" onclick="goBack(3)">← Voltar</button>
-        <button class="ba bor" onclick="calcRes()">Calcular Resultado →</button>
+        <button class="ba bor" onclick="calcRes()">Calcular Preço →</button>
       </div>
     </div>
 
@@ -621,9 +587,6 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:22px;heigh
             </div>
           </div>
           <input type="range" min="0" max="15" step="1" value="0" id="slC" oninput="updC()">
-          <div id="alertaComissao" style="display:none;margin-top:10px;padding:10px 14px;border-radius:8px;font-size:13px;font-weight:600;background:rgba(229,57,53,.12);color:#ff5252;border-left:3px solid #ff5252;animation:pulseAlerta .8s ease infinite alternate">
-            ⚠️ Comissão acima de 7% — risco de perder a venda! O preço fica menos competitivo.
-          </div>
           <div class="cticks"><span>0%</span><span>3%</span><span>6%</span><span>9%</span><span>12%</span><span>15%</span></div>
         </div>
       </div>
@@ -669,92 +632,6 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:22px;heigh
   <div id="tAdm" class="wrap" style="display:none">
     <div class="card">
       <div class="ctitle"><span class="ic" style="color:var(--blue)">🔑</span>Painel Administrativo</div>
-      <div class="sep"><span>⚙️ Configurações de Precificação</span></div>
-
-      <!-- FAIXAS DE MARGEM -->
-      <div style="margin-bottom:1.5rem">
-        <div style="font-size:12px;font-weight:700;color:var(--t2);text-transform:uppercase;letter-spacing:.05em;margin-bottom:12px">📊 Margem por Faixa de Comissão do Vendedor</div>
-
-        <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:12px">
-          <!-- Faixa Baixa -->
-          <div style="background:rgba(0,200,100,.06);border:1px solid rgba(0,200,100,.2);border-radius:10px;padding:16px">
-            <div style="font-size:11px;font-weight:700;color:#3ecf8e;text-transform:uppercase;letter-spacing:.05em;margin-bottom:10px">✅ Comissão baixa</div>
-            <div class="fg" style="margin-bottom:8px">
-              <label>Comissão de 0% até</label>
-              <div style="display:flex;align-items:center;gap:6px">
-                <input type="number" id="fxLimite" min="1" max="14" step="1" value="5"
-                  oninput="atualizarFaixasUI()"
-                  style="width:70px;background:var(--bg);border:1px solid var(--b2);border-radius:8px;padding:8px;color:var(--t1);font-size:18px;font-weight:800;text-align:center;font-family:inherit">
-                <span style="font-size:16px;font-weight:700;color:var(--t2)">%</span>
-              </div>
-            </div>
-            <div class="fg">
-              <label>Margem da empresa</label>
-              <div style="display:flex;align-items:center;gap:6px">
-                <input type="number" id="fxMargemBaixa" min="1" max="200" step="1" value="65"
-                  oninput="atualizarFaixasUI()"
-                  style="width:70px;background:var(--bg);border:1px solid var(--b2);border-radius:8px;padding:8px;color:#3ecf8e;font-size:18px;font-weight:800;text-align:center;font-family:inherit">
-                <span style="font-size:16px;font-weight:700;color:#3ecf8e">%</span>
-              </div>
-              <small style="color:var(--t2)" id="fxMargemBaixaPct">= multiplicador 1.65</small>
-            </div>
-          </div>
-
-          <!-- Faixa Alta -->
-          <div style="background:rgba(232,123,30,.06);border:1px solid rgba(232,123,30,.2);border-radius:10px;padding:16px">
-            <div style="font-size:11px;font-weight:700;color:var(--orange);text-transform:uppercase;letter-spacing:.05em;margin-bottom:10px">⚠️ Comissão alta</div>
-            <div class="fg" style="margin-bottom:8px">
-              <label>Comissão acima de</label>
-              <div style="display:flex;align-items:center;gap:6px">
-                <span id="fxLimiteLabel" style="width:70px;background:var(--bg2);border:1px solid var(--b2);border-radius:8px;padding:8px;color:var(--t2);font-size:18px;font-weight:800;text-align:center;display:inline-block">5</span>
-                <span style="font-size:16px;font-weight:700;color:var(--t2)">%</span>
-              </div>
-            </div>
-            <div class="fg">
-              <label>Margem da empresa</label>
-              <div style="display:flex;align-items:center;gap:6px">
-                <input type="number" id="fxMargemAlta" min="1" max="200" step="1" value="70"
-                  oninput="atualizarFaixasUI()"
-                  style="width:70px;background:var(--bg);border:1px solid var(--b2);border-radius:8px;padding:8px;color:var(--orange);font-size:18px;font-weight:800;text-align:center;font-family:inherit">
-                <span style="font-size:16px;font-weight:700;color:var(--orange)">%</span>
-              </div>
-              <small style="color:var(--t2)" id="fxMargemAltaPct">= multiplicador 1.70</small>
-            </div>
-          </div>
-        </div>
-
-        <!-- Preview fórmula -->
-        <div style="background:var(--bg2);border:1px solid var(--b2);border-radius:8px;padding:12px;font-size:13px;color:var(--t2);margin-bottom:10px" id="fxPreview">
-          Comissão 0–5%: custo × 1.65 ÷ (1–comissão%)  |  Acima: custo × 1.70 ÷ (1–comissão%)
-        </div>
-
-        <label style="display:flex;align-items:center;gap:8px;font-size:13px;cursor:pointer;margin-bottom:12px">
-          <input type="checkbox" id="fxAtivo" checked style="width:16px;height:16px;accent-color:var(--orange)">
-          <span>Ativar margem variável por faixa</span>
-        </label>
-
-        <button onclick="salvarFaixas()" class="ba bor" style="font-size:13px;padding:8px 18px">💾 Salvar Faixas</button>
-        <div id="fxMsg" style="display:none;margin-top:8px"></div>
-      </div>
-
-      <!-- DESCONTO NO CUSTO -->
-      <div style="margin-bottom:1.5rem">
-        <div style="font-size:12px;font-weight:700;color:var(--t2);text-transform:uppercase;letter-spacing:.05em;margin-bottom:10px">🏷️ Desconto sobre o Custo do Kit</div>
-        <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
-          <div class="fg" style="margin-bottom:0">
-            <label>Desconto</label>
-            <div style="display:flex;align-items:center;gap:6px">
-              <input type="number" id="cfgDesconto" value="0" min="0" max="30" step="0.5"
-                style="width:80px;background:var(--bg);border:1px solid var(--b2);border-radius:8px;padding:8px;color:#1A6FA8;font-size:18px;font-weight:800;text-align:center;font-family:inherit">
-              <span style="font-size:16px;font-weight:700;color:#1A6FA8">%</span>
-            </div>
-            <small style="color:var(--t2)">Padrão: 0% (sem desconto)</small>
-          </div>
-          <button onclick="salvarDesconto()" class="ba bor" style="font-size:13px;padding:8px 18px;margin-top:18px">💾 Salvar Desconto</button>
-        </div>
-        <input type="hidden" id="cfgMargem" value="1.70">
-        <div id="cfgMsg" style="display:none;margin-top:8px"></div>
-      </div>
       <div class="sep"><span>Tabela de Preços Atual</span></div>
       <div id="admTbl" style="overflow-x:auto;margin-bottom:1rem"></div>
       <div class="sep"><span>Upload de Nova Tabela</span></div>
@@ -793,7 +670,7 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:22px;heigh
       <div id="myProgress"></div>
     </div>
     <div class="card">
-      <div class="ctitle"><span class="ic">📋</span>Minhas Propostas</div>
+      <div class="ctitle"><span class="ic">📋</span>Minhas Propostas <span style="font-size:11px;color:var(--t3);font-weight:400;text-transform:none;letter-spacing:0" id="myTitleUser"></span></div>
       <div style="display:flex;gap:8px;margin-bottom:1rem;flex-wrap:wrap;align-items:flex-end">
         <div class="fg" style="margin-bottom:0;flex:2;min-width:160px">
           <label>🔍 Buscar</label>
@@ -817,7 +694,7 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:22px;heigh
   <!-- DASHBOARD (admin) -->
   <div id="tDash" class="wrap" style="display:none">
     <div class="card">
-      <div class="ctitle"><span class="ic">📈</span>Dashboard de Propostas</div>
+      <div class="ctitle"><span class="ic">📈</span><span id="dashTitleTxt">Dashboard de Propostas</span></div>
       <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:1rem;align-items:flex-end">
         <div class="fg" style="margin-bottom:0;flex:1;min-width:130px"><label>De</label><input type="date" id="dFiltroIni"></div>
         <div class="fg" style="margin-bottom:0;flex:1;min-width:130px"><label>Até</label><input type="date" id="dFiltroFim"></div>
@@ -827,7 +704,7 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:22px;heigh
         <div class="fg" style="margin-bottom:0;flex:1;min-width:140px"><label>Origem</label>
           <select id="dFiltroOrig"><option value="todas">Todas</option></select>
         </div>
-        <div class="fg" style="margin-bottom:0;flex:1;min-width:140px"><label>Gestor</label>
+        <div class="fg" id="dFiltroGestorWrap" style="margin-bottom:0;flex:1;min-width:140px"><label>Gestor</label>
           <select id="dFiltroGestor"><option value="todos">Todos</option></select>
         </div>
         <button class="ba bor" onclick="loadDashboard()" style="align-self:flex-end">🔍 Filtrar</button>
@@ -865,49 +742,7 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:22px;heigh
   </div>
 
   
-  <!-- TAB GESTOR -->
-  <div id="tGestor" style="display:none">
-    <div class="card" style="margin-bottom:1rem">
-      <div style="font-family:Syne,sans-serif;font-size:13px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:var(--t2);margin-bottom:1rem">📊 PAINEL DO GESTOR</div>
-      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:14px;margin-bottom:1.5rem">
-        <div class="met"><div class="mlabel">⚡ Propostas Equipe/Mês</div><div class="mval" id="gCountMes" style="color:var(--orange)">—</div><div class="mhint" id="gMetaLabel">Meta: —</div></div>
-        <div class="met"><div class="mlabel">💰 Valor Gerado Equipe</div><div class="mval" id="gValorTotal">—</div></div>
-        <div class="met"><div class="mlabel">📈 % da Meta</div><div class="mval" id="gPctMeta">—</div><div class="prog" style="margin-top:6px"><div id="gProgBar" class="prog-fill" style="width:0%"></div></div></div>
-      </div>
-      <!-- Filtro por vendedor -->
-      <div style="margin-bottom:1rem;display:flex;gap:10px;flex-wrap:wrap;align-items:center">
-        <select id="gFiltroVend" onchange="renderTabelaGestor()" style="background:var(--bg2);border:1px solid var(--b2);border-radius:8px;padding:8px 12px;color:var(--t1);font-size:13px;font-family:inherit">
-          <option value="">Todos os vendedores</option>
-        </select>
-        <button onclick="loadDashboardGestor()" style="background:var(--orange);color:#fff;border:none;border-radius:8px;padding:8px 16px;font-size:13px;cursor:pointer;font-family:inherit">🔄 Atualizar</button>
-      </div>
-      <!-- Tabela da equipe -->
-      <div style="overflow-x:auto;border-radius:10px;border:1px solid var(--b2)">
-        <table class="bk" style="width:100%;font-size:13px" id="gTabelaEquipe">
-          <thead><tr>
-            <th style="text-align:left">#  Vendedor</th>
-            <th style="text-align:center">Propostas/Mês</th>
-            <th style="text-align:center">Meta</th>
-            <th style="text-align:center">Progresso</th>
-            <th style="text-align:right">Valor Gerado</th>
-          </tr></thead>
-          <tbody id="gTbody"></tbody>
-        </table>
-      </div>
-    </div>
-    <!-- Propostas da equipe -->
-    <div class="card">
-      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:1rem;flex-wrap:wrap;gap:8px">
-        <div class="ctitle" style="margin-bottom:0"><span class="ic">📋</span>Propostas da Equipe</div>
-        <select id="gFiltroVendProp" onchange="renderTabelaGestor()" style="background:var(--bg2);border:1px solid var(--b2);border-radius:8px;padding:7px 12px;color:var(--t1);font-size:13px;font-family:inherit">
-          <option value="">Todos os vendedores</option>
-        </select>
-      </div>
-      <div id="gTabela" style="overflow-x:auto"></div>
-    </div>
-  </div>
-
-<!-- Modal Vendedor -->
+  <!-- Modal Vendedor -->
   <div id="modalVend" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.8);z-index:999;display:none;align-items:center;justify-content:center">
     <div style="background:var(--bg2);border:1px solid var(--b2);border-radius:16px;padding:1.5rem;width:100%;max-width:460px;margin:1rem;max-height:90vh;overflow-y:auto">
       <div style="font-family:Syne,sans-serif;font-size:15px;font-weight:700;margin-bottom:1.25rem" id="modalVendTitulo">Novo Vendedor</div>
@@ -920,6 +755,7 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:22px;heigh
         <select id="vTipo" onchange="toggleNegOpts()">
           <option value="vendedor">Vendedor Normal</option>
           <option value="negociador">Vendedor Negociador</option>
+          <option value="interno">Vend. Interno (3% fixo)</option>
           <option value="gestor">Gestor</option>
         </select>
       </div>
@@ -945,18 +781,6 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:22px;heigh
 </div>
 
 <script>
-
-// ===== RESET DE CACHE POR VERSÃO =====
-(function(){
-  const CACHE_VER = '2.2'; // reset: limpa margem 1.65 antiga do cache // ← incrementar aqui para forçar reset em todos
-  if(localStorage.getItem('wmCacheVer') !== CACHE_VER){
-    ['wmCfgMargem','wmCfgDesconto','wmFxAtivo','wmFxLimite',
-     'wmFxMargemBaixa','wmFxMargemAlta','wmDB','wmTipos'].forEach(k=>localStorage.removeItem(k));
-    localStorage.setItem('wmCacheVer', CACHE_VER);
-    console.log('🔄 Cache WM resetado para versão', CACHE_VER);
-  }
-})();
-
 // ====== DB ======
 let DB={
   placas:[
@@ -993,140 +817,6 @@ let DB={
   }
 };
 
-// Carregar preços salvos pelo admin
-carregarDBSalvo();
-
-// ===== CONFIGURAÇÕES GLOBAIS =====
-let CFG_MARGEM          = parseFloat(localStorage.getItem('wmCfgMargem')      || '1.70');
-let CFG_DESCONTO        = parseFloat(localStorage.getItem('wmCfgDesconto')     || '0');
-let CFG_FX_ATIVO        = localStorage.getItem('wmFxAtivo') !== 'false';
-let CFG_FX_LIMITE       = parseFloat(localStorage.getItem('wmFxLimite')        || '5');
-let CFG_FX_MARGEM_BAIXA = parseFloat(localStorage.getItem('wmFxMargemBaixa')   || '1.65');
-let CFG_FX_MARGEM_ALTA  = parseFloat(localStorage.getItem('wmFxMargemAlta')    || '1.70');
-
-// ===== SYNC DE CONFIGS COM O SERVIDOR =====
-async function carregarConfigsServidor(){
-  try{
-    const res = await api({action:'getConfigs'});
-    if(res.ok && res.configs){
-      const c = res.configs;
-      if(c.fxAtivo       !== undefined) CFG_FX_ATIVO        = c.fxAtivo.toLowerCase() === 'true';
-      if(c.fxLimite      !== undefined) CFG_FX_LIMITE       = parseFloat(c.fxLimite)      || 5;
-      if(c.fxMargemBaixa !== undefined) CFG_FX_MARGEM_BAIXA = parseFloat(c.fxMargemBaixa) || 1.65;
-      if(c.fxMargemAlta  !== undefined) CFG_FX_MARGEM_ALTA  = parseFloat(c.fxMargemAlta)  || 1.70;
-      // 'margem' legado — não sobrescreve, sistema usa fxMargemBaixa/fxMargemAlta
-      if(c.desconto      !== undefined) CFG_DESCONTO        = parseFloat(c.desconto)      || 0;
-      // Atualizar cache local
-      localStorage.setItem('wmFxAtivo',       String(CFG_FX_ATIVO));
-      localStorage.setItem('wmFxLimite',      String(CFG_FX_LIMITE));
-      localStorage.setItem('wmFxMargemBaixa', String(CFG_FX_MARGEM_BAIXA));
-      localStorage.setItem('wmFxMargemAlta',  String(CFG_FX_MARGEM_ALTA));
-      localStorage.setItem('wmCfgMargem',     String(CFG_MARGEM));
-      localStorage.setItem('wmCfgDesconto',   String(CFG_DESCONTO));
-      // Sincronizar DB de preços do servidor
-      if(c.dbJson){
-        try{
-          const sdb = JSON.parse(c.dbJson);
-          if(sdb.placas) DB.placas = sdb.placas;
-          if(sdb.mono)   DB.mono   = sdb.mono;
-          if(sdb.micro)  DB.micro  = sdb.micro;
-          if(sdb.tri)    DB.tri    = sdb.tri;
-          if(sdb.est)    DB.est    = sdb.est;
-          if(sdb.cabo)   DB.cabo   = sdb.cabo;
-          if(sdb.mc4)    DB.mc4    = sdb.mc4;
-          localStorage.setItem('wmDB', c.dbJson);
-          if(typeof buildPlacaSel==='function') buildPlacaSel();
-          if(typeof rebuildSels==='function') rebuildSels();
-          console.log('✅ Tabela de preços sincronizada do servidor');
-        }catch(e){ console.warn('dbJson inválido no servidor'); }
-      }
-      console.log('✅ Configs sincronizadas do servidor:', c);
-      // Se já tem resultado calculado, recalcular com novos valores
-      if(S.R) { updC && document.getElementById('slC') && updC(); }
-    }
-  }catch(e){ console.warn('Configs do servidor indisponíveis, usando cache local'); }
-}
-
-async function enviarConfigsServidor(){
-  const configs = {
-    fxAtivo:       String(CFG_FX_ATIVO),
-    fxLimite:      String(CFG_FX_LIMITE),
-    fxMargemBaixa: String(CFG_FX_MARGEM_BAIXA),
-    fxMargemAlta:  String(CFG_FX_MARGEM_ALTA),
-    desconto:      String(CFG_DESCONTO)
-    // "margem" legado não é enviado — sistema usa fxMargemBaixa/fxMargemAlta
-  };
-  const res = await api({action:'salvarConfigs', role:S.role, login:S.login, configs});
-  return res.ok;
-}
-
-
-// ===== FUNÇÕES DE FAIXAS DE MARGEM =====
-function atualizarFaixasUI(){
-  const lim   = parseFloat(document.getElementById('fxLimite')?.value||5);
-  const pctB  = parseFloat(document.getElementById('fxMargemBaixa')?.value||65);
-  const pctA  = parseFloat(document.getElementById('fxMargemAlta')?.value||70);
-  const multB = (1 + pctB/100);
-  const multA = (1 + pctA/100);
-  const limEl = document.getElementById('fxLimiteLabel');
-  if(limEl) limEl.textContent = lim;
-  const pB = document.getElementById('fxMargemBaixaPct');
-  const pA = document.getElementById('fxMargemAltaPct');
-  if(pB) pB.textContent = '= multiplicador '+multB.toFixed(2);
-  if(pA) pA.textContent = '= multiplicador '+multA.toFixed(2);
-  const prev = document.getElementById('fxPreview');
-  if(prev) prev.textContent =
-    'Comissão 0–'+lim+'%: custo × '+multB.toFixed(2)+' ÷ (1–comissão%)  |  '+
-    'Comissão >'+lim+'%: custo × '+multA.toFixed(2)+' ÷ (1–comissão%)';
-}
-
-function salvarFaixas(){
-  const lim   = parseFloat(document.getElementById('fxLimite')?.value||5);
-  const pctB  = parseFloat(document.getElementById('fxMargemBaixa')?.value||65);
-  const pctA  = parseFloat(document.getElementById('fxMargemAlta')?.value||70);
-  const mB    = 1 + pctB/100;
-  const mA    = 1 + pctA/100;
-  const ativ  = document.getElementById('fxAtivo')?.checked ?? true;
-  CFG_FX_ATIVO        = ativ;
-  CFG_FX_LIMITE       = lim;
-  CFG_FX_MARGEM_BAIXA = mB;
-  CFG_FX_MARGEM_ALTA  = mA;
-  localStorage.setItem('wmFxAtivo',       String(ativ));
-  localStorage.setItem('wmFxLimite',      String(lim));
-  localStorage.setItem('wmFxMargemBaixa', String(mB));
-  localStorage.setItem('wmFxMargemAlta',  String(mA));
-  const msg = document.getElementById('fxMsg');
-  if(msg){
-    msg.style.cssText='display:block;background:rgba(26,111,168,.12);color:#4fa3d8;padding:8px 12px;border-radius:8px;font-size:13px;margin-top:8px';
-    msg.textContent='⏳ Salvando no servidor...';
-  }
-  enviarConfigsServidor().then(okSrv=>{
-    if(msg){
-      if(okSrv){
-        msg.style.cssText='display:block;background:rgba(0,200,100,.12);color:#3ecf8e;padding:8px 12px;border-radius:8px;font-size:13px;margin-top:8px';
-        msg.textContent='✅ Faixas salvas para TODOS os usuários! Comissão ≤'+lim+'% → '+pctB+'% | >'+lim+'% → '+pctA+'%';
-      } else {
-        msg.style.cssText='display:block;background:rgba(229,57,53,.12);color:#ff5252;padding:8px 12px;border-radius:8px;font-size:13px;margin-top:8px';
-        msg.textContent='⚠️ Salvo localmente, mas falhou no servidor. Vendedores podem ver preço antigo.';
-      }
-      setTimeout(()=>msg.style.display='none',4000);
-    }
-  });
-}
-
-function carregarFaixasUI(){
-  const lEl = document.getElementById('fxLimite');
-  const bEl = document.getElementById('fxMargemBaixa');
-  const aEl = document.getElementById('fxMargemAlta');
-  const cEl = document.getElementById('fxAtivo');
-  if(lEl) lEl.value = CFG_FX_LIMITE;
-  if(bEl) bEl.value = Math.round((CFG_FX_MARGEM_BAIXA - 1) * 100);
-  if(aEl) aEl.value = Math.round((CFG_FX_MARGEM_ALTA  - 1) * 100);
-  if(cEl) cEl.checked = CFG_FX_ATIVO;
-  atualizarFaixasUI();
-}
-
-
 // ====== CONFIG API ======
 const API_URL = 'https://script.google.com/macros/s/AKfycbzK0aNb_uIzgyMgTYaLc1Cz5uhrU4fL6r6mRrigCCg5Rn_hqQpFnHmtRTeqOWAd58cR0g/exec'; // ← substituir após publicar
 
@@ -1144,17 +834,59 @@ async function api(payload){
 
 // ====== AUTH ======
 let telDuplicado=false;
+let S={role:null,login:null,nomeVend:null,metaVend:60,mode:'qtd',tipoInv:'mono',oLoss:0,estKey:'2p_colonial',qtd:10,qi:1,isRural:false,R:null};
 
-// ===== FAIXAS DE MARGEM =====
-
-
-
-
-
-
-
-
-
+async function doLogin(){
+  const u=document.getElementById('lu').value.trim().toLowerCase();
+  const p=document.getElementById('lp').value;
+  const btn=document.querySelector('.btn-login');
+  btn.textContent='Entrando...'; btn.disabled=true;
+  const res = await api({action:'login', login:u, senha:p});
+  btn.textContent='Entrar'; btn.disabled=false;
+  if(res.ok){
+    S.role=res.role; S.login=res.login; S.nomeVend=res.nome; S.metaVend=res.meta||60;
+    // descMax: pegar da API ou do cache local
+    let _descMax=res.descMax||0;
+    if(!_descMax){
+      try{
+        const cache=JSON.parse(localStorage.getItem('wmTipos')||'{}');
+        if(cache[res.login]) _descMax=cache[res.login].descMax||10;
+      }catch(e){}
+    }
+    S.descMax=_descMax||10;
+    // role negociador: verificar cache se API não retornar
+    if(res.role==='vendedor'){
+      try{
+        const cache=JSON.parse(localStorage.getItem('wmTipos')||'{}');
+        if(cache[res.login]&&cache[res.login].tipo==='negociador') S.role='negociador';
+        if(cache[res.login]&&cache[res.login].tipo==='interno')    S.role='interno';
+      }catch(e){}
+    }
+    // role 'interno' vindo direto da API
+    if(res.role==='interno') S.role='interno';
+    document.getElementById('ls').style.display='none';
+    document.getElementById('app').style.display='block';
+    const b=document.getElementById('rbadge');
+    b.textContent=(S.role==='admin'?'🔑 Admin':S.role==='gestor'?'📊 '+S.nomeVend:S.role==='negociador'?'🏷️ '+S.nomeVend:S.role==='interno'?'🔒 '+S.nomeVend:'👤 '+S.nomeVend);
+    b.className='brole '+(S.role==='admin'?'badm':S.role==='gestor'?'bges':S.role==='negociador'?'bneg':S.role==='interno'?'bint':'bvnd');
+    // Tabs visíveis
+    document.getElementById('tabMyBtn').style.display='flex';
+    if(S.role==='admin'){
+      document.getElementById('atab').style.display='flex';
+      document.getElementById('tabDashBtn').style.display='flex';
+      document.getElementById('btnXls').style.display='inline-flex';
+      renderAdmTbl(); loadVendedoresTbl(); loadOrigensTbl();
+    }
+    if(S.role==='gestor'){
+      document.getElementById('tabDashBtn').style.display='flex';
+    }
+    refreshGen(); buildPlacaSel(); loadOrigens();
+  } else {
+    const e=document.getElementById('lerr'); e.style.display='block';
+    e.textContent=res.erro||'Usuário ou senha incorretos';
+    setTimeout(()=>e.style.display='none',3000);
+  }
+}
 document.getElementById('lp').addEventListener('keydown',e=>{if(e.key==='Enter')doLogin()});
 document.getElementById('lu').addEventListener('keydown',e=>{if(e.key==='Enter')document.getElementById('lp').focus()});
 function doLogout(){
@@ -1175,26 +907,18 @@ function showTab(t,btn){
   document.getElementById('tAdm').style.display=t==='adm'?'block':'none';
   document.getElementById('tMy').style.display=t==='my'?'block':'none';
   document.getElementById('tDash').style.display=t==='dash'?'block':'none';
-  const tGes = document.getElementById('tGestor');
-  if(tGes) tGes.style.display=t==='gestor'?'block':'none';
   if(t==='my')   loadMyPropostas();
   if(t==='dash'){
     const _sg=document.getElementById('dFiltroGestor');
-    if(_sg && !_sg._iniciado){
-      // Se for gestor, pré-selecionar o próprio gestor
-      if(S.role==='gestor') _sg.value = S.login;
-      else _sg.value = 'todos';
-      _sg._iniciado = true;
-    }
+    if(_sg && !_sg._iniciado){ _sg.value='todos'; _sg._iniciado=true; }
     loadDashboard();
   }
 }
 
 // ====== STEPS ======
 function setStep(n){
-  for(let i=1;i<=5;i++){
+  for(let i=1;i<=4;i++){
     const el=document.getElementById('s'+i);
-    if(!el) continue;
     el.classList.remove('on','done');
     if(i<n)el.classList.add('done');
     if(i===n)el.classList.add('on');
@@ -1317,7 +1041,8 @@ function setQI(n){
   }
 }
 function setQIui(n){
-  // qb1/qb2 removidos — controlado por addInv2/removerInv2
+  document.getElementById('qb1').className='qb'+(n===1?' on':'');
+  document.getElementById('qb2').className='qb'+(n===2?' on':'');
 }
 function go3(){
   if(document.getElementById('btn2nxt').disabled)return;
@@ -1347,31 +1072,15 @@ function updEstD(){
   el.style.display='flex';
 }
 function goBack(to){
-  ['c1','c2','c3','c4'].forEach(id=>{
-    const el=document.getElementById(id); if(el) el.style.display='none';
-  });
-  if(to===1){ document.getElementById('c1').style.display='block'; setStep(1); }
-  else if(to===2){ document.getElementById('c2').style.display='block'; setStep(2); }
-  else if(to===3){ document.getElementById('c3').style.display='block'; setStep(3); }
-  else if(to===4){ document.getElementById('c4').style.display='block'; setStep(4); }
+  if(to===1){document.getElementById('c2').style.display='none';document.getElementById('c1').style.display='block';setStep(1)}
+  else{document.getElementById('c3').style.display='none';document.getElementById('c2').style.display='block';setStep(2)}
 }
 
 // ====== CÁLCULO ======
 // custo_liq = custo × 0.95
 // preco_base = custo_liq × 1.70
 // preco_venda(pct) = preco_base ÷ (1 - pct/100)
-function getMargemAtual(pct){
-  // Retorna a margem correta baseada na faixa de comissão
-  if(!CFG_FX_ATIVO) return CFG_MARGEM;
-  return pct <= CFG_FX_LIMITE ? CFG_FX_MARGEM_BAIXA : CFG_FX_MARGEM_ALTA;
-}
-function pv(base,pct){
-  // base aqui é o custoLiq (sem margem aplicada ainda)
-  // Recalcular com a margem da faixa correta
-  const margem = getMargemAtual(pct);
-  const precoComMargem = base * margem;
-  return pct>=100 ? Infinity : precoComMargem/(1-pct/100);
-}
+function pv(base,pct){return pct>=100?Infinity:base/(1-pct/100)}
 
 
 function getInv2(){
@@ -1407,44 +1116,31 @@ function calcRes(){
   const cCabo=Math.ceil(metros)*DB.cabo;
   const mc4 = duplosMesmo ? inv.mc4*qi : inv.mc4+inv2.mc4;
   const cMC4=mc4*DB.mc4;
-  const _totalCustosExtras = (typeof custosExtras!=='undefined') ? custosExtras.reduce((s,c)=>s+(parseFloat(c.valor)||0),0) : 0;
-  const custo=cPl+cInv+cEst+cCabo+cMC4+(S.isRural?450:0)+_totalCustosExtras;
-  const _descKit = 1 - (CFG_DESCONTO/100);
-  const custoLiq=custo*_descKit;
-  const precoBase=custoLiq*getMargemAtual(0);
+  const custo=cPl+cInv+cEst+cCabo+cMC4+(S.isRural?450:0);
+  const custoLiq=custo*1.00; // sem desconto de custo
+  const precoBase=custoLiq*1.70;
   const kwp=(pl.pot*qtd)/1000;
   const gen=kwp*f*30*(1-S.oLoss);
   const isMicro=S.tipoInv==='micro';
-  S.R={qtd,pl,inv,inv2:inv2||null,duplosMesmo,qi,est,kits,metros,mc4,cPl,cInv,cEst,cCabo,cMC4,custo,custoLiq,precoBase,kwp,gen,cPct:0,isMicro,isRural:S.isRural,custosExtras:[...(typeof custosExtras!=='undefined'?custosExtras:[])],totalCustosExtras:_totalCustosExtras};
+  S.R={qtd,pl,inv,inv2:inv2||null,duplosMesmo,qi,est,kits,metros,mc4,cPl,cInv,cEst,cCabo,cMC4,custo,custoLiq,precoBase,kwp,gen,cPct:0,isMicro,isRural:S.isRural};
   renderRes();
   document.getElementById('c3').style.display='none';
-  document.getElementById('c4').style.display='none';
   document.getElementById('rSec').style.display='block';
-  setStep(5);
-  if(isNegociador()){renderResultNegociador();}else{document.getElementById('slC').value=0;updC();renderPC();}
+  setStep(4);
+  if(isNegociador()){renderResultNegociador();}
+  else if(isInterno()){renderResultInterno();}
+  else{document.getElementById('slC').value=0;updC();renderPC();}
 }
 
 function updC(){
+  if(isInterno()) return; // interno: preço fixo, não atualizar via slider
   const pct=parseInt(document.getElementById('slC').value);
   const r=S.R;if(!r)return;
-  const preco=pv(r.custoLiq,pct);
+  const preco=pv(r.precoBase,pct);
   const comv=preco*(pct/100);
   document.getElementById('cPctLbl').textContent=pct+'%';
   document.getElementById('cPrecoLbl').textContent='R$ '+fmtBRL(preco);
   document.getElementById('cValLbl').textContent=pct>0?'Comissão: R$ '+fmtBRL(comv):'Sem comissão';
-
-  // Alerta acima de 7%
-  const alertaEl = document.getElementById('alertaComissao');
-  if(alertaEl){
-    if(pct > 7){
-      alertaEl.style.display = 'block';
-      // Gradiente do slider fica vermelho
-      document.getElementById('slC').style.accentColor = '#e05050';
-    } else {
-      alertaEl.style.display = 'none';
-      document.getElementById('slC').style.accentColor = '';
-    }
-  }
   document.getElementById('rPrice').textContent='R$ '+fmtBRL(preco);
   document.getElementById('rSub').textContent=`${pct}% comissão · ${r.qtd} placas ${r.pl.pot}W · ${r.kwp.toFixed(2)} kWp`+
     (r.isMicro?` · ${r.qi}× Microinversor`:(r.qi>1?` · ${r.qi}× ${r.inv.nome}`:''));
@@ -1453,7 +1149,7 @@ function updC(){
 }
 
 function renderRes(){
-  const r=S.R;const preco=pv(r.custoLiq,0);
+  const r=S.R;const preco=pv(r.precoBase,0);
   document.getElementById('rPrice').textContent='R$ '+fmtBRL(preco);
   document.getElementById('rSub').textContent=`0% comissão · ${r.qtd} placas ${r.pl.pot}W · ${r.kwp.toFixed(2)} kWp`;
   renderMets(preco,0,0);renderBk();
@@ -1492,14 +1188,7 @@ function renderBk(){
     h+=`<tr><td>${row.item}</td><td style="color:var(--t3)">${row.det}</td>`+(isAdm?`<td>R$ ${fmtBRL(row.val)}</td>`:'')+`</tr>`;
   });
   if(isAdm){
-    const _semExtras = r.custo - (r.totalCustosExtras||0);
-    h+=`<tr class="admr"><td>Subtotal do Kit</td><td></td><td>R$ ${fmtBRL(_semExtras)}</td></tr>`;
-    if(r.totalCustosExtras>0){
-      (r.custosExtras||[]).forEach(c=>{
-        if(c.valor>0) h+=`<tr class="admr" style="color:var(--t2)"><td>↳ ${c.obs||'Custo extra'}</td><td></td><td>R$ ${fmtBRL(c.valor)}</td></tr>`;
-      });
-      h+=`<tr class="admr"><td style="color:var(--orange)">Total c/ extras</td><td></td><td style="color:var(--orange)">R$ ${fmtBRL(r.custo)}</td></tr>`;
-    }
+    h+=`<tr class="admr"><td>Subtotal do Kit</td><td></td><td>R$ ${fmtBRL(r.custo)}</td></tr>`;
     h+=`<tr class="admr tot"><td>Preço Base</td><td></td><td>R$ ${fmtBRL(r.precoBase)}</td></tr>`;
   }else{
     h+=`<tr class="tot"><td colspan="2">Kit configurado — ver preço acima</td></tr>`;
@@ -1513,7 +1202,7 @@ function renderPC(){
   const cur=S.R.cPct;
   let h='';
   for(let p=0;p<=15;p++){
-    const preco=pv(r.custoLiq,p);
+    const preco=pv(r.precoBase,p);
     const comv=preco*(p/100);
     h+=`<div class="pci${p===cur?' on':''}" onclick="jmpC(${p})">
       <div class="pp">${p}%</div>
@@ -1545,110 +1234,16 @@ function novoCalc(){
 
 // ====== ADMIN ======
 function renderAdmTbl(){
-  const inp = (tipo, idx, campo, val, extra='') =>
-    `<input type="number" min="0" step="1" value="${val}"
-      style="width:80px;background:var(--bg);border:1px solid var(--b2);border-radius:6px;padding:4px 8px;color:var(--t1);font-size:12px;text-align:right;font-family:inherit"
-      onchange="editarDB('${tipo}',${idx},'${campo}',this.value)" ${extra}>`;
-
-  let h = `<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;flex-wrap:wrap;gap:8px">
-    <div style="font-size:12px;color:var(--t2)">✏️ Clique nos valores para editar. Os preços são atualizados em tempo real.</div>
-    <div style="display:flex;gap:8px">
-      <button onclick="salvarDB()" class="ba bor" style="font-size:12px;padding:6px 14px">💾 Salvar Preços</button>
-      <button onclick="restaurarDB()" class="ba bot" style="font-size:12px;padding:6px 14px;background:rgba(229,57,53,.1);color:#e05050;border:1px solid rgba(229,57,53,.3)">🔄 Restaurar</button>
-    </div>
-  </div>`;
-
-  h += '<div style="overflow-x:auto"><table class="bk" style="font-size:12px;width:100%"><thead><tr><th>Tipo</th><th>Item</th><th style="text-align:right">Preço (R$)</th><th style="text-align:right">Overload (pl.)</th><th style="text-align:right">MC4 (pares)</th></tr></thead><tbody>';
-
-  // Placas
-  DB.placas.forEach((p,i)=>{
-    h+=`<tr>
-      <td style="color:var(--t3);white-space:nowrap">☀️ Placa</td>
-      <td><input type="text" value="${p.nome}"
-        style="width:100%;background:var(--bg);border:1px solid var(--b2);border-radius:6px;padding:4px 8px;color:var(--t1);font-size:12px;font-family:inherit"
-        onchange="editarDB('placas',${i},'nome',this.value)"></td>
-      <td style="text-align:right">${inp('placas',i,'preco',p.preco)}</td>
-      <td style="text-align:right;color:var(--t3)">—</td>
-      <td style="text-align:right;color:var(--t3)">—</td>
-    </tr>`;
-  });
-
-  // Mono
-  DB.mono.forEach((inv,i)=>{
-    h+=`<tr>
-      <td style="color:var(--t3);white-space:nowrap">⚡ Mono</td>
-      <td><input type="text" value="${inv.nome}"
-        style="width:100%;background:var(--bg);border:1px solid var(--b2);border-radius:6px;padding:4px 8px;color:var(--t1);font-size:12px;font-family:inherit"
-        onchange="editarDB('mono',${i},'nome',this.value)"></td>
-      <td style="text-align:right">${inp('mono',i,'preco',inv.preco)}</td>
-      <td style="text-align:right">${inp('mono',i,'ov',inv.ov)}</td>
-      <td style="text-align:right">${inp('mono',i,'mc4',inv.mc4)}</td>
-    </tr>`;
-  });
-
-  // Micro
-  DB.micro.forEach((inv,i)=>{
-    h+=`<tr>
-      <td style="color:var(--t3);white-space:nowrap">🔆 Micro</td>
-      <td><input type="text" value="${inv.nome}"
-        style="width:100%;background:var(--bg);border:1px solid var(--b2);border-radius:6px;padding:4px 8px;color:var(--t1);font-size:12px;font-family:inherit"
-        onchange="editarDB('micro',${i},'nome',this.value)"></td>
-      <td style="text-align:right">${inp('micro',i,'preco',inv.preco)}</td>
-      <td style="text-align:right">${inp('micro',i,'ov',inv.ov)}</td>
-      <td style="text-align:right">${inp('micro',i,'mc4',inv.mc4)}</td>
-    </tr>`;
-  });
-
-  // Tri
-  DB.tri.forEach((inv,i)=>{
-    h+=`<tr>
-      <td style="color:var(--t3);white-space:nowrap">⚡⚡ Tri</td>
-      <td><input type="text" value="${inv.nome}"
-        style="width:100%;background:var(--bg);border:1px solid var(--b2);border-radius:6px;padding:4px 8px;color:var(--t1);font-size:12px;font-family:inherit"
-        onchange="editarDB('tri',${i},'nome',this.value)"></td>
-      <td style="text-align:right">${inp('tri',i,'preco',inv.preco)}</td>
-      <td style="text-align:right">${inp('tri',i,'ov',inv.ov)}</td>
-      <td style="text-align:right">${inp('tri',i,'mc4',inv.mc4)}</td>
-    </tr>`;
-  });
-
-  // Estruturas
-  Object.entries(DB.est).forEach(([key,est])=>{
-    if(key==='sem') return;
-    h+=`<tr>
-      <td style="color:var(--t3);white-space:nowrap">🏗️ Estrutura</td>
-      <td style="color:var(--t2)">${est.nome}</td>
-      <td style="text-align:right"><input type="number" min="0" step="1" value="${est.preco}"
-        style="width:80px;background:var(--bg);border:1px solid var(--b2);border-radius:6px;padding:4px 8px;color:var(--t1);font-size:12px;text-align:right;font-family:inherit"
-        onchange="editarDB('est','${key}','preco',this.value)"></td>
-      <td style="text-align:right;color:var(--t3)">—</td>
-      <td style="text-align:right;color:var(--t3)">—</td>
-    </tr>`;
-  });
-
-  // Cabo e MC4
-  h+=`<tr>
-    <td style="color:var(--t3)">🔌 Cabo</td>
-    <td style="color:var(--t2)">Cabo Solar (por metro)</td>
-    <td style="text-align:right"><input type="number" min="0" step="1" value="${DB.cabo}"
-      style="width:80px;background:var(--bg);border:1px solid var(--b2);border-radius:6px;padding:4px 8px;color:var(--t1);font-size:12px;text-align:right;font-family:inherit"
-      onchange="DB.cabo=parseFloat(this.value)||DB.cabo"></td>
-    <td colspan="2" style="text-align:right;color:var(--t3)">R$/m</td>
-  </tr>
-  <tr>
-    <td style="color:var(--t3)">🔌 MC4</td>
-    <td style="color:var(--t2)">Conector MC4 (por par)</td>
-    <td style="text-align:right"><input type="number" min="0" step="1" value="${DB.mc4}"
-      style="width:80px;background:var(--bg);border:1px solid var(--b2);border-radius:6px;padding:4px 8px;color:var(--t1);font-size:12px;text-align:right;font-family:inherit"
-      onchange="DB.mc4=parseFloat(this.value)||DB.mc4"></td>
-    <td colspan="2" style="text-align:right;color:var(--t3)">R$/par</td>
-  </tr>`;
-
-  h += '</tbody></table></div>';
-  h += '<div id="dbMsg" style="display:none;margin-top:10px"></div>';
-  document.getElementById('admTbl').innerHTML = h;
+  let h='<table class="bk" style="font-size:12px"><thead><tr><th>Tipo</th><th>Item</th><th style="text-align:right">Preço</th><th style="text-align:right">Overload</th><th style="text-align:right">MC4</th></tr></thead><tbody>';
+  DB.placas.forEach(p=>h+=`<tr><td style="color:var(--t3)">Placa</td><td>${p.nome}</td><td>R$ ${p.preco}/un</td><td>—</td><td>—</td></tr>`);
+  DB.mono.forEach(i=>h+=`<tr><td style="color:var(--t3)">Mono</td><td>${i.nome}</td><td>R$ ${fmtBRL(i.preco)}</td><td>${i.ov} pl.</td><td>${i.mc4} pares</td></tr>`);
+  DB.tri.forEach(i=>h+=`<tr><td style="color:var(--t3)">Tri</td><td>${i.nome}</td><td>R$ ${fmtBRL(i.preco)}</td><td>${i.ov} pl.</td><td>${i.mc4} pares</td></tr>`);
+  DB.micro.forEach(i=>h+=`<tr><td style="color:var(--t3)">Micro</td><td>${i.nome}</td><td>R$ ${fmtBRL(i.preco)}</td><td>${i.ov} pl./un</td><td>${i.mc4} pares</td></tr>`);
+  h+=`<tr><td style="color:var(--t3)">Acessório</td><td>Cabo Solar</td><td>R$ ${DB.cabo}/m</td><td>—</td><td>—</td></tr>`;
+  h+=`<tr><td style="color:var(--t3)">Acessório</td><td>Conector MC4 Odex</td><td>R$ ${DB.mc4}/par</td><td>—</td><td>—</td></tr>`;
+  h+='</tbody></table>';
+  document.getElementById('admTbl').innerHTML=h;
 }
-
 
 function handleUp(input){
   const file=input.files[0]; if(!file) return;
@@ -1845,34 +1440,34 @@ async function gerarPDF(){
 }
 
 function voltarStep3(){
-  // Voltar para a step 4 (custos extras)
+  // Voltar para a step 3 sem perder os dados
   document.getElementById('rSec').style.display='none';
-  document.getElementById('c4').style.display='block';
-  setStep(4);
-  renderCustosExtras();
+  document.getElementById('c3').style.display='block';
+  setStep(3);
 }
 
 function editarProposta(){
+  // Pegar dados da proposta aberta (pode vir de reabrirProposta ou de S.R)
   fecharProposta();
 
-  // Se tem S.R (proposta recém gerada), apenas voltar para o resultado
+  // Se tem S.R (proposta recém gerada), vai para resultado
   if(S.R){
     document.getElementById('rSec').style.display='block';
     const st=document.getElementById('savePropostaStatus');
     if(st){st.style.display='none';st.textContent='';}
-    // Garantir que está na aba Precificador
-    _ativarTabCalc();
     return;
   }
 
-  // Veio do histórico — preencher dados do cliente
+  // Se veio do histórico (reabrirProposta), preencher campos e ir para step 1
   const p = window._propEditando || null;
   if(p){
-    const fn = (id,val)=>{ const el=document.getElementById(id); if(el&&val!==undefined) el.value=val||''; };
-    fn('cliNome', p['Cliente']  || p['cliente']  || '');
-    fn('cliTel',  p['Telefone'] || p['telefone'] || '');
-    fn('cliEnd',  p['Endereço'] || p['endereco'] || '');
-    fn('cliCpf',  p['CPF']      || p['cpf']      || '');
+    // Preencher dados do cliente
+    const fn = (id,val)=>{ const el=document.getElementById(id); if(el&&val) el.value=val; };
+    fn('cliNome',   p['Cliente']   || p['cliente']);
+    fn('cliTel',    p['Telefone']  || p['telefone']);
+    fn('cliEnd',    p['Endereço']  || p['endereco']);
+    fn('cliCpf',    p['CPF']       || p['cpf']);
+    // Origem: selecionar no dropdown
     const orig = p['Origem'] || p['origem'] || '';
     const selOrig = document.getElementById('cliOrigem');
     if(selOrig && orig){
@@ -1881,29 +1476,31 @@ function editarProposta(){
     window._propEditando = null;
   }
 
-  // Ir para step 1 — esconder tudo e mostrar c1
-  ['rSec','c2','c3','c4'].forEach(id=>{
-    const el=document.getElementById(id); if(el) el.style.display='none';
-  });
+  // Ir para step 1 (novo cálculo)
+  document.getElementById('rSec').style.display='none';
   document.getElementById('c1').style.display='block';
+  document.getElementById('c2').style.display='none';
+  document.getElementById('c3').style.display='none';
   setStep(1);
-  S.R = null;
-  custosExtras = [];
+  S.R=null;
   checkCamposObrig();
 
-  // Ativar aba Precificador
-  _ativarTabCalc();
-  window.scrollTo({top:0, behavior:'smooth'});
-}
+  // Scroll para o topo
+  window.scrollTo(0,0);
+  document.querySelector('.tabs')?.scrollIntoView({behavior:'smooth'});
 
-function _ativarTabCalc(){
-  document.querySelectorAll('.tab').forEach(b=>b.classList.remove('on'));
+  // Trocar para aba Precificador
   const tabCalc = document.querySelector('.tab[onclick*="calc"]');
-  if(tabCalc) tabCalc.classList.add('on');
-  ['tCalc','tAdm','tMy','tDash','tGestor'].forEach(id=>{
-    const el=document.getElementById(id);
-    if(el) el.style.display = id==='tCalc' ? 'block' : 'none';
-  });
+  if(tabCalc){
+    document.querySelectorAll('.tab').forEach(b=>b.classList.remove('on'));
+    tabCalc.classList.add('on');
+    ['tCalc','tAdm','tMy','tDash'].forEach(id=>{
+      const el=document.getElementById(id);
+      if(el) el.style.display=id==='tCalc'?'block':'none';
+    });
+    const tGes=document.getElementById('tGestor');
+    if(tGes) tGes.style.display='none';
+  }
 }
 
 function fecharProposta(){
@@ -1913,8 +1510,8 @@ function fecharProposta(){
 
 function abrirProposta(){
   const r=S.R; if(!r) return;
-  const pct=isNegociador()?parseInt(document.getElementById('slD')?.value||0):r.cPct;
-  const preco=isNegociador()?precoComDesc(precoCheioNeg(r.precoBase),pct):pv(r.custoLiq,pct);
+  const pct=isNegociador()?parseInt(document.getElementById('slD')?.value||0):isInterno()?3:r.cPct;
+  const preco=isNegociador()?precoComDesc(precoCheioNeg(r.precoBase),pct):pv(r.precoBase,pct);
   const hoje=new Date().toLocaleDateString('pt-BR',{day:'2-digit',month:'long',year:'numeric'});
   const _slv2=document.getElementById('sLocal').value;
   const _slRegiao=_slv2.split('|')[1]||'maringa';
@@ -2285,7 +1882,7 @@ function abrirProposta(){
 
 function expXls(){
   const r=S.R;if(!r)return;
-  const pct=S.R.cPct;const preco=pv(r.custoLiq,pct);
+  const pct=S.R.cPct;const preco=pv(r.precoBase,pct);
   const wb=XLSX.utils.book_new();
   const data=[
     ['WM Energia Solar — Orçamento'],['Data:',new Date().toLocaleDateString('pt-BR')],[''],
@@ -2368,7 +1965,7 @@ async function salvarProposta(){
   const orig=document.getElementById('cliOrigem').value;
   if(!nome || !tel || !orig) return; // precisa nome e telefone para registrar
   const pct=r.cPct;
-  const preco=pv(r.custoLiq,pct);
+  const preco=pv(r.precoBase,pct);
   const payload={
     action:'salvarProposta', vendedor:S.login,
     cliente:nome, telefone:tel,
@@ -2379,9 +1976,7 @@ async function salvarProposta(){
     geracao:Math.round(r.gen),
     valor:Math.round(preco),
     inversor:(r.duplosMesmo ? r.inv.nome+(r.qi>1?' x'+r.qi:'') : r.inv.nome+' + '+r.inv2.nome),
-    estrutura:r.est.nome,
-    custosExtrasObs:(r.custosExtras||[]).filter(c=>c.obs||c.valor).map(c=>'R$'+Math.round(c.valor||0)+(c.obs?' — '+c.obs:'')).join(' | '),
-    custosExtrasTotal:r.totalCustosExtras||0
+    estrutura:r.est.nome
   };
   const statusEl = document.getElementById('savePropostaStatus');
   statusEl.style.display='block';
@@ -2416,7 +2011,9 @@ async function loadMyPropostas(){
   if(el)  el.innerHTML = '<div style="color:var(--t2);font-size:13px">Carregando...</div>';
   if(tEl) tEl.innerHTML = '';
 
-  const res = await api({action:'getPropostas', login:S.login, role:S.role});
+  // ✅ Minhas Propostas: SEMPRE busca pelo próprio login com role='vendedor'
+  // Assim admin e gestor veem APENAS as propostas que eles mesmos geraram
+  const res = await api({action:'getPropostas', login:S.login, role:'vendedor'});
   if(!res.ok){
     if(el) el.innerHTML = '<div style="color:#e05050">Erro: '+res.erro+'</div>';
     return;
@@ -2452,6 +2049,10 @@ async function loadMyPropostas(){
     '</div>' +
     '<div class="prog" style="margin-bottom:6px"><div class="prog-fill" style="width:'+pct+'%"></div></div>' +
     '<div style="font-size:12px;color:var(--t2)">'+pct+'% da meta mensal ('+countMes+' de '+S.metaVend+' propostas)</div>';
+
+  // Mostrar nome no título
+  const _tu = document.getElementById('myTitleUser');
+  if(_tu) _tu.textContent = '— ' + (S.nomeVend||S.login);
 
   filtrarMyPropostas(); // aplicar filtros e renderizar tabela
 }
@@ -2674,7 +2275,11 @@ async function loadDashboard(){
   const orig=document.getElementById('dFiltroOrig').value;
   // Formatar datas para dd/MM/yyyy
   function fmtDate(d){ if(!d)return''; const [y,m,dd]=d.split('-'); return dd+'/'+m+'/'+y; }
-  const gestor=document.getElementById('dFiltroGestor')?.value||'todos';
+  // Ajustar título do dashboard por role
+  const _dt = document.getElementById('dashTitleTxt');
+  if(_dt) _dt.textContent = S.role==='gestor' ? 'Dashboard — Minha Equipe' : 'Dashboard de Propostas';
+  // Se gestor: forçar filtro para a própria equipe automaticamente
+  const gestor = S.role==='gestor' ? S.login : (document.getElementById('dFiltroGestor')?.value||'todos');
   const res=await api({action:'getDashboard', login:S.login, role:S.role});
   const actionProp = S.role==='admin' ? 'getPropostasAdmin' : 'getPropostas';
   const rp=await api({action:actionProp, login:S.login, role:S.role,
@@ -2700,17 +2305,19 @@ async function loadDashboard(){
     
     const _equipGestor = new Set();
     _vends.forEach(v=>{
+      // ✅ NUNCA adicionar o próprio gestor ao set da equipe
+      if(v.login === gestor) return;
       const gestorSalvo = String(v.gestor||'').trim();
-      // Comparar com login E com nome completo E com nome parcial
-      if( gestorSalvo === gestor ||                    // ex: "william" === "william"
-          gestorSalvo === _gestorNome ||               // ex: "William Boccaleti" === "William Boccaleti"
-          gestorSalvo.toLowerCase() === _gestorNome.toLowerCase() ||
-          v.login === gestor
+      // Comparar por login E por nome completo do gestor
+      if( gestorSalvo === gestor ||
+          gestorSalvo === _gestorNome ||
+          gestorSalvo.toLowerCase() === _gestorNome.toLowerCase()
       ){
         _equipGestor.add(v.login);
       }
     });
-    _equipGestor.add(gestor); // incluir próprias propostas do gestor
+    // Garantia extra: remover o próprio gestor do set (caso tenha entrado)
+    _equipGestor.delete(gestor);
 
     // Só filtrar se encontrou membros na equipe (além do próprio gestor)
     _todasProps = _todasProps.filter(p=>{
@@ -2724,7 +2331,7 @@ async function loadDashboard(){
   // _vends carregado acima
 
   // Adaptar formato novo do GAS — calcular totais a partir das propostas retornadas
-  const _props = rp.propostas||[];
+  const _props = _todasProps; // ✅ usa propostas já filtradas pelo gestor client-side
   const _agora = new Date();
   const _mesCal = _agora.getMonth(), _anoCal = _agora.getFullYear();
   const _temFiltroData = !!(ini || fim || (gestor&&gestor!=='todos') || (vend&&vend!=='todos') || (orig&&orig!=='todas')); // filtro ativo
@@ -2772,7 +2379,17 @@ async function loadDashboard(){
   (_vends||[]).forEach(v=>{
     if(v.login==='admin') return;
     // Se gestor filtrado, só incluir vendedores desse gestor
-    if(_gestorFiltrado && _gestorFiltrado!=='todos' && v.gestor!==_gestorFiltrado && v.login!==_gestorFiltrado) return;
+    if(_gestorFiltrado && _gestorFiltrado!=='todos'){
+      // ✅ Comparar por login E por nome completo do gestor
+      const _gfVend = (_vends||[]).find(gv=>gv.login===_gestorFiltrado);
+      const _gfNome = _gfVend ? _gfVend.nome : _gestorFiltrado;
+      const _vGestor = String(v.gestor||'').trim();
+      const _pertence = _vGestor===_gestorFiltrado ||
+                        _vGestor===_gfNome ||
+                        _vGestor.toLowerCase()===_gfNome.toLowerCase();
+      // Excluir o próprio gestor da lista da equipe (suas propostas vão só em Minhas Propostas)
+      if(!_pertence || v.login===_gestorFiltrado) return;
+    }
     if(_byVend[v.login]){
       _byVend[v.login].nome = v.nome;
       _byVend[v.login].meta = v.meta||60;
@@ -2794,6 +2411,10 @@ async function loadDashboard(){
   // Para o ranking: coluna "mês" = período se filtro ativo, senão mês atual
   _vendList.forEach(v=>{ v.mes = _temFiltroData ? v.periodo : v.mesAtual; v.valorMesShow = _temFiltroData ? v.valorPeriodo : v.valorMes; });
 
+  // META DO MES: SEMPRE usa mes calendario atual (independente de filtros de data/gestor)
+  // Corrige divergencia: Admin filtrado por Gestor mostrava historico, Painel Gestor mostrava mes atual
+  const _mesAtualReal = _vendList.reduce((s,v)=>s+v.mesAtual, 0);
+
   // Preencher filtros
   const sv=document.getElementById('dFiltroVend');
   const so=document.getElementById('dFiltroOrig');
@@ -2807,17 +2428,24 @@ async function loadDashboard(){
   ORIGENS.forEach(o=>{ const op=document.createElement('option'); op.value=o; op.textContent=o; so.appendChild(op); });
   so.value=prevO;
   if(sg){
-    if(S.role==='gestor'){
-      // Gestor só vê a própria equipe — fixar o filtro
-      sg.innerHTML='<option value="'+S.login+'">'+S.nomeVend+'</option>';
-      sg.value = S.login;
-      sg.disabled = true;
-    } else {
-      sg.innerHTML='<option value="todos">Todos</option>';
-      _vends.filter(v=>v.tipo==='gestor').forEach(v=>{ const op=document.createElement('option'); op.value=v.login; op.textContent=v.nome; sg.appendChild(op); });
-      sg.value=prevG;
-      sg.disabled = false;
-    }
+    sg.innerHTML='<option value="todos">Todos</option>';
+    _vends.filter(v=>v.tipo==='gestor').forEach(v=>{ const op=document.createElement('option'); op.value=v.login; op.textContent=v.nome; sg.appendChild(op); });
+    sg.value=prevG;
+  }
+  // Gestor vê só sua equipe — esconder filtros de gestor e ajustar vendedores
+  const _wrapGestor = document.getElementById('dFiltroGestorWrap');
+  if(S.role==='gestor'){
+    if(_wrapGestor) _wrapGestor.style.display='none';
+    // Repovoar dropdown de vendedores só com a equipe do gestor
+    sv.innerHTML='<option value="todos">Todos</option>';
+    (_vends||[]).filter(v=>{ 
+      const _gv=(_vends||[]).find(gv=>gv.login===S.login);
+      const _gn=_gv?_gv.nome:S.login;
+      const gs=String(v.gestor||'').trim();
+      return (gs===S.login||gs===_gn||gs.toLowerCase()===_gn.toLowerCase()) && v.login!==S.login;
+    }).forEach(v=>{ const o=document.createElement('option'); o.value=v.login; o.textContent=v.nome; sv.appendChild(o); });
+  } else {
+    if(_wrapGestor) _wrapGestor.style.display='';
   }
 
   const d = {
@@ -2838,7 +2466,7 @@ async function loadDashboard(){
     '<div class="met"><div class="mlabel">💰 Valor Total</div><div class="mval">R$ '+fmtK(valorTotal)+'</div><div class="mhint">soma das propostas</div></div>'+
     '<div class="met"><div class="mlabel">🎯 Ticket Médio</div><div class="mval">R$ '+fmtK(ticketMedio)+'</div><div class="mhint">por proposta</div></div>'+
     '<div class="met"><div class="mlabel">☀️ Placas Instaladas</div><div class="mval">'+placasTotal+'</div><div class="mhint">unidades no período</div></div>'+
-    '<div class="met"><div class="mlabel">📈 Meta do Mês</div><div class="mval" style="color:'+(_mesGeral>=_metaTotal?"#3ecf8e":_mesGeral>=_metaTotal*0.7?"var(--orange)":"#e05050")+'">'+_mesGeral+' / '+_metaTotal+'</div><div class="mhint">'+Math.round(_mesGeral/_metaTotal*100)+'% atingido</div></div>';
+    '<div class="met"><div class="mlabel">📈 Meta do Mês</div><div class="mval" style="color:'+(_mesAtualReal>=_metaTotal?"#3ecf8e":_mesAtualReal>=_metaTotal*0.7?"var(--orange)":"#e05050")+'">'+_mesAtualReal+' / '+_metaTotal+'</div><div class="mhint">'+Math.round(_mesAtualReal/_metaTotal*100)+'% atingido (mês atual)</div></div>';
 
   // Ranking
   let rkH='<div style="overflow-x:auto"><table class="bk" style="font-size:13px;min-width:580px"><thead><tr>';
@@ -2906,7 +2534,8 @@ async function loadVendedoresTbl(){
       }
     }catch(e){}
     let _tl='';
-    if(v.tipo==='negociador') _tl='<span style="font-size:10px;background:rgba(79,163,216,.12);color:#4fa3d8;border:1px solid rgba(79,163,216,.25);border-radius:10px;padding:2px 8px">🏷️ Neg '+(v.descMax||10)+'%</span>';
+    if(v.tipo==='interno')    _tl='<span style="font-size:10px;background:rgba(62,207,142,.12);color:#3ecf8e;border:1px solid rgba(62,207,142,.25);border-radius:10px;padding:2px 8px">🔒 Vend. Interno</span>';
+    else if(v.tipo==='negociador') _tl='<span style="font-size:10px;background:rgba(79,163,216,.12);color:#4fa3d8;border:1px solid rgba(79,163,216,.25);border-radius:10px;padding:2px 8px">🏷️ Neg '+(v.descMax||10)+'%</span>';
     else if(v.tipo==='gestor') _tl='<span style="font-size:10px;background:rgba(26,111,168,.15);color:#1A6FA8;border:1px solid rgba(26,111,168,.3);border-radius:10px;padding:2px 8px">📊 Gestor</span>';
     else _tl='<span style="font-size:10px;background:var(--ol);color:var(--orange);border:1px solid rgba(232,123,30,.25);border-radius:10px;padding:2px 8px">👤 Normal</span>';
     const _gestorNome = v.gestor ? (res.vendedores.find(g=>g.login===v.gestor)?.nome||v.gestor) : '—';
@@ -2962,7 +2591,7 @@ async function salvarVendedor(){
   const nome=document.getElementById('vNome').value.trim();
   const meta=parseInt(document.getElementById('vMeta').value)||60;
   const tipo=document.getElementById('vTipo')?.value||'vendedor';
-  const descMax=tipo==='negociador'?(parseInt(document.getElementById('vDescMax')?.value)||10):10;
+  const descMax=tipo==='negociador'?(parseInt(document.getElementById('vDescMax')?.value)||10):tipo==='interno'?3:10;
   const msgEl=document.getElementById('modalVendMsg');
   const isNovo = !editandoLogin;
   if(!login||!nome||(isNovo&&!senha)){ msgEl.style.display='block'; msgEl.style.color='#e05050'; msgEl.textContent='Preencha todos os campos.'; return; }
@@ -2972,7 +2601,7 @@ async function salvarVendedor(){
     try{
       const cache=JSON.parse(localStorage.getItem('wmTipos')||'{}');
       const loginKey=editandoLogin||login;
-      cache[loginKey]={tipo, descMax};
+      cache[loginKey]={tipo, descMax: tipo==='interno'?3:descMax};
       localStorage.setItem('wmTipos', JSON.stringify(cache));
     }catch(e){}
     fecharModalVend(); loadVendedoresTbl();
@@ -2990,13 +2619,23 @@ async function excluirVend(login){
 function toggleNegOpts(){
   const t=document.getElementById('vTipo')?.value;
   const el=document.getElementById('negOpts');
+  const _vDesc=document.getElementById('vDescMax');
   if(el){
-    el.style.display=t==='negociador'?'block':'none';
+    if(t==='interno'){
+      el.style.display='block';
+      if(_vDesc){ _vDesc.value=3; _vDesc.readOnly=true; _vDesc.style.opacity='.5'; }
+      const lbl=el.querySelector('div[style]');
+      const _hd=el.querySelector('.ctitle,div[style*="font-size:11px"]');
+    } else {
+      if(_vDesc){ _vDesc.readOnly=false; _vDesc.style.opacity='1'; }
+    }
+    el.style.display=(t==='negociador'||t==='interno')?'block':'none';
     // Forçar display imediato
     el.style.visibility='visible';
   }
 }
 function isNegociador(){ return S.role==='negociador'; }
+function isInterno(){    return S.role==='interno'; }
 function getDescMax(){ return parseInt(S.descMax||10); }
 function precoCheioNeg(base){ return base/(1-0.15); }
 function precoComDesc(cheio,pct){ return cheio*(1-pct/100); }
@@ -3039,6 +2678,41 @@ function renderPCNeg(cheio,cur){
   document.getElementById('pcGrid').innerHTML=h;
 }
 function jmpD(p){const sl=document.getElementById('slD');if(sl){sl.value=p;updNeg();}}
+
+function renderResultInterno(){
+  const r=S.R; if(!r) return;
+  const COMISSAO_INTERNA = 3;
+  const preco = pv(r.precoBase, COMISSAO_INTERNA);
+  const comv  = preco * (COMISSAO_INTERNA / 100);
+
+  // Atualizar hero price
+  document.getElementById('rPrice').textContent = 'R$ ' + fmtBRL(preco);
+  document.getElementById('rSub').textContent   = r.qtd + ' placas ' + r.pl.pot + 'W · ' + r.kwp.toFixed(2) + ' kWp · 3% comissão (fixo)';
+  S.R.cPct = COMISSAO_INTERNA;
+
+  // Substituir o card de comissão por um card informativo travado
+  const slC = document.getElementById('slC');
+  const card = slC ? slC.closest('.card') : null;
+  if(card){
+    card.innerHTML =
+      '<div class="ctitle"><span class="ic" style="color:#3ecf8e">🔒 Comissão Interna — 3% fixo</span></div>' +
+      '<div style="background:rgba(62,207,142,.08);border:1px solid rgba(62,207,142,.25);border-radius:var(--rs);padding:16px 18px;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:12px">' +
+        '<div><div style="font-size:11px;color:var(--t2);margin-bottom:4px">Preço de venda (3% fixo)</div>' +
+        '<div style="font-family:Syne,sans-serif;font-size:28px;font-weight:700;color:#3ecf8e">R$ ' + fmtBRL(preco) + '</div></div>' +
+        '<div style="text-align:right"><div style="font-size:11px;color:var(--t2);margin-bottom:4px">Sua comissão</div>' +
+        '<div style="font-family:Syne,sans-serif;font-size:20px;font-weight:700;color:var(--text)">R$ ' + fmtBRL(comv) + '</div>' +
+        '<div style="font-size:10px;color:var(--t3);margin-top:3px">3% do valor de venda</div></div>' +
+      '</div>' +
+      '<div style="margin-top:10px;font-size:11px;color:var(--t3)">ℹ️ Perfil Vend. Interno — comissão fixada em 3%. Sem possibilidade de desconto.</div>';
+  }
+
+  // Ocultar tabela de comissões (não faz sentido para interno)
+  const pcCard = document.getElementById('pcGrid');
+  if(pcCard && pcCard.closest('.card')) pcCard.closest('.card').style.display='none';
+
+  renderMets(preco, COMISSAO_INTERNA, comv);
+  renderBk();
+}
 
 function renderResultNegociador(){
   const r=S.R; if(!r) return;
@@ -3307,256 +2981,6 @@ function renderGraficos(vendedores, propostas){
   }
 }
 
-
-function addInv2(){
-  S.qi = 2;
-  // Mostrar gInv2 e esconder botão add
-  document.getElementById('gInv2').style.display = 'block';
-  document.getElementById('btnAddInv2').style.display = 'none';
-  // Sincronizar tipo com o primeiro inversor
-  const gM2 = document.getElementById('gMono2');
-  const gT2 = document.getElementById('gTri2');
-  if(gM2) gM2.style.display = S.tipoInv==='mono' ? 'block' : 'none';
-  if(gT2) gT2.style.display = S.tipoInv==='tri'  ? 'block' : 'none';
-  chkOv();
-}
-
-function removerInv2(){
-  S.qi = 1;
-  document.getElementById('gInv2').style.display = 'none';
-  document.getElementById('btnAddInv2').style.display = 'block';
-  chkOv();
-}
-
-// ===== CUSTOS EXTRAS =====
-let custosExtras = []; // [{valor, obs}]
-
-function irCustosExtras(){
-  // Verificar se tem placas selecionadas
-  if(!S.qtd || S.qtd < 1){ alert('Selecione a quantidade de placas primeiro.'); return; }
-  document.getElementById('c3').style.display = 'none';
-  document.getElementById('c4').style.display = 'block';
-  setStep(4);
-  renderCustosExtras();
-}
-
-function addCustoExtra(){
-  custosExtras.push({valor: 0, obs: ''});
-  renderCustosExtras();
-}
-
-function removerCustoExtra(idx){
-  custosExtras.splice(idx, 1);
-  renderCustosExtras();
-}
-
-function atualizarCustoExtra(idx, campo, val){
-  if(campo === 'valor') custosExtras[idx].valor = parseFloat(val)||0;
-  if(campo === 'obs')   custosExtras[idx].obs   = val;
-  atualizarTotalCustos();
-}
-
-function atualizarTotalCustos(){
-  const total = custosExtras.reduce((s,c)=>s+( c.valor||0), 0);
-  const el = document.getElementById('totalCustosExtras');
-  if(el) el.textContent = 'R$ ' + fmtBRL(total);
-  return total;
-}
-
-function renderCustosExtras(){
-  const lista = document.getElementById('custosExtrasLista');
-  if(!lista) return;
-  if(!custosExtras.length){
-    lista.innerHTML = '<div style="text-align:center;padding:16px;color:var(--t2);font-size:13px">Nenhum custo extra adicionado.</div>';
-    atualizarTotalCustos();
-    return;
-  }
-  lista.innerHTML = custosExtras.map((c,i)=>`
-    <div style="background:var(--bg2);border:1px solid var(--b2);border-radius:10px;padding:14px;display:flex;flex-direction:column;gap:8px">
-      <div style="display:flex;gap:10px;align-items:flex-start;flex-wrap:wrap">
-        <div style="flex:1;min-width:120px">
-          <label style="font-size:10px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;color:var(--t2);display:block;margin-bottom:4px">Valor (R$)</label>
-          <input type="number" min="0" step="0.01" placeholder="0,00"
-            value="${c.valor||''}"
-            oninput="atualizarCustoExtra(${i},'valor',this.value)"
-            style="width:100%;background:var(--bg);border:1px solid var(--b2);border-radius:8px;padding:9px 12px;color:var(--t1);font-size:15px;font-weight:700;font-family:inherit">
-        </div>
-        <button onclick="removerCustoExtra(${i})" style="background:none;border:1px solid rgba(229,57,53,.3);color:#e05050;border-radius:6px;padding:6px 12px;font-size:12px;cursor:pointer;font-family:inherit;margin-top:18px;flex-shrink:0">✕</button>
-      </div>
-      <div>
-        <label style="font-size:10px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;color:var(--t2);display:block;margin-bottom:4px">Observação (interna)</label>
-        <input type="text" placeholder="Ex: Mão de obra especial, frete, etc."
-          value="${c.obs||''}"
-          oninput="atualizarCustoExtra(${i},'obs',this.value)"
-          style="width:100%;background:var(--bg);border:1px solid var(--b2);border-radius:8px;padding:9px 12px;color:var(--t1);font-size:13px;font-family:inherit">
-      </div>
-    </div>
-  `).join('');
-  atualizarTotalCustos();
-}
-
-
-
-
-function atualizarConfigLabel(){
-  const pct = parseFloat(document.getElementById('cfgMargemPct')?.value || 70);
-  const m   = 1 + pct/100;
-  const d   = parseFloat(document.getElementById('cfgDesconto')?.value || 0);
-  // Atualizar hidden field
-  const hid = document.getElementById('cfgMargem');
-  if(hid) hid.value = m.toFixed(2);
-  const formula = document.getElementById('cfgFormula');
-  if(formula){
-    const descStr = d > 0 ? 'custo × '+(1-d/100).toFixed(2)+' ('+d+'% desc.) × '+m.toFixed(2) : 'custo × '+m.toFixed(2);
-    formula.textContent = descStr + ' = Preço Base';
-  }
-}
-
-function salvarConfigs(){
-  const pct = parseFloat(document.getElementById('cfgMargemPct')?.value);
-  const m   = 1 + pct/100;
-  const d   = parseFloat(document.getElementById('cfgDesconto')?.value);
-  if(isNaN(pct) || pct < 1){ alert('Margem inválida — mínimo 1%'); return; }
-  if(isNaN(d) || d < 0 || d > 30){ alert('Desconto inválido — entre 0% e 30%'); return; }
-  CFG_MARGEM   = m;
-  CFG_DESCONTO = d;
-  localStorage.setItem('wmCfgMargem',   m.toString());
-  localStorage.setItem('wmCfgDesconto', d.toString());
-  const msg = document.getElementById('cfgMsg');
-  if(msg){
-    msg.style.display='block';
-    msg.style.background='rgba(0,200,100,.12)';
-    msg.style.color='#3ecf8e';
-    msg.style.padding='10px 14px';
-    msg.style.borderRadius='8px';
-    msg.style.fontSize='13px';
-    msg.textContent='✅ Salvo! Margem: ' + pct + '% | Desconto no custo: ' + d + '%';
-    setTimeout(()=>msg.style.display='none', 3000);
-  }
-}
-
-function carregarConfigs(){
-  const mEl = document.getElementById('cfgMargem');
-  const dEl = document.getElementById('cfgDesconto');
-  // Converter multiplicador para % (ex: 1.70 → 70)
-  const pctEl = document.getElementById('cfgMargemPct');
-  if(pctEl) pctEl.value = Math.round((CFG_MARGEM - 1) * 100);
-  if(mEl) mEl.value = CFG_MARGEM.toFixed(2);
-  if(dEl) dEl.value = CFG_DESCONTO;
-  atualizarConfigLabel();
-  carregarFaixasUI();
-  carregarFaixasUI();
-}
-
-function restaurarConfigs(){
-  if(!confirm('Restaurar padrões? Margem: 1.70 (70%) e Desconto: 0%')) return;
-  localStorage.removeItem('wmCfgMargem');
-  localStorage.removeItem('wmCfgDesconto');
-  CFG_MARGEM   = 1.70;
-  CFG_DESCONTO = 0;
-  const pctElR = document.getElementById('cfgMargemPct');
-  if(pctElR) pctElR.value = 70;
-  carregarConfigs();
-  const msg = document.getElementById('cfgMsg');
-  if(msg){
-    msg.style.display='block';
-    msg.style.background='rgba(0,200,100,.12)';
-    msg.style.color='#3ecf8e';
-    msg.style.padding='10px 14px';
-    msg.style.borderRadius='8px';
-    msg.style.fontSize='13px';
-    msg.textContent='✅ Padrões restaurados! Margem: 70% | Desconto: 0%';
-    setTimeout(()=>msg.style.display='none', 3000);
-  }
-}
-
-
-// ===== EDIÇÃO DA TABELA DE PREÇOS =====
-const DB_BACKUP = JSON.parse(JSON.stringify({
-  placas: DB.placas,
-  mono:   DB.mono,
-  micro:  DB.micro,
-  tri:    DB.tri,
-  est:    DB.est,
-  cabo:   DB.cabo,
-  mc4:    DB.mc4
-}));
-
-function editarDB(tipo, idx, campo, val){
-  const v = campo==='nome' ? val : (parseFloat(val)||0);
-  if(tipo==='est'){
-    DB.est[idx][campo] = v;
-  } else if(tipo==='placas'||tipo==='mono'||tipo==='micro'||tipo==='tri'){
-    DB[tipo][idx][campo] = v;
-  }
-  // Atualizar selects do precificador
-  if(typeof buildPlacaSel==='function') buildPlacaSel();
-  if(typeof buildInvSel==='function') buildInvSel();
-}
-
-function salvarDB(){
-  try{
-    const snapshot = {
-      placas: DB.placas,
-      mono:   DB.mono,
-      micro:  DB.micro,
-      tri:    DB.tri,
-      est:    DB.est,
-      cabo:   DB.cabo,
-      mc4:    DB.mc4,
-      savedAt: new Date().toISOString()
-    };
-    localStorage.setItem('wmDB', JSON.stringify(snapshot));
-    const el=document.getElementById('dbMsg');
-    if(el){
-      el.style.cssText='display:block;background:rgba(26,111,168,.12);color:#4fa3d8;padding:10px 14px;border-radius:8px;font-size:13px;margin-top:10px';
-      el.textContent='⏳ Salvando preços no servidor...';
-    }
-    api({action:'salvarConfigs', role:S.role, login:S.login, configs:{dbJson: JSON.stringify(snapshot)}}).then(res=>{
-      if(el){
-        if(res.ok){
-          el.style.cssText='display:block;background:rgba(0,200,100,.12);color:#3ecf8e;padding:10px 14px;border-radius:8px;font-size:13px;margin-top:10px';
-          el.textContent='✅ Preços salvos para TODOS os usuários!';
-        } else {
-          el.style.cssText='display:block;background:rgba(229,57,53,.12);color:#ff5252;padding:10px 14px;border-radius:8px;font-size:13px;margin-top:10px';
-          el.textContent='⚠️ Salvo localmente, mas falhou no servidor.';
-        }
-        setTimeout(()=>el.style.display='none', 4000);
-      }
-    });
-  } catch(e){ alert('Erro ao salvar: '+e.message); }
-}
-
-function restaurarDB(){
-  if(!confirm('Restaurar preços originais do código?')) return;
-  localStorage.removeItem('wmDB');
-  // Restaurar do backup
-  DB.placas = JSON.parse(JSON.stringify(DB_BACKUP.placas));
-  DB.mono   = JSON.parse(JSON.stringify(DB_BACKUP.mono));
-  DB.micro  = JSON.parse(JSON.stringify(DB_BACKUP.micro));
-  DB.tri    = JSON.parse(JSON.stringify(DB_BACKUP.tri));
-  DB.est    = JSON.parse(JSON.stringify(DB_BACKUP.est));
-  DB.cabo   = DB_BACKUP.cabo;
-  DB.mc4    = DB_BACKUP.mc4;
-  renderAdmTbl();
-  buildPlacaSel(); buildInvSel();
-}
-
-function carregarDBSalvo(){
-  try{
-    const saved = localStorage.getItem('wmDB');
-    if(!saved) return;
-    const s = JSON.parse(saved);
-    if(s.placas) DB.placas = s.placas;
-    if(s.mono)   DB.mono   = s.mono;
-    if(s.micro)  DB.micro  = s.micro;
-    if(s.tri)    DB.tri    = s.tri;
-    if(s.est)    DB.est    = s.est;
-    if(s.cabo)   DB.cabo   = s.cabo;
-    if(s.mc4)    DB.mc4    = s.mc4;
-  } catch(e){ console.warn('DB salvo inválido, usando padrão'); }
-}
-
 // ===== GESTOR =====
 let gestorDados = null;
 let gestorPropostas = [];
@@ -3607,7 +3031,7 @@ async function loadDashboardGestor(){
 
 function renderTabelaGestor(){
   const filtroV = document.getElementById('gFiltroVend')?.value || '';
-  const filtroVProp = document.getElementById('gFiltroVendProp')?.value || filtroV;
+  const filtroVProp = document.getElementById('gFiltroVendProp')?.value || '';
   const equipe  = (gestorDados?.equipe || []).filter(v => !filtroV || v.login === filtroV);
   const tBody   = document.getElementById('gTbody');
 
@@ -3637,7 +3061,7 @@ function renderTabelaGestor(){
   let tH='<table class="bk" style="font-size:11px;min-width:700px;width:100%"><thead><tr>';
   ['Data','Vendedor','Cliente','Telefone','Origem','kWp','Valor (R$)','Inversor'].forEach(c=>tH+='<th>'+c+'</th>');
   tH+='</tr></thead><tbody>';
-  props.slice(0,50).forEach(p=>{
+  props.slice(0,200).forEach(p=>{
     let dataF=p['Data']||'';
     try{ if(dataF.includes('T')){ const d=new Date(dataF); dataF=d.toLocaleDateString('pt-BR')+' '+d.toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'}); } }catch(e){}
     tH+='<tr>';
@@ -3699,87 +3123,6 @@ async function salvarNovaSenha(){
     showMsg(res.erro || 'Erro ao alterar senha.', false);
   }
 }
-
-function salvarDesconto(){
-  const d = parseFloat(document.getElementById('cfgDesconto')?.value);
-  if(isNaN(d) || d < 0 || d > 30){ alert('Desconto inválido — entre 0% e 30%'); return; }
-  CFG_DESCONTO = d;
-  localStorage.setItem('wmCfgDesconto', d.toString());
-  const msg = document.getElementById('cfgMsg');
-  if(msg){
-    msg.style.cssText='display:block;background:rgba(26,111,168,.12);color:#4fa3d8;padding:8px 12px;border-radius:8px;font-size:13px;margin-top:8px';
-    msg.textContent = '⏳ Salvando no servidor...';
-  }
-  enviarConfigsServidor().then(okSrv=>{
-    if(msg){
-      if(okSrv){
-        msg.style.cssText='display:block;background:rgba(0,200,100,.12);color:#3ecf8e;padding:8px 12px;border-radius:8px;font-size:13px;margin-top:8px';
-        msg.textContent = '✅ Desconto de '+d+'% salvo para TODOS os usuários!';
-      } else {
-        msg.style.cssText='display:block;background:rgba(229,57,53,.12);color:#ff5252;padding:8px 12px;border-radius:8px;font-size:13px;margin-top:8px';
-        msg.textContent = '⚠️ Salvo localmente, mas falhou no servidor.';
-      }
-      setTimeout(()=>msg.style.display='none', 4000);
-    }
-  });
-}
-
-let S={role:null,login:null,nomeVend:null,metaVend:60,mode:'qtd',tipoInv:'mono',oLoss:0,estKey:'2p_colonial',qtd:10,qi:1,isRural:false,R:null};
-
-async function doLogin(){
-  const u=document.getElementById('lu').value.trim().toLowerCase();
-  const p=document.getElementById('lp').value;
-  const btn=document.querySelector('.btn-login');
-  btn.textContent='Entrando...'; btn.disabled=true;
-  const res = await api({action:'login', login:u, senha:p});
-  btn.textContent='Entrar'; btn.disabled=false;
-  if(res.ok){
-    S.role=res.role; S.login=res.login; S.nomeVend=res.nome; S.metaVend=res.meta||60;
-    // descMax: pegar da API ou do cache local
-    let _descMax=res.descMax||0;
-    if(!_descMax){
-      try{
-        const cache=JSON.parse(localStorage.getItem('wmTipos')||'{}');
-        if(cache[res.login]) _descMax=cache[res.login].descMax||10;
-      }catch(e){}
-    }
-    S.descMax=_descMax||10;
-    // role negociador: verificar cache se API não retornar
-    if(res.role==='vendedor'){
-      try{
-        const cache=JSON.parse(localStorage.getItem('wmTipos')||'{}');
-        if(cache[res.login]&&cache[res.login].tipo==='negociador') S.role='negociador';
-      }catch(e){}
-    }
-    document.getElementById('ls').style.display='none';
-    document.getElementById('app').style.display='block';
-    const b=document.getElementById('rbadge');
-    b.textContent=(S.role==='admin'?'🔑 Admin':S.role==='gestor'?'📊 '+S.nomeVend:S.role==='negociador'?'🏷️ '+S.nomeVend:'👤 '+S.nomeVend);
-    b.className='brole '+(S.role==='admin'?'badm':S.role==='gestor'?'bges':S.role==='negociador'?'bneg':'bvnd');
-    // Tabs visíveis
-    document.getElementById('tabMyBtn').style.display='flex';
-    if(S.role==='admin'){
-      document.getElementById('atab').style.display='flex';
-      document.getElementById('tabDashBtn').style.display='flex';
-      document.getElementById('btnXls').style.display='inline-flex';
-      renderAdmTbl(); loadVendedoresTbl(); loadOrigensTbl(); carregarConfigs();
-    }
-    if(S.role==='gestor'){
-      document.getElementById('tabDashBtn').style.display='flex';
-      document.getElementById('tabMyBtn').style.display='flex';
-      // Resetar _iniciado para pré-selecionar o gestor ao abrir o dashboard
-      const _sgEl = document.getElementById('dFiltroGestor');
-      if(_sgEl) _sgEl._iniciado = false;
-      loadDashboard();
-    }
-    await carregarConfigsServidor(); // ← sincronizar margens/faixas/desconto do servidor
-    refreshGen(); buildPlacaSel(); loadOrigens();
-  } else {
-    const e=document.getElementById('lerr'); e.style.display='block';
-    e.textContent=res.erro||'Usuário ou senha incorretos';
-    setTimeout(()=>e.style.display='none',3000);
-  }
-}
 </script>
 
 <!-- MODAL PROPOSTA -->
@@ -3822,5 +3165,4 @@ async function doLogin(){
   </div>
 </div>
 </body>
-
 </html>
