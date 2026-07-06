@@ -836,6 +836,27 @@ async function api(payload){
 let telDuplicado=false;
 let S={role:null,login:null,nomeVend:null,metaVend:60,mode:'qtd',tipoInv:'mono',oLoss:0,estKey:'2p_colonial',qtd:10,qi:1,isRural:false,R:null};
 
+function normalizarPerfilUsuario(res){
+  // Garante que o perfil 🔒 Vend. Interno fique realmente travado em 3%, mesmo se a API retornar como vendedor comum.
+  const tipoApi = String(res.tipo || res.perfil || res.tipoPerfil || res.profile || res.rolePerfil || '').toLowerCase();
+  const descApi = parseInt(res.descMax || res.comissaoMax || res.maxComissao || 0) || 0;
+
+  if(tipoApi.includes('interno') || tipoApi.includes('vend. interno') || tipoApi.includes('vendedor interno') || (descApi === 3 && !tipoApi.includes('negociador'))){
+    S.role = 'interno';
+    S.descMax = 3;
+    return;
+  }
+  if(tipoApi.includes('negociador')){
+    S.role = 'negociador';
+    S.descMax = descApi || S.descMax || 10;
+  }
+}
+
+function isPerfilInterno(){
+  return S.role === 'interno' || parseInt(S.descMax || 0) === 3;
+}
+
+
 async function doLogin(){
   const u=document.getElementById('lu').value.trim().toLowerCase();
   const p=document.getElementById('lp').value;
@@ -854,16 +875,17 @@ async function doLogin(){
       }catch(e){}
     }
     S.descMax=_descMax||10;
+    normalizarPerfilUsuario(res);
     // role negociador: verificar cache se API não retornar
     if(res.role==='vendedor'){
       try{
         const cache=JSON.parse(localStorage.getItem('wmTipos')||'{}');
         if(cache[res.login]&&cache[res.login].tipo==='negociador') S.role='negociador';
-        if(cache[res.login]&&cache[res.login].tipo==='interno')    S.role='interno';
+        if(cache[res.login]&&cache[res.login].tipo==='interno'){ S.role='interno'; S.descMax=3; }
       }catch(e){}
     }
     // role 'interno' vindo direto da API
-    if(res.role==='interno') S.role='interno';
+    if(res.role==='interno'){ S.role='interno'; S.descMax=3; }
     document.getElementById('ls').style.display='none';
     document.getElementById('app').style.display='block';
     const b=document.getElementById('rbadge');
@@ -2600,12 +2622,13 @@ async function salvarVendedor(){
   const msgEl=document.getElementById('modalVendMsg');
   const isNovo = !editandoLogin;
   if(!login||!nome||(isNovo&&!senha)){ msgEl.style.display='block'; msgEl.style.color='#e05050'; msgEl.textContent='Preencha todos os campos.'; return; }
-  const res=await api({action:'salvarVendedor', login:S.login, role:S.role, login:editandoLogin||login, senha, nome, meta, tipo, descMax});
+  const alvoLogin=editandoLogin||login;
+  const res=await api({action:'salvarVendedor', login:alvoLogin, adminLogin:S.login, targetLogin:alvoLogin, vendedorLogin:alvoLogin, role:S.role, senha, nome, meta, tipo, descMax});
   if(res.ok){
     // Cache local do tipo (enquanto Apps Script não retorna este campo)
     try{
       const cache=JSON.parse(localStorage.getItem('wmTipos')||'{}');
-      const loginKey=editandoLogin||login;
+      const loginKey=alvoLogin;
       cache[loginKey]={tipo, descMax: tipo==='interno'?3:descMax};
       localStorage.setItem('wmTipos', JSON.stringify(cache));
     }catch(e){}
@@ -2615,7 +2638,7 @@ async function salvarVendedor(){
 }
 async function excluirVend(login){
   if(!confirm('Excluir vendedor "'+login+'"? As propostas serão mantidas.')) return;
-  const res=await api({action:'excluirVendedor', login:S.login, role:S.role, login});
+  const res=await api({action:'excluirVendedor', login, adminLogin:S.login, targetLogin:login, vendedorLogin:login, role:S.role});
   if(res.ok) loadVendedoresTbl();
 }
 
@@ -2640,7 +2663,7 @@ function toggleNegOpts(){
   }
 }
 function isNegociador(){ return S.role==='negociador'; }
-function isInterno(){    return S.role==='interno'; }
+function isInterno(){    return isPerfilInterno(); }
 function getDescMax(){ return parseInt(S.descMax||10); }
 function precoCheioNeg(base){ return base/(1-0.15); }
 function precoComDesc(cheio,pct){ return cheio*(1-pct/100); }
