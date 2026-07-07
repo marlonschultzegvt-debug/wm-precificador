@@ -839,27 +839,29 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:22px;heigh
 // ====== DB ======
 let DB={
   placas:[
-    {nome:'Astronergy Bifacial 580W N-Type', pot:580, preco:526},
-    {nome:'OSDA 620W Bifacial',              pot:620, preco:590},
-    {nome:'Huasun 700W',                     pot:700, preco:637}
+    {nome:'PAINEL SOLAR FOTOVOLTAICO OSDA 620W', pot:620, preco:564}
   ],
   mono:[
-    {nome:'Chint 3kW Mono',   preco:1190, ov:8,  mc4:1},
-    {nome:'Chint 5kW Mono',   preco:1558, ov:14, mc4:2},
-    {nome:'Chint 6kW Mono',   preco:1684, ov:17, mc4:3},
-    {nome:'Chint 7,5kW Mono', preco:2211, ov:21, mc4:4},
-    {nome:'Chint 10kW Mono',  preco:2800, ov:30, mc4:6}
+    {nome:'Sofar 3kW Mono',    preco:1211, ov:7,  mc4:1},
+    {nome:'Chint 5kW Mono',    preco:1558, ov:14, mc4:2},
+    {nome:'Chint 6kW Mono',    preco:1632, ov:16, mc4:3},
+    {nome:'Chint 7,5kW Mono',  preco:2211, ov:20, mc4:4},
+    {nome:'Chint 10kW Mono',   preco:2579, ov:26, mc4:6},
+    {nome:'Sofar 4KW mono',    preco:1358, ov:9,  mc4:2},
+    {nome:'Sofar 5KW mono',    preco:1578, ov:13, mc4:2},
+    {nome:'Sofar 7.5KW mono',  preco:2211, ov:20, mc4:4},
+    {nome:'Sofar 10KW mono',   preco:2579, ov:26, mc4:6},
+    {nome:'Sofar 15KW Tri',    preco:4106, ov:41, mc4:8},
+    {nome:'Sofar 20KW Tri',    preco:5474, ov:54, mc4:8}
   ],
   micro:[
     {nome:'Microinversor Growatt NEO 2250 x2', preco:790, ov:4, mc4:4}
   ],
   tri:[
-    {nome:'Sofar 25kW Tri',   preco:6053,  ov:72,  mc4:8},
-    {nome:'Chint 25kW Tri',   preco:7684,  ov:72,  mc4:8},
-    {nome:'Sofar 30kW Tri',   preco:6306,  ov:85,  mc4:8},
-    {nome:'Sofar 37,5kW Tri', preco:6527,  ov:108, mc4:10},
-    {nome:'Sofar 50kW Tri',   preco:13369, ov:170, mc4:15},
-    {nome:'Sofar 75kW Tri',   preco:14632, ov:256, mc4:20}
+    {nome:'Sofar 25kW Tri',   preco:5948,  ov:68,  mc4:8},
+    {nome:'Sofar 37,5kW Tri', preco:6211,  ov:102, mc4:10},
+    {nome:'Sofar 50kW Tri',   preco:12948, ov:160, mc4:15},
+    {nome:'Sofar 75kW Tri',   preco:14000, ov:241, mc4:20}
   ],
   cabo:11,
   mc4:20,
@@ -871,10 +873,17 @@ let DB={
     'sem':          {nome:'Sem Estrutura',         preco:0,    passo:0}
   }
 };
+const DB_VERSION = 'wm-precos-marlon-2026-07-07-v2';
 const DB_PADRAO = JSON.parse(JSON.stringify(DB));
 
 function carregarTabelaLocal(){
   try{
+    const versaoSalva = localStorage.getItem('wmPrecoDBVersion');
+    if(versaoSalva !== DB_VERSION){
+      localStorage.setItem('wmPrecoDB', JSON.stringify(DB));
+      localStorage.setItem('wmPrecoDBVersion', DB_VERSION);
+      return;
+    }
     const raw = localStorage.getItem('wmPrecoDB');
     if(!raw) return;
     const salvo = JSON.parse(raw);
@@ -1330,6 +1339,7 @@ function novoCalc(){
 // ====== ADMIN ======
 function salvarTabelaLocal(mostrarMsg=false){
   localStorage.setItem('wmPrecoDB', JSON.stringify(DB));
+  localStorage.setItem('wmPrecoDBVersion', DB_VERSION);
   if(mostrarMsg){
     const msg=document.getElementById('admEditMsg')||document.getElementById('uMsg');
     if(msg){msg.style.display='block';msg.className='umsg ok';msg.textContent='Tabela salva neste navegador. Os novos cálculos já usam estes valores.';}
@@ -1339,7 +1349,8 @@ function salvarTabelaLocal(mostrarMsg=false){
 function restaurarTabelaPadrao(){
   if(!confirm('Restaurar a tabela padrão e apagar alterações salvas neste navegador?')) return;
   DB = JSON.parse(JSON.stringify(DB_PADRAO));
-  localStorage.removeItem('wmPrecoDB');
+  localStorage.setItem('wmPrecoDB', JSON.stringify(DB));
+  localStorage.setItem('wmPrecoDBVersion', DB_VERSION);
   renderAdmTbl(); rebuildSels();
   const msg=document.getElementById('admEditMsg');
   if(msg){msg.style.display='block';msg.className='umsg ok';msg.textContent='Tabela padrão restaurada.';}
