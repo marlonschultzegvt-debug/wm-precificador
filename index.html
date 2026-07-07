@@ -636,7 +636,7 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:22px;heigh
       <div id="admTbl" style="overflow-x:auto;margin-bottom:1rem"></div>
       <div class="brow" style="margin-top:.5rem;margin-bottom:1rem">
         <button class="ba bor" onclick="abrirModalPreco()">➕ Adicionar Item</button>
-        <button class="ba bot" onclick="salvarTabelaLocal(true)">💾 Salvar Alterações</button>
+        <button class="ba bot" onclick="salvarTabelaGlobal(true)">💾 Salvar Alterações</button>
         <button class="ba bot" onclick="restaurarTabelaPadrao()">↩️ Restaurar Padrão</button>
       </div>
       <div id="admEditMsg" class="umsg"></div>
@@ -909,24 +909,81 @@ async function api(payload){
   }
 }
 
+async function carregarTabelaServidor(){
+  // A planilha/App Script é a fonte oficial. localStorage fica apenas como cache de segurança.
+  const res = await api({action:'getTabelaPrecos', login:S.login, role:S.role});
+  if(res && res.ok && res.db){
+    DB = res.db;
+    try{
+      localStorage.setItem('wmPrecoDB', JSON.stringify(DB));
+      localStorage.setItem('wmPrecoDBVersion', 'server-' + Date.now());
+    }catch(e){}
+
+    if(typeof rebuildSels === 'function') rebuildSels();
+    if(typeof renderAdmTbl === 'function' && S.role === 'admin') renderAdmTbl();
+    if(typeof refreshGen === 'function') refreshGen();
+    if(typeof calcFrGen === 'function' && S.mode === 'gen') calcFrGen();
+    if(S.R && typeof calc === 'function') calc();
+    return true;
+  }
+  console.warn('Tabela do servidor não carregou. Usando cache/local padrão.', res);
+  return false;
+}
+
+function aplicarPermissoesTela(){
+  if(!isPerfilInterno()) return;
+  S.role = 'interno';
+  S.descMax = 3;
+  if(S.R) S.R.cPct = 3;
+  const slC = document.getElementById('slC');
+  if(slC){
+    slC.value = 3;
+    slC.max = 3;
+    slC.disabled = true;
+    const comCard = slC.closest('.card');
+    if(comCard) comCard.style.display = 'none';
+  }
+  const pcGrid = document.getElementById('pcGrid');
+  if(pcGrid){
+    const pcCard = pcGrid.closest('.card');
+    if(pcCard) pcCard.style.display = 'none';
+  }
+}
+
 // ====== AUTH ======
 let telDuplicado=false;
 let S={role:null,login:null,nomeVend:null,metaVend:60,mode:'qtd',tipoInv:'mono',oLoss:0,estKey:'2p_colonial',qtd:10,qi:1,isRural:false,R:null};
 
 function normalizarPerfilUsuario(res){
-  // Garante que o perfil 🔒 Vend. Interno fique realmente travado em 3%, mesmo se a API retornar como vendedor comum.
-  const tipoApi = String(res.tipo || res.perfil || res.tipoPerfil || res.profile || res.rolePerfil || '').toLowerCase();
-  const descApi = parseInt(res.descMax || res.comissaoMax || res.maxComissao || 0) || 0;
+  // Regra forte para o perfil 🔒 Vend. Interno.
+  // Mesmo que a planilha/API retorne outro campo, qualquer variação de "interno" trava em 3%.
+  const campos = [
+    res.role, res.tipo, res.perfil, res.tipoPerfil, res.profile, res.rolePerfil, res.cargo, res.nomePerfil
+  ].map(v => String(v || '').toLowerCase()).join(' ');
+  const descApi = parseInt(res.descMax || res.comissaoMax || res.maxComissao || 0, 10) || 0;
 
-  if(tipoApi.includes('interno') || tipoApi.includes('vend. interno') || tipoApi.includes('vendedor interno') || (descApi === 3 && !tipoApi.includes('negociador'))){
+  const isInterno =
+    campos.includes('interno') ||
+    campos.includes('vend. interno') ||
+    campos.includes('vendedor interno') ||
+    campos.includes('🔒') ||
+    (descApi === 3 && !campos.includes('negociador'));
+
+  if(isInterno){
     S.role = 'interno';
     S.descMax = 3;
+    if(S.R) S.R.cPct = 3;
     return;
   }
-  if(tipoApi.includes('negociador')){
+
+  if(campos.includes('negociador')){
     S.role = 'negociador';
-    S.descMax = descApi || S.descMax || 10;
+    S.descMax = descApi || 10;
+    return;
   }
+
+  S.role = res.role || S.role || 'vendedor';
+  S.descMax = descApi || S.descMax || 10;
 }
 
 function isPerfilInterno(){
@@ -963,6 +1020,10 @@ async function doLogin(){
     }
     // role 'interno' vindo direto da API
     if(res.role==='interno'){ S.role='interno'; S.descMax=3; }
+
+    await carregarTabelaServidor();
+    aplicarPermissoesTela();
+
     document.getElementById('ls').style.display='none';
     document.getElementById('app').style.display='block';
     const b=document.getElementById('rbadge');
@@ -1044,9 +1105,10 @@ function setRural(isRural,btn){
 }
 function getPlaca(){return DB.placas[parseInt(document.getElementById('sPlaca').value)]}
 function buildPlacaSel(){
-  const isAdm=S.role==='admin';
-  document.getElementById('sPlaca').innerHTML=DB.placas.map((p,i)=>
-    `<option value="${i}">${p.nome}${isAdm?' — R$ '+p.preco+'/un':''}</option>`
+  const sel=document.getElementById('sPlaca');
+  if(!sel) return;
+  sel.innerHTML=DB.placas.map((p,i)=>
+    `<option value="${i}">${p.nome}${p.pot?' — '+p.pot+'W':''}</option>`
   ).join('');
 }
 function refreshGen(){
@@ -1234,6 +1296,7 @@ function calcRes(){
   if(isNegociador()){renderResultNegociador();}
   else if(isInterno()){renderResultInterno();}
   else{document.getElementById('slC').value=0;updC();renderPC();}
+  aplicarPermissoesTela();
 }
 
 function updC(){
@@ -1338,22 +1401,47 @@ function novoCalc(){
 
 // ====== ADMIN ======
 function salvarTabelaLocal(mostrarMsg=false){
-  localStorage.setItem('wmPrecoDB', JSON.stringify(DB));
-  localStorage.setItem('wmPrecoDBVersion', DB_VERSION);
+  // Fallback/cache local. Não é mais a fonte oficial dos preços.
+  try{
+    localStorage.setItem('wmPrecoDB', JSON.stringify(DB));
+    localStorage.setItem('wmPrecoDBVersion', 'local-' + Date.now());
+  }catch(e){}
   if(mostrarMsg){
     const msg=document.getElementById('admEditMsg')||document.getElementById('uMsg');
-    if(msg){msg.style.display='block';msg.className='umsg ok';msg.textContent='Tabela salva neste navegador. Os novos cálculos já usam estes valores.';}
+    if(msg){msg.style.display='block';msg.className='umsg ok';msg.textContent='Tabela salva no cache local.';}
   }
 }
 
-function restaurarTabelaPadrao(){
-  if(!confirm('Restaurar a tabela padrão e apagar alterações salvas neste navegador?')) return;
+async function salvarTabelaGlobal(mostrarMsg=false){
+  salvarTabelaLocal(false);
+  const msg=document.getElementById('admEditMsg')||document.getElementById('uMsg');
+  const res = await api({action:'salvarTabelaPrecos', login:S.login, role:S.role, db:DB});
+
+  if(res && res.ok){
+    if(mostrarMsg && msg){
+      msg.style.display='block';
+      msg.className='umsg ok';
+      msg.textContent='Tabela salva na planilha. Todos os vendedores receberão os novos valores ao entrar no sistema.';
+    }
+    await carregarTabelaServidor();
+    return true;
+  }
+
+  if(msg){
+    msg.style.display='block';
+    msg.className='umsg err';
+    msg.textContent='Não consegui salvar na planilha: '+(res?.erro||'ação salvarTabelaPrecos não encontrada no Apps Script')+'. Salvei apenas neste navegador como segurança.';
+  }
+  return false;
+}
+
+async function restaurarTabelaPadrao(){
+  if(!confirm('Restaurar a tabela padrão e publicar para todos os usuários?')) return;
   DB = JSON.parse(JSON.stringify(DB_PADRAO));
-  localStorage.setItem('wmPrecoDB', JSON.stringify(DB));
-  localStorage.setItem('wmPrecoDBVersion', DB_VERSION);
+  await salvarTabelaGlobal(true);
   renderAdmTbl(); rebuildSels();
   const msg=document.getElementById('admEditMsg');
-  if(msg){msg.style.display='block';msg.className='umsg ok';msg.textContent='Tabela padrão restaurada.';}
+  if(msg){msg.style.display='block';msg.className='umsg ok';msg.textContent='Tabela padrão restaurada e publicada.';}
 }
 
 function tipoLabelPreco(tipo){
@@ -1438,17 +1526,17 @@ function ajustarCamposPreco(){
 
 function editarItemPreco(tipo, idx){ abrirModalPreco(tipo, idx); }
 
-function excluirItemPreco(tipo, idx){
+async function excluirItemPreco(tipo, idx){
   if(!DB[tipo] || !DB[tipo][idx]) return;
   if(!confirm('Excluir este item da tabela?')) return;
   DB[tipo].splice(idx,1);
-  salvarTabelaLocal(false);
+  await salvarTabelaGlobal(false);
   renderAdmTbl(); rebuildSels();
   const msg=document.getElementById('admEditMsg');
-  if(msg){msg.style.display='block';msg.className='umsg ok';msg.textContent='Item excluído e tabela atualizada.';}
+  if(msg){msg.style.display='block';msg.className='umsg ok';msg.textContent='Item excluído e publicado na planilha.';}
 }
 
-function salvarItemPreco(){
+async function salvarItemPreco(){
   const tipo=document.getElementById('precoTipo').value;
   const editTipo=document.getElementById('precoEditTipo').value;
   const idxStr=document.getElementById('precoEditIndex').value;
@@ -1475,10 +1563,10 @@ function salvarItemPreco(){
     const item={nome,preco,ov,mc4};
     if(editTipo && idx!==null) DB[tipo][idx]=item; else DB[tipo].push(item);
   }
-  salvarTabelaLocal(false);
+  await salvarTabelaGlobal(false);
   fecharModalPreco(); renderAdmTbl(); rebuildSels();
   const ok=document.getElementById('admEditMsg');
-  if(ok){ok.style.display='block';ok.className='umsg ok';ok.textContent='Item salvo. Os novos cálculos já usam a tabela atualizada.';}
+  if(ok){ok.style.display='block';ok.className='umsg ok';ok.textContent='Item salvo e publicado na planilha.';}
 }
 
 function handleUp(input){
@@ -1529,8 +1617,7 @@ function handleUp(input){
       DB.cabo=cabo; DB.mc4=mc4;
       msg.className='umsg ok';
       msg.textContent='Atualizado! '+DB.placas.length+' placas - '+DB.mono.length+' mono - '+DB.micro.length+' micro - '+DB.tri.length+' tri - cabo R$'+DB.cabo+' - MC4 R$'+DB.mc4;
-      salvarTabelaLocal(false);
-      renderAdmTbl(); rebuildSels();
+      salvarTabelaGlobal(false).then(()=>{ renderAdmTbl(); rebuildSels(); });
     }catch(err){
       msg.className='umsg err';
       msg.textContent='Erro: '+err.message;
@@ -1541,8 +1628,10 @@ function handleUp(input){
 }
 function rebuildSels(){
   buildPlacaSel();
-  document.getElementById('sMono').innerHTML=DB.mono.map((i,x)=>`<option value="${x}">${i.nome} — Overload: até ${i.ov} placas</option>`).join('');
-  document.getElementById('sTri').innerHTML=DB.tri.map((i,x)=>`<option value="${x}">${i.nome} — Overload: até ${i.ov} placas</option>`).join('');
+  const sm=document.getElementById('sMono');
+  const st=document.getElementById('sTri');
+  if(sm) sm.innerHTML=(DB.mono||[]).map((i,x)=>`<option value="${x}">${i.nome} — Overload: até ${i.ov} placas</option>`).join('');
+  if(st) st.innerHTML=(DB.tri||[]).map((i,x)=>`<option value="${x}">${i.nome} — Overload: até ${i.ov} placas</option>`).join('');
 }
 function dlXls(){
   const wb=XLSX.utils.book_new();
