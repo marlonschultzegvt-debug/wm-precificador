@@ -634,6 +634,12 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:22px;heigh
       <div class="ctitle"><span class="ic" style="color:var(--blue)">🔑</span>Painel Administrativo</div>
       <div class="sep"><span>Tabela de Preços Atual</span></div>
       <div id="admTbl" style="overflow-x:auto;margin-bottom:1rem"></div>
+      <div class="brow" style="margin-top:.5rem;margin-bottom:1rem">
+        <button class="ba bor" onclick="abrirModalPreco()">➕ Adicionar Item</button>
+        <button class="ba bot" onclick="salvarTabelaLocal(true)">💾 Salvar Alterações</button>
+        <button class="ba bot" onclick="restaurarTabelaPadrao()">↩️ Restaurar Padrão</button>
+      </div>
+      <div id="admEditMsg" class="umsg"></div>
       <div class="sep"><span>Upload de Nova Tabela</span></div>
       <div class="uzone" onclick="document.getElementById('uFile').click()">
         <input type="file" id="uFile" accept=".xlsx,.xls" onchange="handleUp(this)">
@@ -743,7 +749,56 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:22px;heigh
 
   
   <!-- Modal Vendedor -->
-  <div id="modalVend" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.8);z-index:999;display:none;align-items:center;justify-content:center">
+    <!-- MODAL ITEM DE PREÇO -->
+  <div id="modalPreco" style="display:none;position:fixed;inset:0;z-index:1000;background:rgba(0,0,0,.75);align-items:center;justify-content:center;padding:1rem">
+    <div style="background:var(--bg2);border:1px solid var(--b2);border-radius:var(--r);padding:1.5rem;width:100%;max-width:520px;max-height:90vh;overflow-y:auto">
+      <div class="ctitle"><span class="ic">🧾</span><span id="modalPrecoTitulo">Adicionar Item</span></div>
+      <input type="hidden" id="precoEditTipo">
+      <input type="hidden" id="precoEditIndex">
+      <div class="fg">
+        <label>Tipo do item</label>
+        <select id="precoTipo" onchange="ajustarCamposPreco()">
+          <option value="placas">Placa</option>
+          <option value="mono">Inversor Mono</option>
+          <option value="tri">Inversor Tri</option>
+          <option value="micro">Microinversor</option>
+          <option value="cabo">Cabo Solar</option>
+          <option value="mc4">Conector MC4</option>
+        </select>
+      </div>
+      <div class="fg" id="precoNomeBox">
+        <label>Nome do item</label>
+        <input type="text" id="precoNome" placeholder="Ex.: Chint 5kW Mono">
+      </div>
+      <div class="fgrid">
+        <div class="fg" id="precoPotBox">
+          <label>Potência da placa (W)</label>
+          <input type="number" id="precoPot" min="0" placeholder="Ex.: 580">
+        </div>
+        <div class="fg">
+          <label>Preço</label>
+          <input type="number" id="precoValor" min="0" step="0.01" placeholder="Ex.: 526">
+        </div>
+      </div>
+      <div class="fgrid" id="precoInvBox">
+        <div class="fg">
+          <label>Overload / placas</label>
+          <input type="number" id="precoOv" min="0" placeholder="Ex.: 14">
+        </div>
+        <div class="fg">
+          <label>MC4 / pares</label>
+          <input type="number" id="precoMc4" min="0" placeholder="Ex.: 2">
+        </div>
+      </div>
+      <div id="precoModalMsg" style="font-size:12px;margin-bottom:10px;display:none"></div>
+      <div style="display:flex;gap:8px;justify-content:flex-end;flex-wrap:wrap">
+        <button class="ba bot" onclick="fecharModalPreco()">Cancelar</button>
+        <button class="ba bor" onclick="salvarItemPreco()">Salvar Item</button>
+      </div>
+    </div>
+  </div>
+
+<div id="modalVend" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.8);z-index:999;display:none;align-items:center;justify-content:center">
     <div style="background:var(--bg2);border:1px solid var(--b2);border-radius:16px;padding:1.5rem;width:100%;max-width:460px;margin:1rem;max-height:90vh;overflow-y:auto">
       <div style="font-family:Syne,sans-serif;font-size:15px;font-weight:700;margin-bottom:1.25rem" id="modalVendTitulo">Novo Vendedor</div>
       <div class="fg"><label>Login</label><input type="text" id="vLogin" placeholder="ex: joao.silva"></div>
@@ -816,6 +871,19 @@ let DB={
     'sem':          {nome:'Sem Estrutura',         preco:0,    passo:0}
   }
 };
+const DB_PADRAO = JSON.parse(JSON.stringify(DB));
+
+function carregarTabelaLocal(){
+  try{
+    const raw = localStorage.getItem('wmPrecoDB');
+    if(!raw) return;
+    const salvo = JSON.parse(raw);
+    if(salvo && salvo.placas && salvo.mono && salvo.tri && salvo.micro){
+      DB = salvo;
+    }
+  }catch(e){ console.warn('Não foi possível carregar tabela local', e); }
+}
+carregarTabelaLocal();
 
 // ====== CONFIG API ======
 const API_URL = 'https://script.google.com/macros/s/AKfycbzK0aNb_uIzgyMgTYaLc1Cz5uhrU4fL6r6mRrigCCg5Rn_hqQpFnHmtRTeqOWAd58cR0g/exec'; // ← substituir após publicar
@@ -1260,16 +1328,146 @@ function novoCalc(){
 }
 
 // ====== ADMIN ======
+function salvarTabelaLocal(mostrarMsg=false){
+  localStorage.setItem('wmPrecoDB', JSON.stringify(DB));
+  if(mostrarMsg){
+    const msg=document.getElementById('admEditMsg')||document.getElementById('uMsg');
+    if(msg){msg.style.display='block';msg.className='umsg ok';msg.textContent='Tabela salva neste navegador. Os novos cálculos já usam estes valores.';}
+  }
+}
+
+function restaurarTabelaPadrao(){
+  if(!confirm('Restaurar a tabela padrão e apagar alterações salvas neste navegador?')) return;
+  DB = JSON.parse(JSON.stringify(DB_PADRAO));
+  localStorage.removeItem('wmPrecoDB');
+  renderAdmTbl(); rebuildSels();
+  const msg=document.getElementById('admEditMsg');
+  if(msg){msg.style.display='block';msg.className='umsg ok';msg.textContent='Tabela padrão restaurada.';}
+}
+
+function tipoLabelPreco(tipo){
+  return tipo==='placas'?'Placa':tipo==='mono'?'Mono':tipo==='tri'?'Tri':tipo==='micro'?'Micro':tipo==='cabo'?'Acessório':tipo==='mc4'?'Acessório':tipo;
+}
+
+function renderLinhaPreco(tipo, item, idx){
+  const isPlaca = tipo==='placas';
+  const isMicro = tipo==='micro';
+  const nome = tipo==='cabo'?'Cabo Solar':tipo==='mc4'?'Conector MC4 Odex':item.nome;
+  const preco = tipo==='cabo'?DB.cabo:tipo==='mc4'?DB.mc4:item.preco;
+  const ov = (tipo==='cabo'||tipo==='mc4'||isPlaca) ? '—' : (item.ov + (isMicro?' pl./un':' pl.'));
+  const mc4 = (tipo==='cabo'||tipo==='mc4'||isPlaca) ? '—' : (item.mc4+' pares');
+  const idxArg = (idx===null||idx===undefined) ? 'null' : idx;
+  return `<tr>
+    <td style="color:var(--t3)">${tipoLabelPreco(tipo)}</td>
+    <td>${nome}</td>
+    <td style="text-align:right">R$ ${isPlaca ? preco+'/un' : fmtBRL(preco)}</td>
+    <td style="text-align:right">${ov}</td>
+    <td style="text-align:right">${mc4}</td>
+    <td style="text-align:right;white-space:nowrap">
+      <button class="btn-out" onclick="editarItemPreco('${tipo}',${idxArg})" style="color:#4fa3d8;border-color:rgba(79,163,216,.35);margin-right:4px">✏️ Editar</button>
+      ${tipo==='cabo'||tipo==='mc4'?'':`<button class="btn-out" onclick="excluirItemPreco('${tipo}',${idx})" style="color:#e05050;border-color:rgba(224,80,80,.35)">🗑️ Excluir</button>`}
+    </td>
+  </tr>`;
+}
+
 function renderAdmTbl(){
-  let h='<table class="bk" style="font-size:12px"><thead><tr><th>Tipo</th><th>Item</th><th style="text-align:right">Preço</th><th style="text-align:right">Overload</th><th style="text-align:right">MC4</th></tr></thead><tbody>';
-  DB.placas.forEach(p=>h+=`<tr><td style="color:var(--t3)">Placa</td><td>${p.nome}</td><td>R$ ${p.preco}/un</td><td>—</td><td>—</td></tr>`);
-  DB.mono.forEach(i=>h+=`<tr><td style="color:var(--t3)">Mono</td><td>${i.nome}</td><td>R$ ${fmtBRL(i.preco)}</td><td>${i.ov} pl.</td><td>${i.mc4} pares</td></tr>`);
-  DB.tri.forEach(i=>h+=`<tr><td style="color:var(--t3)">Tri</td><td>${i.nome}</td><td>R$ ${fmtBRL(i.preco)}</td><td>${i.ov} pl.</td><td>${i.mc4} pares</td></tr>`);
-  DB.micro.forEach(i=>h+=`<tr><td style="color:var(--t3)">Micro</td><td>${i.nome}</td><td>R$ ${fmtBRL(i.preco)}</td><td>${i.ov} pl./un</td><td>${i.mc4} pares</td></tr>`);
-  h+=`<tr><td style="color:var(--t3)">Acessório</td><td>Cabo Solar</td><td>R$ ${DB.cabo}/m</td><td>—</td><td>—</td></tr>`;
-  h+=`<tr><td style="color:var(--t3)">Acessório</td><td>Conector MC4 Odex</td><td>R$ ${DB.mc4}/par</td><td>—</td><td>—</td></tr>`;
+  let h='<table class="bk" style="font-size:12px"><thead><tr><th>Tipo</th><th>Item</th><th style="text-align:right">Preço</th><th style="text-align:right">Overload</th><th style="text-align:right">MC4</th><th style="text-align:right">Ações</th></tr></thead><tbody>';
+  DB.placas.forEach((p,i)=>h+=renderLinhaPreco('placas',p,i));
+  DB.mono.forEach((i,x)=>h+=renderLinhaPreco('mono',i,x));
+  DB.tri.forEach((i,x)=>h+=renderLinhaPreco('tri',i,x));
+  DB.micro.forEach((i,x)=>h+=renderLinhaPreco('micro',i,x));
+  h+=renderLinhaPreco('cabo',null,null);
+  h+=renderLinhaPreco('mc4',null,null);
   h+='</tbody></table>';
   document.getElementById('admTbl').innerHTML=h;
+}
+
+function abrirModalPreco(tipo='', idx=''){
+  document.getElementById('modalPreco').style.display='flex';
+  document.getElementById('modalPrecoTitulo').textContent = tipo ? 'Editar Item' : 'Adicionar Item';
+  document.getElementById('precoEditTipo').value = tipo;
+  document.getElementById('precoEditIndex').value = (idx===null||idx===undefined)?'':idx;
+  document.getElementById('precoTipo').disabled = !!tipo;
+  document.getElementById('precoTipo').value = tipo || 'placas';
+  document.getElementById('precoNome').value='';
+  document.getElementById('precoPot').value='';
+  document.getElementById('precoValor').value='';
+  document.getElementById('precoOv').value='';
+  document.getElementById('precoMc4').value='';
+  document.getElementById('precoModalMsg').style.display='none';
+
+  if(tipo){
+    let item = null;
+    if(tipo==='cabo') item = {nome:'Cabo Solar', preco:DB.cabo};
+    else if(tipo==='mc4') item = {nome:'Conector MC4 Odex', preco:DB.mc4};
+    else item = DB[tipo][idx];
+    if(item){
+      document.getElementById('precoNome').value = item.nome || '';
+      document.getElementById('precoPot').value = item.pot || '';
+      document.getElementById('precoValor').value = item.preco || '';
+      document.getElementById('precoOv').value = item.ov || '';
+      document.getElementById('precoMc4').value = item.mc4 || '';
+    }
+  }
+  ajustarCamposPreco();
+}
+
+function fecharModalPreco(){
+  document.getElementById('modalPreco').style.display='none';
+}
+
+function ajustarCamposPreco(){
+  const tipo=document.getElementById('precoTipo').value;
+  const isPlaca=tipo==='placas';
+  const isAcess=tipo==='cabo'||tipo==='mc4';
+  document.getElementById('precoNomeBox').style.display = isAcess ? 'none' : 'flex';
+  document.getElementById('precoPotBox').style.display = isPlaca ? 'flex' : 'none';
+  document.getElementById('precoInvBox').style.display = (!isPlaca && !isAcess) ? 'grid' : 'none';
+}
+
+function editarItemPreco(tipo, idx){ abrirModalPreco(tipo, idx); }
+
+function excluirItemPreco(tipo, idx){
+  if(!DB[tipo] || !DB[tipo][idx]) return;
+  if(!confirm('Excluir este item da tabela?')) return;
+  DB[tipo].splice(idx,1);
+  salvarTabelaLocal(false);
+  renderAdmTbl(); rebuildSels();
+  const msg=document.getElementById('admEditMsg');
+  if(msg){msg.style.display='block';msg.className='umsg ok';msg.textContent='Item excluído e tabela atualizada.';}
+}
+
+function salvarItemPreco(){
+  const tipo=document.getElementById('precoTipo').value;
+  const editTipo=document.getElementById('precoEditTipo').value;
+  const idxStr=document.getElementById('precoEditIndex').value;
+  const idx=idxStr===''?null:parseInt(idxStr,10);
+  const nome=document.getElementById('precoNome').value.trim();
+  const pot=parseInt(document.getElementById('precoPot').value||'0',10);
+  const preco=parseFloat(document.getElementById('precoValor').value||'0');
+  const ov=parseInt(document.getElementById('precoOv').value||'0',10);
+  const mc4=parseInt(document.getElementById('precoMc4').value||'0',10);
+  const msg=document.getElementById('precoModalMsg');
+  function erro(t){msg.style.display='block';msg.style.color='#e05050';msg.textContent=t;}
+  if(!preco || preco<0) return erro('Informe um preço válido.');
+  if(tipo==='cabo'){
+    DB.cabo=preco;
+  }else if(tipo==='mc4'){
+    DB.mc4=preco;
+  }else if(tipo==='placas'){
+    if(!nome) return erro('Informe o nome da placa.');
+    if(!pot) return erro('Informe a potência da placa em W.');
+    const item={nome,pot,preco};
+    if(editTipo && idx!==null) DB.placas[idx]=item; else DB.placas.push(item);
+  }else{
+    if(!nome) return erro('Informe o nome do inversor.');
+    const item={nome,preco,ov,mc4};
+    if(editTipo && idx!==null) DB[tipo][idx]=item; else DB[tipo].push(item);
+  }
+  salvarTabelaLocal(false);
+  fecharModalPreco(); renderAdmTbl(); rebuildSels();
+  const ok=document.getElementById('admEditMsg');
+  if(ok){ok.style.display='block';ok.className='umsg ok';ok.textContent='Item salvo. Os novos cálculos já usam a tabela atualizada.';}
 }
 
 function handleUp(input){
@@ -1320,6 +1518,7 @@ function handleUp(input){
       DB.cabo=cabo; DB.mc4=mc4;
       msg.className='umsg ok';
       msg.textContent='Atualizado! '+DB.placas.length+' placas - '+DB.mono.length+' mono - '+DB.micro.length+' micro - '+DB.tri.length+' tri - cabo R$'+DB.cabo+' - MC4 R$'+DB.mc4;
+      salvarTabelaLocal(false);
       renderAdmTbl(); rebuildSels();
     }catch(err){
       msg.className='umsg err';
