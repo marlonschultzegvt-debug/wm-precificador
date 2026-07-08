@@ -461,7 +461,7 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:22px;heigh
       </div>
 
       <div id="gMono" class="fg"><label>Modelo Monofásico</label>
-        <select id="sMono" onchange="chkOv()">
+        <select id="sMono" onchange="onMainInvChange()">
           <option value="0">Chint 3kW Mono — Overload: até 8 placas</option>
           <option value="1">Chint 5kW Mono — Overload: até 14 placas</option>
           <option value="2">Chint 6kW Mono — Overload: até 17 placas</option>
@@ -471,7 +471,7 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:22px;heigh
       </div>
 
       <div id="gTri" class="fg" style="display:none"><label>Modelo Trifásico</label>
-        <select id="sTri" onchange="chkOv()">
+        <select id="sTri" onchange="onMainInvChange()">
           <option value="0">Sofar 25kW Tri — Overload: até 72 placas</option>
           <option value="1">Chint 25kW Tri — Overload: até 72 placas</option>
           <option value="2">Sofar 30kW Tri — Overload: até 85 placas</option>
@@ -498,15 +498,10 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:22px;heigh
 
       <div class="ov-alert" id="ovAl">
         <strong>⚠ Overload excedido!</strong> <span id="ovTxt"></span><br>
-        Selecione a quantidade de inversores:
-        <div class="qrow">
-          <label>Qtd inversores:</label>
-          <div class="qbtns">
-            <button class="qb on" id="qb1" onclick="setQI(1)">1</button>
-            <button class="qb" id="qb2" onclick="setQI(2)">2</button>
-          </div>
-        </div>
-        <div class="blkmsg" id="blkMsg">❌ Mesmo com 2 inversores este modelo não atende <span id="blkQtd"></span> placas. Escolha um inversor maior.</div>
+        <span>Adicione quantos inversores forem necessários e escolha o modelo de cada um:</span>
+        <div id="invMultiBox" style="margin-top:12px;display:flex;flex-direction:column;gap:8px"></div>
+        <button type="button" class="ba bot" id="btnAddInv" onclick="addInv()" style="margin-top:10px;border-color:rgba(232,123,30,.45);color:var(--orange)">➕ Adicionar inversor</button>
+        <div class="blkmsg" id="blkMsg">❌ Os inversores selecionados ainda não atendem <span id="blkQtd"></span> placas. Clique em adicionar inversor ou escolha um modelo maior.</div>
       </div>
 
       <!-- Segundo inversor (aparece quando qi=2) -->
@@ -952,7 +947,7 @@ function aplicarPermissoesTela(){
 
 // ====== AUTH ======
 let telDuplicado=false;
-let S={role:null,login:null,nomeVend:null,metaVend:60,mode:'qtd',tipoInv:'mono',oLoss:0,estKey:'2p_colonial',qtd:10,qi:1,isRural:false,R:null};
+let S={role:null,login:null,nomeVend:null,metaVend:60,mode:'qtd',tipoInv:'mono',oLoss:0,estKey:'2p_colonial',qtd:10,qi:1,invList:[0],isRural:false,R:null};
 
 function normalizarPerfilUsuario(res){
   // Regra forte para o perfil 🔒 Vend. Interno.
@@ -1137,36 +1132,105 @@ function go2(){
   if(!S.qtd||S.qtd<1){alert('Informe a quantidade de placas.');return}
   document.getElementById('c1').style.display='none';
   document.getElementById('c2').style.display='block';
-  setStep(2);S.qi=1;
+  setStep(2);S.qi=1;resetInvList();
   if(S.tipoInv==='micro') updMicroDisp(); else chkOv();
 }
 
 // ====== STEP 2 ======
+function invArr(){
+  return S.tipoInv==='tri' ? (DB.tri||[]) : S.tipoInv==='micro' ? (DB.micro||[]) : (DB.mono||[]);
+}
+function getSelInvIndex(){
+  const id=S.tipoInv==='tri'?'sTri':'sMono';
+  const el=document.getElementById(id);
+  return Math.max(0, parseInt(el?.value || 0));
+}
 function getInv(){
-  if(S.tipoInv==='mono')  return DB.mono[parseInt(document.getElementById('sMono').value)];
-  if(S.tipoInv==='tri')   return DB.tri[parseInt(document.getElementById('sTri').value)];
-  return DB.micro[0];
+  const arr=invArr();
+  return arr[getSelInvIndex()] || arr[0] || {nome:'Inversor',preco:0,ov:0,mc4:0};
+}
+function getInvByIdx(idx){
+  const arr=invArr();
+  return arr[parseInt(idx||0)] || arr[0] || {nome:'Inversor',preco:0,ov:0,mc4:0};
+}
+function getSelectedInversores(){
+  if(S.tipoInv==='micro') return [DB.micro[0]];
+  if(!Array.isArray(S.invList) || !S.invList.length) S.invList=[getSelInvIndex()];
+  return S.invList.map(i=>getInvByIdx(i));
+}
+function getTotalOv(){
+  return getSelectedInversores().reduce((t,i)=>t+Number(i.ov||0),0);
 }
 function getMicroQtd(){ return Math.ceil(S.qtd / DB.micro[0].ov); }
+function resetInvList(){
+  S.invList=[getSelInvIndex()];
+  S.qi=1;
+  renderInvMulti();
+}
+function onMainInvChange(){
+  if(S.tipoInv==='micro'){ updMicroDisp(); return; }
+  if(!Array.isArray(S.invList) || !S.invList.length) S.invList=[getSelInvIndex()];
+  else S.invList[0]=getSelInvIndex();
+  S.qi=S.invList.length;
+  chkOv();
+}
 function setTipoInv(t,btn){
   S.tipoInv=t;
   document.querySelectorAll('#c2 .tb').forEach(b=>b.classList.remove('on'));btn.classList.add('on');
   document.getElementById('gMono').style.display=t==='mono'?'block':'none';
   document.getElementById('gTri').style.display=t==='tri'?'block':'none';
-  // Sincronizar tipo do segundo inversor
-  const gM2=document.getElementById('gMono2'); if(gM2) gM2.style.display=t==='mono'?'block':'none';
-  const gT2=document.getElementById('gTri2');  if(gT2) gT2.style.display=t==='tri'?'block':'none';
+  const gM2=document.getElementById('gMono2'); if(gM2) gM2.style.display='none';
+  const gT2=document.getElementById('gTri2');  if(gT2) gT2.style.display='none';
+  const inv2=document.getElementById('gInv2'); if(inv2) inv2.style.display='none';
   document.getElementById('gMicro').style.display=t==='micro'?'block':'none';
   document.getElementById('ovAl').style.display='none';
   const nxt=document.getElementById('btn2nxt');
   nxt.disabled=false;nxt.style.opacity='1';nxt.style.cursor='pointer';
   S.qi=1;
-  if(t==='micro') updMicroDisp(); else chkOv();
+  S.invList=[0];
+  if(t==='micro') updMicroDisp(); else { resetInvList(); chkOv(); }
 }
 function updMicroDisp(){
   const qtdM=getMicroQtd();const inv=DB.micro[0];
   document.getElementById('microQtdDisp').textContent=qtdM+' unidade'+(qtdM>1?'s':'');
   document.getElementById('microQtdSub').textContent=`${qtdM} × ${inv.nome} · ${qtdM*inv.mc4} pares MC4`;
+}
+function renderInvMulti(){
+  const box=document.getElementById('invMultiBox');
+  if(!box || S.tipoInv==='micro') return;
+  const arr=invArr();
+  if(!Array.isArray(S.invList) || !S.invList.length) S.invList=[getSelInvIndex()];
+  box.innerHTML=S.invList.map((idx,n)=>{
+    const opts=arr.map((i,x)=>`<option value="${x}" ${x==idx?'selected':''}>${i.nome} — até ${i.ov} placas</option>`).join('');
+    const rm=n===0?'':`<button type="button" class="qb" onclick="removeInv(${n})" title="Remover" style="width:38px;color:#ff7777;border-color:rgba(255,80,80,.35)">🗑</button>`;
+    return `<div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+      <label style="font-size:12px;color:var(--t2);min-width:80px">Inversor ${n+1}</label>
+      <select onchange="setInvIdx(${n},this.value)" style="flex:1;min-width:220px">${opts}</select>${rm}
+    </div>`;
+  }).join('');
+}
+function setInvIdx(pos,val){
+  S.invList[pos]=parseInt(val||0);
+  if(pos===0){
+    const main=document.getElementById(S.tipoInv==='tri'?'sTri':'sMono');
+    if(main) main.value=String(S.invList[0]);
+  }
+  chkOv();
+}
+function addInv(){
+  if(S.tipoInv==='micro') return;
+  if(!Array.isArray(S.invList) || !S.invList.length) S.invList=[getSelInvIndex()];
+  S.invList.push(getSelInvIndex());
+  S.qi=S.invList.length;
+  renderInvMulti();
+  chkOv();
+}
+function removeInv(pos){
+  if(!Array.isArray(S.invList) || S.invList.length<=1) return;
+  S.invList.splice(pos,1);
+  S.qi=S.invList.length;
+  renderInvMulti();
+  chkOv();
 }
 function chkOv(){
   if(S.tipoInv==='micro'){updMicroDisp();return}
@@ -1174,10 +1238,14 @@ function chkOv(){
   const al=document.getElementById('ovAl');
   const nxt=document.getElementById('btn2nxt');
   const blk=document.getElementById('blkMsg');
-  if(qtd>inv.ov){
+  if(!Array.isArray(S.invList) || !S.invList.length) S.invList=[getSelInvIndex()];
+  const totalOv=getTotalOv();
+  S.qi=S.invList.length;
+  renderInvMulti();
+  if(qtd>inv.ov || S.qi>1){
     al.style.display='block';
-    document.getElementById('ovTxt').textContent=`Com ${qtd} placas este inversor suporta até ${inv.ov} placas.`;
-    if(qtd>inv.ov*2){
+    document.getElementById('ovTxt').textContent=`Com ${qtd} placas, a configuração selecionada suporta até ${totalOv} placas.`;
+    if(qtd>totalOv){
       blk.style.display='block';
       document.getElementById('blkQtd').textContent=qtd;
       nxt.disabled=true;nxt.style.opacity='.4';nxt.style.cursor='not-allowed';
@@ -1185,26 +1253,17 @@ function chkOv(){
       blk.style.display='none';
       nxt.disabled=false;nxt.style.opacity='1';nxt.style.cursor='pointer';
     }
-    setQIui(S.qi);
   }else{
     al.style.display='none';S.qi=1;
     nxt.disabled=false;nxt.style.opacity='1';nxt.style.cursor='pointer';
   }
 }
 function setQI(n){
-  const inv=getInv();
-  if(n===1&&S.qtd>inv.ov)return;
-  S.qi=n;setQIui(n);
-  const nxt=document.getElementById('btn2nxt');
-  if(n===2&&S.qtd<=inv.ov*2){
-    nxt.disabled=false;nxt.style.opacity='1';nxt.style.cursor='pointer';
-    document.getElementById('blkMsg').style.display='none';
-  }
+  // Compatibilidade com versões antigas: agora a quantidade é definida pelo botão + Adicionar inversor.
+  if(n>1) addInv();
+  else {S.invList=[getSelInvIndex()];S.qi=1;chkOv();}
 }
-function setQIui(n){
-  document.getElementById('qb1').className='qb'+(n===1?' on':'');
-  document.getElementById('qb2').className='qb'+(n===2?' on':'');
-}
+function setQIui(n){ renderInvMulti(); }
 function go3(){
   if(document.getElementById('btn2nxt').disabled)return;
   document.getElementById('c2').style.display='none';
@@ -1259,31 +1318,31 @@ function getInv2(){
   return getInv();
 }
 function calcRes(){
-  const pl=getPlaca();const inv=getInv();
+  const pl=getPlaca();
   const est=DB.est[S.estKey];
   const _slocal=document.getElementById('sLocal').value; const f=parseFloat(_slocal.split('|')[0]);
   const qtd=S.qtd;
-  // microinversor: qty calculada automaticamente
-  const qi=S.tipoInv==='micro' ? getMicroQtd() : S.qi;
-  // Segundo inversor (pode ser modelo diferente)
-  const inv2 = (qi===2 && S.tipoInv!=='micro') ? getInv2() : null;
-  const duplosMesmo = !inv2 || inv2===inv || inv2.nome===inv.nome;
+  const isMicro=S.tipoInv==='micro';
+  const invs=isMicro ? Array.from({length:getMicroQtd()},()=>DB.micro[0]) : getSelectedInversores();
+  const inv=invs[0] || getInv();
+  const qi=invs.length;
+  const inv2=invs[1] || null;
+  const duplosMesmo = invs.every(i=>i && i.nome===inv.nome);
   // custos
   const cPl=qtd*pl.preco;
-  const cInv = duplosMesmo ? inv.preco*qi : inv.preco + inv2.preco;
+  const cInv = invs.reduce((t,i)=>t+Number(i.preco||0),0);
   let cEst=0,kits=0;
   if(est.passo>0){const qA=Math.ceil(qtd/est.passo)*est.passo;kits=qA/est.passo;cEst=kits*est.preco}
   const metros=Math.max(20,qtd*2.5);
   const cCabo=Math.ceil(metros)*DB.cabo;
-  const mc4 = duplosMesmo ? inv.mc4*qi : inv.mc4+inv2.mc4;
+  const mc4 = invs.reduce((t,i)=>t+Number(i.mc4||0),0);
   const cMC4=mc4*DB.mc4;
   const custo=cPl+cInv+cEst+cCabo+cMC4+(S.isRural?450:0);
   const custoLiq=custo*1.00; // sem desconto de custo
   const precoBase=custoLiq*1.70;
   const kwp=(pl.pot*qtd)/1000;
   const gen=kwp*f*30*(1-S.oLoss);
-  const isMicro=S.tipoInv==='micro';
-  S.R={qtd,pl,inv,inv2:inv2||null,duplosMesmo,qi,est,kits,metros,mc4,cPl,cInv,cEst,cCabo,cMC4,custo,custoLiq,precoBase,kwp,gen,cPct:0,isMicro,isRural:S.isRural};
+  S.R={qtd,pl,inv,inv2:inv2||null,invs,duplosMesmo,qi,est,kits,metros,mc4,cPl,cInv,cEst,cCabo,cMC4,custo,custoLiq,precoBase,kwp,gen,cPct:0,isMicro,isRural:S.isRural};
   // Reset visual dos cards de comissão para evitar estado herdado ao recalcular
   const _comCard=document.getElementById('slC')?.closest('.card');
   const _pcCard=document.getElementById('pcGrid')?.closest('.card');
@@ -1299,6 +1358,15 @@ function calcRes(){
   aplicarPermissoesTela();
 }
 
+function invResumo(r){
+  if(!r) return '';
+  if(r.isMicro) return `${r.qi}× Microinversor`;
+  const invs=r.invs || [r.inv].filter(Boolean);
+  const counts={};
+  invs.forEach(i=>{counts[i.nome]=(counts[i.nome]||0)+1});
+  return Object.entries(counts).map(([nome,q])=>q>1?`${q}× ${nome}`:nome).join(' + ');
+}
+
 function updC(){
   if(isInterno()) return; // interno: preço fixo, não atualizar via slider
   const pct=parseInt(document.getElementById('slC').value);
@@ -1309,8 +1377,7 @@ function updC(){
   document.getElementById('cPrecoLbl').textContent='R$ '+fmtBRL(preco);
   document.getElementById('cValLbl').textContent=pct>0?'Comissão: R$ '+fmtBRL(comv):'Sem comissão';
   document.getElementById('rPrice').textContent='R$ '+fmtBRL(preco);
-  document.getElementById('rSub').textContent=`${pct}% comissão · ${r.qtd} placas ${r.pl.pot}W · ${r.kwp.toFixed(2)} kWp`+
-    (r.isMicro?` · ${r.qi}× Microinversor`:(r.qi>1?` · ${r.qi}× ${r.inv.nome}`:''));
+  document.getElementById('rSub').textContent=`${pct}% comissão · ${r.qtd} placas ${r.pl.pot}W · ${r.kwp.toFixed(2)} kWp`+(r.qi>1 || r.isMicro ? ` · ${invResumo(r)}` : '');
   S.R.cPct=pct;
   renderPC();renderMets(preco,pct,comv);
 }
@@ -1342,10 +1409,7 @@ function renderBk(){
   let h='<thead><tr><th>Item</th><th>Detalhe</th>'+(isAdm?'<th style="text-align:right">Custo</th>':'')+'</tr></thead><tbody>';
   const rows=[
     {item:`Painéis ${r.pl.nome}`,det:`${r.qtd} un.`,val:r.cPl},
-    ...(r.duplosMesmo || !r.inv2
-      ? [{item:`Inversor ${r.inv.nome}`+(r.qi>1?' ×'+r.qi:''),det:`${r.mc4} pares MC4`,val:r.cInv}]
-      : [{item:`Inversor 1 — ${r.inv.nome}`,det:`${r.inv.mc4} pares MC4`,val:r.inv.preco},
-         {item:`Inversor 2 — ${r.inv2.nome}`,det:`${r.inv2.mc4} pares MC4`,val:r.inv2.preco}]),
+    ...((r.invs||[r.inv]).map((iv,idx)=>({item:`Inversor ${idx+1} — ${iv.nome}`,det:`${iv.mc4} pares MC4 · até ${iv.ov} placas`,val:iv.preco}))),
     {item:`Estrutura ${r.est.nome}`,det:r.est.passo>0?`${r.kits} kit(s)`:'Não incluída',val:r.cEst},
     {item:'Cabo Solar',det:`${Math.ceil(r.metros)}m × R$ ${DB.cabo}`,val:r.cCabo},
     {item:`Conectores MC4 Odex`,det:`${r.mc4} pares × R$ ${DB.mc4}`,val:r.cMC4},
@@ -1626,12 +1690,43 @@ function handleUp(input){
   };
   reader.readAsArrayBuffer(file);
 }
+function invKW(nome){
+  const m=String(nome||'').replace(',', '.').match(/(\d+(?:\.\d+)?)\s*k\s*w/i);
+  return m ? parseFloat(m[1]) : 0;
+}
+function normalizeDBInversores(){
+  const all=[...(DB.mono||[]),...(DB.tri||[])];
+  const seen=new Set();
+  const mono=[], tri=[];
+  all.forEach(i=>{
+    if(!i || !i.nome) return;
+    const key=String(i.nome).toLowerCase().trim();
+    if(seen.has(key)) return;
+    seen.add(key);
+    const kw=invKW(i.nome);
+    const nome=String(i.nome).toLowerCase();
+    if(kw>=15 || nome.includes(' tri') || nome.includes('trif')) tri.push(i);
+    else mono.push(i);
+  });
+  DB.mono=mono.sort((a,b)=>invKW(a.nome)-invKW(b.nome));
+  DB.tri=tri.sort((a,b)=>invKW(a.nome)-invKW(b.nome));
+}
 function rebuildSels(){
+  normalizeDBInversores();
   buildPlacaSel();
   const sm=document.getElementById('sMono');
   const st=document.getElementById('sTri');
-  if(sm) sm.innerHTML=(DB.mono||[]).map((i,x)=>`<option value="${x}">${i.nome} — Overload: até ${i.ov} placas</option>`).join('');
-  if(st) st.innerHTML=(DB.tri||[]).map((i,x)=>`<option value="${x}">${i.nome} — Overload: até ${i.ov} placas</option>`).join('');
+  const sm2=document.getElementById('sMono2');
+  const st2=document.getElementById('sTri2');
+  const monoHtml=(DB.mono||[]).map((i,x)=>`<option value="${x}">${i.nome} — Overload: até ${i.ov} placas</option>`).join('');
+  const triHtml=(DB.tri||[]).map((i,x)=>`<option value="${x}">${i.nome} — Overload: até ${i.ov} placas</option>`).join('');
+  if(sm) sm.innerHTML=monoHtml;
+  if(st) st.innerHTML=triHtml;
+  if(sm2) sm2.innerHTML=monoHtml;
+  if(st2) st2.innerHTML=triHtml;
+  if(!Array.isArray(S.invList)||!S.invList.length) S.invList=[0];
+  S.invList=S.invList.map(x=>Math.min(Number(x)||0, Math.max(0, invArr().length-1)));
+  renderInvMulti();
 }
 function dlXls(){
   const wb=XLSX.utils.book_new();
@@ -2079,7 +2174,7 @@ function abrirProposta(){
   h+='<div style="font-size:10px;color:#888;margin-top:1px">'+r.qtd+' un. &middot; '+r.kwp.toFixed(2)+' kWp</div></div></div>';
   h+='<div style="display:flex;align-items:center;gap:8px;background:#f8fafc;border:1px solid #e8edf3;border-radius:8px;padding:8px 10px">';
   h+='<div style="width:30px;height:30px;background:#f0f7ff;border:1px solid #dbeafe;border-radius:6px;display:flex;align-items:center;justify-content:center;font-size:14px;flex-shrink:0">⚡</div>';
-  h+='<div><div style="font-size:11px;font-weight:600;color:#1a2332">'+(r.duplosMesmo!==false ? r.inv.nome+(r.qi>1?' &times;'+r.qi:'') : r.inv.nome+' + '+( r.inv2?r.inv2.nome:''))+'  </div>';
+  h+='<div><div style="font-size:11px;font-weight:600;color:#1a2332">'+invResumo(r)+'  </div>';
   h+='<div style="font-size:10px;color:#888;margin-top:1px">'+(r.isMicro?r.qi+' un. (4 pl/un)':r.qi>1?r.qi+' unidades':'1 unidade')+'</div></div></div>';
   if(r.est.passo>0){
     const qtdA=Math.ceil(r.qtd/r.est.passo)*r.est.passo;
@@ -2214,7 +2309,7 @@ function expXls(){
     ['WM Energia Solar — Orçamento'],['Data:',new Date().toLocaleDateString('pt-BR')],[''],
     ['Item','Detalhe','Custo (R$)'],
     [`Painéis ${r.pl.nome}`,`${r.qtd} unidades`,r.cPl],
-    ...(r.duplosMesmo!==false ? [[`Inversor ${r.inv.nome}`+(r.qi>1?' ×'+r.qi:''),`${r.mc4} pares MC4`,r.cInv]] : [[`Inversor 1 — ${r.inv.nome}`,`${r.inv.mc4} pares MC4`,r.inv.preco],[`Inversor 2 — ${r.inv2?r.inv2.nome:''}`,`${r.inv2?r.inv2.mc4:0} pares MC4`,r.inv2?r.inv2.preco:0]]),
+    ...((r.invs||[r.inv]).map((iv,idx)=>[`Inversor ${idx+1} — ${iv.nome}`,`${iv.mc4} pares MC4 · até ${iv.ov} placas`,iv.preco])),
     [`Estrutura ${r.est.nome}`,`${r.kits} kit(s)`,r.cEst],
     ['Cabo Solar',`${Math.ceil(r.metros)}m`,r.cCabo],
     ['Conectores MC4',`${r.mc4} pares`,r.cMC4],[''],
